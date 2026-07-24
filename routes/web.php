@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BarberiaController;
 use GuzzleHttp\Middleware;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
@@ -8,20 +9,7 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
-Route::get('/tus-citas',function () {
-    return view('tus-citas');
-});
-
-Route::get('/{empresa}',function ($empresa) {
-    return view('tu-empresa', [ 'tu_empresa' => $empresa ]);
-});
-
-
-Route::get('/{empresa}/agendar-cita',function ($empresa) {
-    return view('post.agendar_cita', [ 
-        'tu_empresa' => $empresa 
-    ]);
-});
+Route::get('/{empresa}', [BarberiaController::class, 'show']);
 
 Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])
