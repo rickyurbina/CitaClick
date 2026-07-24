@@ -8,20 +8,8 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
-Route::get('/admin',function () {
-    return view('admin');
-});
-
-Route::get('/admin/empresas',function () {
-    return view('administrar-empresa');
-});
-
 Route::get('/tus-citas',function () {
     return view('tus-citas');
-});
-
-Route::get('/empresas',function () {
-    return view('empresas');
 });
 
 Route::get('/{empresa}',function ($empresa) {
