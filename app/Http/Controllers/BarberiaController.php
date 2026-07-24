@@ -15,6 +15,6 @@ class BarberiaController extends Controller
             abort(404, 'La página que buscas no existe.');
         }
 
-        return view('empresas.show', compact('empresa'));
+        return view('citas', compact('empresa'));
     }
 }
