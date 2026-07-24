@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="es" class="light"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block" rel="stylesheet"><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">try{
+<!DOCTYPE html><html class="light" lang="es" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block" rel="stylesheet"><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">try{
         tailwind.config = {
             darkMode: "class",
             theme: {
@@ -106,32 +106,32 @@
 </div>
 <nav class="flex-grow space-y-1">
 <!-- Catalog -->
-<a href="#" class="flex items-center gap-3 px-4 py-3 font-label-md text-label-md text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out">
+<a class="flex items-center gap-3 px-4 py-3 font-label-md text-label-md text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out" href="#">
 <span class="material-symbols-outlined">grid_view</span>
 <span class="">Catalog</span>
 </a>
 <!-- Schedule (Active) -->
-<a href="#" class="flex items-center gap-3 px-4 py-3 font-label-md text-label-md bg-secondary-container dark:bg-on-secondary-fixed-variant text-on-secondary-container dark:text-secondary-fixed rounded-lg transition-all duration-200 ease-in-out">
+<a class="flex items-center gap-3 px-4 py-3 font-label-md text-label-md bg-secondary-container dark:bg-on-secondary-fixed-variant text-on-secondary-container dark:text-secondary-fixed rounded-lg transition-all duration-200 ease-in-out" href="#">
 <span class="material-symbols-outlined">calendar_today</span>
 <span class="">Schedule</span>
 </a>
 <!-- Orders -->
-<a href="#" class="flex items-center gap-3 px-4 py-3 font-label-md text-label-md text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out">
+<a class="flex items-center gap-3 px-4 py-3 font-label-md text-label-md text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out" href="#">
 <span class="material-symbols-outlined">receipt_long</span>
 <span class="">Orders</span>
 </a>
 <!-- Settings -->
-<a href="#" class="flex items-center gap-3 px-4 py-3 font-label-md text-label-md text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out">
+<a class="flex items-center gap-3 px-4 py-3 font-label-md text-label-md text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out" href="#" style="transform: scale(1);">
 <span class="material-symbols-outlined">settings</span>
 <span class="">Settings</span>
 </a>
 </nav>
 <div class="mt-auto border-t border-outline-variant pt-lg space-y-1">
-<a href="#" class="flex items-center gap-3 px-4 py-3 font-label-md text-label-md text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out">
+<a class="flex items-center gap-3 px-4 py-3 font-label-md text-label-md text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out" href="#" style="transform: scale(1);">
 <span class="material-symbols-outlined">help</span>
 <span class="">Help</span>
 </a>
-<a href="#" class="flex items-center gap-3 px-4 py-3 font-label-md text-label-md text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out">
+<a class="flex items-center gap-3 px-4 py-3 font-label-md text-label-md text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out" href="#">
 <span class="material-symbols-outlined">logout</span>
 <span class="">Sign Out</span>
 </a>
@@ -144,12 +144,12 @@
 <div class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
 <div class="flex items-center gap-4">
 <span class="md:hidden material-symbols-outlined text-primary cursor-pointer">menu</span>
-<span class="font-headline-md text-headline-md font-headline-lg text-primary dark:text-inverse-primary">Gestión de Citas</span>
+<span class="font-headline-md text-headline-md font-headline-lg text-primary dark:text-inverse-primary">Gestión de Colaboradores</span>
 </div>
 <div class="flex items-center gap-md">
 <div class="hidden md:flex items-center bg-surface-container-low px-4 py-2 rounded-full border border-outline-variant">
 <span class="material-symbols-outlined text-on-surface-variant text-[20px]">search</span>
-<input type="text" placeholder="Buscar citas..." class="bg-transparent border-none focus:ring-0 text-body-sm font-body-sm ml-2 w-48">
+<input class="bg-transparent border-none focus:ring-0 text-body-sm font-body-sm ml-2 w-48" placeholder="Buscar colaborador..." type="text">
 </div>
 <div class="flex items-center gap-sm">
 <button class="p-2 text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors cursor-pointer active:opacity-80">
@@ -168,17 +168,17 @@
 <!-- Page Canvas -->
 <main class="flex-grow p-margin-mobile md:p-margin-desktop max-w-container-max w-full mx-auto">
 <!-- Quick Actions / Stats (Bento Style) -->
-<div class="grid grid-cols-1 md:grid-cols-4 gap-lg mb-2xl">
-<div class="bg-surface p-lg rounded-xl card-shadow border border-outline-variant col-span-1">
-<div class="flex items-center justify-between mb-sm">
-<span class="text-on-surface-variant font-label-sm text-label-sm">Citas Hoy</span>
-<span class="material-symbols-outlined text-secondary">today</span>
-</div>
-<div class="font-headline-lg text-headline-lg text-primary">12</div>
-<div class="text-body-sm font-body-sm text-secondary flex items-center gap-1 mt-xs">
-<span class="material-symbols-outlined text-[16px]">trending_up</span>
-<span class="">+4 que ayer</span>
-</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-lg mb-2xl"><div class="bg-secondary-container p-lg rounded-xl card-shadow border border-outline-variant col-span-1 relative overflow-hidden group cursor-pointer hover:opacity-90 transition-opacity">
+    <div class="relative z-10 flex flex-col h-full justify-between">
+        <div>
+            <span class="material-symbols-outlined text-on-secondary-container mb-sm">calendar_add_on</span>
+            <div class="font-label-md text-label-md text-on-secondary-container">Nueva Cita</div>
+            <p class="text-on-secondary-container font-body-sm text-body-sm mt-xs opacity-80">Programe un nuevo servicio corporativo de forma instantánea.</p>
+        </div>
+        <div class="mt-md">
+            <button class="bg-primary text-on-primary px-4 py-2 rounded-lg font-label-sm text-label-sm">Agendar Ahora</button>
+        </div>
+    </div>
 </div>
 <div class="bg-surface p-lg rounded-xl card-shadow border border-outline-variant col-span-1"><div class="flex items-center justify-between mb-sm">
 <span class="text-on-surface-variant font-label-sm text-label-sm">Ingresos Hoy</span>
@@ -189,17 +189,17 @@
 <span class="material-symbols-outlined text-[16px]">trending_up</span>
 <span class="">+12% vs ayer</span>
 </div></div>
-
+<div class="bg-secondary-container p-lg rounded-xl card-shadow border border-outline-variant col-span-1 md:col-span-2 relative overflow-hidden group"><div class="flex flex-col md:flex-row gap-md h-full items-center justify-center"><button class="flex-grow w-full md:w-auto bg-primary text-on-primary px-lg py-md rounded-lg font-label-md flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"><span class="material-symbols-outlined">check_circle</span>Terminar Turno</button><button class="flex-grow w-full md:w-auto bg-secondary text-on-secondary px-lg py-md rounded-lg font-label-md flex items-center justify-center gap-2 hover:opacity-90 transition-opacity" style="transform: scale(1);"><span class="material-symbols-outlined">receipt_long</span>Corte de Turno</button></div></div>
 </div>
 <!-- Table Section -->
 <div class="bg-surface rounded-xl card-shadow border border-outline-variant overflow-hidden">
 <div class="px-lg py-md flex flex-col md:flex-row justify-between items-start md:items-center gap-md border-b border-outline-variant">
 <div class="">
-<h2 class="font-headline-md text-headline-md text-primary">Listado de Citas</h2>
+<h2 class="font-headline-md text-headline-md text-primary">Listado de Colaboradores</h2>
 <p class="font-body-sm text-body-sm text-on-surface-variant">Gestione y supervise todas las citas activas de SecureCorp.</p>
 </div>
 <div class="flex gap-sm">
-<button class="flex items-center gap-2 px-md py-sm rounded-lg border border-outline text-on-surface hover:bg-surface-container-low transition-colors font-label-md text-label-md">
+<button class="flex items-center gap-2 px-md py-sm rounded-lg border border-outline text-on-surface hover:bg-surface-container-low transition-colors font-label-md text-label-md" style="transform: scale(1);">
 <span class="material-symbols-outlined text-[18px]">filter_list</span>
                             Filtrar
                         </button>
@@ -212,112 +212,9 @@
 <div class="overflow-x-auto">
 <table class="w-full text-left border-collapse">
 <thead>
-<tr class="bg-surface-container-low border-b border-outline-variant">
-<th class="px-lg py-md font-label-md text-label-md text-on-surface-variant">Fecha</th>
-<th class="px-lg py-md font-label-md text-label-md text-on-surface-variant">Hora</th>
-<th class="px-lg py-md font-label-md text-label-md text-on-surface-variant">Servicio Seleccionado</th>
-<th class="px-lg py-md font-label-md text-label-md text-on-surface-variant">Estado</th>
-<th class="px-lg py-md font-label-md text-label-md text-on-surface-variant text-right">Acciones</th>
-</tr>
+<tr class="bg-surface-container-low border-b border-outline-variant"><th class="px-lg py-md font-label-md text-label-md text-on-surface-variant">Seleccionar</th><th class="px-lg py-md font-label-md text-label-md text-on-surface-variant">Nombre del Colaborador</th><th class="px-lg py-md font-label-md text-label-md text-on-surface-variant">Citas Atendidas</th><th class="px-lg py-md font-label-md text-label-md text-on-surface-variant">Estado</th><th class="px-lg py-md font-label-md text-label-md text-on-surface-variant text-right">Acciones</th></tr>
 </thead>
-<tbody class="divide-y divide-outline-variant">
-<!-- Row 1 -->
-<tr class="hover:bg-surface-container-lowest transition-colors">
-<td class="px-lg py-md font-body-md text-body-md text-on-surface">24 Oct, 2023</td>
-<td class="px-lg py-md font-body-md text-body-md text-on-surface">09:30 AM</td>
-<td class="px-lg py-md">
-<div class="flex items-center gap-2">
-<div class="w-2 h-2 rounded-full bg-secondary"></div>
-<span class="font-body-md text-body-md text-on-surface">Consultoría de Seguridad</span>
-</div>
-</td>
-<td class="px-lg py-md">
-<span class="px-sm py-1 bg-secondary-container text-on-secondary-fixed-variant text-label-sm font-label-sm rounded-full">Confirmada</span>
-</td>
-<td class="px-lg py-md text-right">
-<div class="flex justify-end gap-sm">
-<button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-all" title="Editar">
-<span class="material-symbols-outlined text-[20px]">edit</span>
-</button>
-<button class="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-lg transition-all" title="Eliminar">
-<span class="material-symbols-outlined text-[20px]">delete</span>
-</button>
-</div>
-</td>
-</tr>
-<!-- Row 2 -->
-<tr class="hover:bg-surface-container-lowest transition-colors">
-<td class="px-lg py-md font-body-md text-body-md text-on-surface">24 Oct, 2023</td>
-<td class="px-lg py-md font-body-md text-body-md text-on-surface">11:00 AM</td>
-<td class="px-lg py-md">
-<div class="flex items-center gap-2">
-<div class="w-2 h-2 rounded-full bg-primary"></div>
-<span class="font-body-md text-body-md text-on-surface">Auditoría Cloud</span>
-</div>
-</td>
-<td class="px-lg py-md">
-<span class="px-sm py-1 bg-surface-container-high text-on-surface-variant text-label-sm font-label-sm rounded-full">Pendiente</span>
-</td>
-<td class="px-lg py-md text-right">
-<div class="flex justify-end gap-sm">
-<button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-all" title="Editar">
-<span class="material-symbols-outlined text-[20px]">edit</span>
-</button>
-<button class="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-lg transition-all" title="Eliminar">
-<span class="material-symbols-outlined text-[20px]">delete</span>
-</button>
-</div>
-</td>
-</tr>
-<!-- Row 3 -->
-<tr class="hover:bg-surface-container-lowest transition-colors">
-<td class="px-lg py-md font-body-md text-body-md text-on-surface">25 Oct, 2023</td>
-<td class="px-lg py-md font-body-md text-body-md text-on-surface">02:15 PM</td>
-<td class="px-lg py-md">
-<div class="flex items-center gap-2">
-<div class="w-2 h-2 rounded-full bg-secondary"></div>
-<span class="font-body-md text-body-md text-on-surface">Soporte Técnico Enterprise</span>
-</div>
-</td>
-<td class="px-lg py-md">
-<span class="px-sm py-1 bg-secondary-container text-on-secondary-fixed-variant text-label-sm font-label-sm rounded-full">Confirmada</span>
-</td>
-<td class="px-lg py-md text-right">
-<div class="flex justify-end gap-sm">
-<button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-all" title="Editar">
-<span class="material-symbols-outlined text-[20px]">edit</span>
-</button>
-<button class="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-lg transition-all" title="Eliminar">
-<span class="material-symbols-outlined text-[20px]">delete</span>
-</button>
-</div>
-</td>
-</tr>
-<!-- Row 4 -->
-<tr class="hover:bg-surface-container-lowest transition-colors">
-<td class="px-lg py-md font-body-md text-body-md text-on-surface">25 Oct, 2023</td>
-<td class="px-lg py-md font-body-md text-body-md text-on-surface">04:45 PM</td>
-<td class="px-lg py-md">
-<div class="flex items-center gap-2">
-<div class="w-2 h-2 rounded-full bg-tertiary"></div>
-<span class="font-body-md text-body-md text-on-surface">Formación de Empleados</span>
-</div>
-</td>
-<td class="px-lg py-md">
-<span class="px-sm py-1 bg-error-container text-on-error-container text-label-sm font-label-sm rounded-full">Cancelada</span>
-</td>
-<td class="px-lg py-md text-right">
-<div class="flex justify-end gap-sm">
-<button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-all" title="Editar">
-<span class="material-symbols-outlined text-[20px]">edit</span>
-</button>
-<button class="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-lg transition-all" title="Eliminar">
-<span class="material-symbols-outlined text-[20px]">delete</span>
-</button>
-</div>
-</td>
-</tr>
-</tbody>
+<tbody class="divide-y divide-outline-variant"><tr class="hover:bg-surface-container-lowest transition-colors"><td class="px-lg py-md"><input class="rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"></td><td class="px-lg py-md font-body-md text-body-md text-on-surface">Carlos Ruiz</td><td class="px-lg py-md font-body-md text-body-md text-on-surface">45 citas</td><td class="px-lg py-md"><span class="px-sm py-1 bg-secondary-container text-on-secondary-fixed-variant text-label-sm font-label-sm rounded-full">Activo</span></td><td class="px-lg py-md text-right"><div class="flex justify-end gap-sm"><button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-all"><span class="material-symbols-outlined text-[20px]">edit</span></button><button class="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-lg transition-all"><span class="material-symbols-outlined text-[20px]">delete</span></button></div></td></tr><tr class="hover:bg-surface-container-lowest transition-colors"><td class="px-lg py-md"><input class="rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"></td><td class="px-lg py-md font-body-md text-body-md text-on-surface">Elena Gómez</td><td class="px-lg py-md font-body-md text-body-md text-on-surface">38 citas</td><td class="px-lg py-md"><span class="px-sm py-1 bg-secondary-container text-on-secondary-fixed-variant text-label-sm font-label-sm rounded-full">Activo</span></td><td class="px-lg py-md text-right"><div class="flex justify-end gap-sm"><button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-all"><span class="material-symbols-outlined text-[20px]">edit</span></button><button class="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-lg transition-all"><span class="material-symbols-outlined text-[20px]">delete</span></button></div></td></tr></tbody>
 </table>
 </div>
 <div class="px-lg py-md bg-surface-container-low flex justify-between items-center border-t border-outline-variant">
@@ -376,6 +273,9 @@
             });
         });
     </script>
+
+
+
 
 
 
