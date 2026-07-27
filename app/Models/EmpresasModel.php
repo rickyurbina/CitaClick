@@ -8,7 +8,8 @@ class EmpresasModel extends Model
 {
     protected $table = 'empresas';
 
-    protected $fillable = ['slug',
+    protected $fillable = [
+        'slug',
         'nombre',
         'logo_url',
         'email_contacto',
