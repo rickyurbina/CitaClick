@@ -62,6 +62,7 @@ class BuscarCliente extends Component
             'telefono' => $this->telefono,
             'nombre' => $this->nombre,
             'email' => $this->email,
+            'fecha_nacimiento' => $this->fecha_nacimiento,
         ]);
 
         $this->clienteId = $cliente->id;
