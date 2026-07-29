@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\BarberiaController;
+use App\Http\Controllers\EmpresasController;
+use GuzzleHttp\Middleware;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminController;
@@ -39,6 +42,11 @@ Route::prefix('dueño')->name('dueño.')->group(function () {
 Route::prefix('recepcionista')->name('recepcionista.')->group(function () {
     Route::get('/colaboradores', [RecepcionistaController::class, 'colaboradoresIndex'])->name('colaboradores.index');
 });
+Route::get('/{empresa:slug}', [BarberiaController::class, 'showCliente']);
+
+Route::get('/{empresa:slug}/panel', [BarberiaController::class, 'showRecepcion']);
+
+Route::get('/dashboard',[EmpresasController::class, 'show']);
 
 // Grupo Colaborador
 Route::prefix('colaborador')->name('colaborador.')->group(function () {
