@@ -15,7 +15,6 @@
             <button class="pb-md font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-all" id="btn-collaborators" onclick="switchTab('collaborators')">Manage Collaborators</button>
         </div>
 
-        <!-- Manage Services View -->
         <div class="space-y-lg block" id="view-services">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-md">
                 <div>
@@ -86,14 +85,12 @@
                                     </div>
                                 </td>
                             </tr>
-                            <!-- Más filas... -->
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- Manage Collaborators View (Hidden) -->
         <div class="space-y-lg hidden" id="view-collaborators">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-md">
                 <div>
@@ -141,7 +138,6 @@
                                     </div>
                                 </td>
                             </tr>
-                            <!-- Más filas... -->
                         </tbody>
                     </table>
                 </div>

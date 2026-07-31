@@ -1,6 +1,6 @@
 @extends('layouts.dueño')
 
-@section('page_title', 'Configuración del Servicio')
+@section('page_title', 'Editar Servicio')
 
 @section('content')
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-md">
@@ -8,10 +8,10 @@
             <nav class="flex gap-2 text-label-sm text-on-surface-variant mb-2">
                 <span>Servicios</span>
                 <span class="material-symbols-outlined text-xs leading-none">chevron_right</span>
-                <span class="text-secondary font-bold">Crear Servicio</span>
+                <span class="text-secondary font-bold">Editar Detalles</span>
             </nav>
             <h1 class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">Configuración del Servicio</h1>
-            <p class="font-body-md text-body-md text-on-surface-variant max-w-2xl">Ingrese los parámetros técnicos, financieros y operativos para el nuevo servicio.</p>
+            <p class="font-body-md text-body-md text-on-surface-variant max-w-2xl">Modifique los parámetros técnicos, financieros y operativos para este módulo de servicio empresarial.</p>
         </div>
         <div class="flex gap-sm">
             <button class="px-lg py-sm rounded-lg border-[1.5px] border-primary text-primary font-bold hover:bg-surface-container-high transition-colors active:scale-95">Cancelar</button>
@@ -29,23 +29,23 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-xl">
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Nombre del Servicio</label>
-                        <input class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md" type="text" placeholder="Ej. Auditoría de Seguridad">
+                        <input class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md" type="text" value="{{ $servicio->nombre }}">
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Correo de Soporte</label>
-                        <input class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md" type="email" placeholder="soporte@empresa.com">
+                        <input class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md" type="email" value="{{ $servicio->email }}">
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Costo por Unidad (MXN)</label>
                         <div class="relative">
                             <span class="absolute left-md top-1/2 -translate-y-1/2 text-on-surface-variant font-bold">$</span>
-                            <input class="w-full h-12 pl-xl pr-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md" type="number" placeholder="0.00">
+                            <input class="w-full h-12 pl-xl pr-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md" type="number" value="{{ $servicio->costo }}">
                         </div>
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Duración Estimada</label>
                         <div class="flex gap-2">
-                            <input class="w-2/3 h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md" type="number" placeholder="48">
+                            <input class="w-2/3 h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md" type="number" value="{{ $servicio->duracion }}">
                             <select class="w-1/3 h-12 px-sm border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary outline-none font-label-md">
                                 <option>Minutos</option>
                                 <option selected>Horas</option>
@@ -55,7 +55,7 @@
                 </div>
                 <div class="mt-xl flex flex-col gap-xs">
                     <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Descripción del Servicio</label>
-                    <textarea class="w-full p-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md" placeholder="Describa el alcance detallado del servicio..." rows="6"></textarea>
+                    <textarea class="w-full p-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md" rows="6">{{ $servicio->descripcion }}</textarea>
                 </div>
             </section>
 

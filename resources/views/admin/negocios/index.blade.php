@@ -25,7 +25,6 @@
         </div>
     </div>
 
-    <!-- Dashboard Stats Row -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-lg mb-xl">
         <div class="bg-surface-container-lowest p-md border border-outline-variant rounded shadow-sm">
             <div class="flex justify-between items-start mb-sm">
@@ -68,7 +67,6 @@
         </div>
     </div>
 
-    <!-- Main Data Table -->
     <div class="bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden shadow-sm">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
@@ -84,7 +82,6 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-outline-variant">
-                    <!-- Row 1 -->
                     <tr class="hover:bg-surface-container/50 transition-colors group">
                         <td class="px-lg py-md">
                             <div class="flex items-center gap-md">
@@ -107,16 +104,19 @@
                         <td class="px-lg py-md text-right">
                             <div class="flex justify-end gap-sm">
                                 <button class="w-8 h-8 rounded hover:bg-primary/10 text-primary transition-all flex items-center justify-center" title="Cambiar Estado"><span class="material-symbols-outlined text-[18px]">sync</span></button>
-                                <button class="w-8 h-8 rounded hover:bg-primary/10 text-primary transition-all flex items-center justify-center" title="Editar"><span class="material-symbols-outlined text-[18px]">edit</span></button>
-                                <button class="w-8 h-8 rounded hover:bg-secondary/10 text-secondary transition-all flex items-center justify-center" title="Ver Detalles"><span class="material-symbols-outlined text-[18px]">visibility</span></button>
+                                <a href="{{ route('admin.negocios.edit', ['id' => 1]) }}" class="w-8 h-8 rounded hover:bg-primary/10 text-primary transition-all flex items-center justify-center" title="Editar">
+                                    <span class="material-symbols-outlined text-[18px]">edit</span>
+                                </a>
+                                <button class="w-8 h-8 rounded hover:bg-secondary/10 text-secondary transition-all flex items-center justify-center" title="Ver Detalles">
+                                    <span class="material-symbols-outlined text-[18px]">visibility</span>
+                                </button>
                             </div>
                         </td>
                     </tr>
-                    <!-- Se repiten las demás filas igual que en el HTML original -->
+                    <!-- Más filas... -->
                 </tbody>
             </table>
         </div>
-        <!-- Table Footer / Pagination -->
         <div class="px-lg py-md bg-surface-container-lowest border-t border-outline-variant flex justify-between items-center">
             <p class="font-body-sm text-on-surface-variant">Mostrando <span class="font-bold text-on-surface">5</span> de <span class="font-bold text-on-surface">128</span> negocios</p>
             <div class="flex items-center gap-sm">

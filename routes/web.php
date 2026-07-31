@@ -13,6 +13,7 @@ use App\Http\Controllers\DueñoController;
 use App\Http\Controllers\RecepcionistaController;
 use App\Http\Controllers\ColaboradorController;
 use App\Http\Controllers\ClienteController;
+use Livewire\Volt\Volt;
 
 /*
 |--------------------------------------------------------------------------
