@@ -7,11 +7,18 @@ use App\Livewire\Superadmin\VerificarUsuario as SuperadminVerificarUsuario;
 use App\Livewire\VerificarUsuario;
 use GuzzleHttp\Middleware;
 use Illuminate\Support\Facades\Route;
-use Livewire\Volt\Volt;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\DueñoController;
+use App\Http\Controllers\RecepcionistaController;
+use App\Http\Controllers\ColaboradorController;
+use App\Http\Controllers\ClienteController;
 
-Route::get('/', function () {
-    return view('welcome');
-})->name('home');
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+*/
 
 Route::get('/dashboard',SuperadminVerificarUsuario::class)->name('superadmin');
 
@@ -19,19 +26,42 @@ Route::get('/{empresa:slug}', BuscarCliente::class)->name('clientes');
 
 Route::get('/{empresa:slug}/panel', VerificarUsuario::class)->name('usuarios');
 
+// // Rutas públicas (login)
+// Route::get('/login-cliente', [AuthController::class, 'showLoginCliente'])->name('login.cliente');
+// Route::get('/login-usuario', [AuthController::class, 'showLoginUsuario'])->name('login.usuario');
+// Route::get('/login-admin', [AuthController::class, 'showLoginAdmin'])->name('login.admin');
+
+// // Grupo Admin
+// Route::prefix('admin')->name('admin.')->group(function () {
+//     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+//     Route::get('/negocios', [AdminController::class, 'negociosIndex'])->name('negocios.index');
+//     Route::get('/negocios/create', [AdminController::class, 'negociosCreate'])->name('negocios.create');
+//     Route::get('/servicios', [AdminController::class, 'serviciosIndex'])->name('servicios.index');
+// });
+
+// // Grupo Dueño
+// Route::prefix('dueño')->name('dueño.')->group(function () {
+//     Route::get('/dashboard', [DueñoController::class, 'dashboard'])->name('dashboard');
+//     Route::get('/citas', [DueñoController::class, 'citasIndex'])->name('citas.index');
+//     Route::get('/servicios/create', [DueñoController::class, 'serviciosCreate'])->name('servicios.create');
+//     Route::get('/colaboradores/create', [DueñoController::class, 'colaboradoresCreate'])->name('colaboradores.create');
+// });
+
+// // Grupo Recepcionista
+// Route::prefix('recepcionista')->name('recepcionista.')->group(function () {
+//     Route::get('/colaboradores', [RecepcionistaController::class, 'colaboradoresIndex'])->name('colaboradores.index');
+// });
+// Route::get('/{empresa:slug}', [BarberiaController::class, 'showCliente']);
 
 
 
-Route::view('dashboard', 'dashboard')
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
+// // Grupo Colaborador
+// Route::prefix('colaborador')->name('colaborador.')->group(function () {
+//     Route::get('/citas', [ColaboradorController::class, 'citasIndex'])->name('citas.index');
+// });
 
-Route::middleware(['auth'])->group(function () {
-    Route::redirect('settings', 'settings/profile');
-
-    Volt::route('settings/profile', 'settings.profile')->name('settings.profile');
-    Volt::route('settings/password', 'settings.password')->name('settings.password');
-    Volt::route('settings/appearance', 'settings.appearance')->name('settings.appearance');
-});
-
-require __DIR__.'/auth.php';
+// // Grupo Cliente
+// Route::prefix('cliente')->name('cliente.')->group(function () {
+//     Route::get('/servicios', [ClienteController::class, 'serviciosIndex'])->name('servicios.index');
+//     Route::get('/agendar', [ClienteController::class, 'agendarIndex'])->name('agendar.index');
+// });
