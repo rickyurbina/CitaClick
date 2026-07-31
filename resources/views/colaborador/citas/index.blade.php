@@ -74,57 +74,6 @@
                             </div>
                         </td>
                     </tr>
-                    <tr class="hover:bg-surface-container-lowest transition-colors">
-                        <td class="px-lg py-md font-body-md text-body-md text-on-surface">24 Oct, 2023</td>
-                        <td class="px-lg py-md font-body-md text-body-md text-on-surface">11:00 AM</td>
-                        <td class="px-lg py-md">
-                            <div class="flex items-center gap-2">
-                                <div class="w-2 h-2 rounded-full bg-primary"></div>
-                                <span class="font-body-md text-body-md text-on-surface">Auditoría Cloud</span>
-                            </div>
-                        </td>
-                        <td class="px-lg py-md"><span class="px-sm py-1 bg-surface-container-high text-on-surface-variant text-label-sm font-label-sm rounded-full">Pendiente</span></td>
-                        <td class="px-lg py-md text-right">
-                            <div class="flex justify-end gap-sm">
-                                <button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-all" title="Editar"><span class="material-symbols-outlined text-[20px]">edit</span></button>
-                                <button class="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-lg transition-all" title="Eliminar"><span class="material-symbols-outlined text-[20px]">delete</span></button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr class="hover:bg-surface-container-lowest transition-colors">
-                        <td class="px-lg py-md font-body-md text-body-md text-on-surface">25 Oct, 2023</td>
-                        <td class="px-lg py-md font-body-md text-body-md text-on-surface">02:15 PM</td>
-                        <td class="px-lg py-md">
-                            <div class="flex items-center gap-2">
-                                <div class="w-2 h-2 rounded-full bg-secondary"></div>
-                                <span class="font-body-md text-body-md text-on-surface">Soporte Técnico Enterprise</span>
-                            </div>
-                        </td>
-                        <td class="px-lg py-md"><span class="px-sm py-1 bg-secondary-container text-on-secondary-fixed-variant text-label-sm font-label-sm rounded-full">Confirmada</span></td>
-                        <td class="px-lg py-md text-right">
-                            <div class="flex justify-end gap-sm">
-                                <button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-all" title="Editar"><span class="material-symbols-outlined text-[20px]">edit</span></button>
-                                <button class="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-lg transition-all" title="Eliminar"><span class="material-symbols-outlined text-[20px]">delete</span></button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr class="hover:bg-surface-container-lowest transition-colors">
-                        <td class="px-lg py-md font-body-md text-body-md text-on-surface">25 Oct, 2023</td>
-                        <td class="px-lg py-md font-body-md text-body-md text-on-surface">04:45 PM</td>
-                        <td class="px-lg py-md">
-                            <div class="flex items-center gap-2">
-                                <div class="w-2 h-2 rounded-full bg-tertiary"></div>
-                                <span class="font-body-md text-body-md text-on-surface">Formación de Empleados</span>
-                            </div>
-                        </td>
-                        <td class="px-lg py-md"><span class="px-sm py-1 bg-error-container text-on-error-container text-label-sm font-label-sm rounded-full">Cancelada</span></td>
-                        <td class="px-lg py-md text-right">
-                            <div class="flex justify-end gap-sm">
-                                <button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-all" title="Editar"><span class="material-symbols-outlined text-[20px]">edit</span></button>
-                                <button class="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-lg transition-all" title="Eliminar"><span class="material-symbols-outlined text-[20px]">delete</span></button>
-                            </div>
-                        </td>
-                    </tr>
                 </tbody>
             </table>
         </div>

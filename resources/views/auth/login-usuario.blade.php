@@ -2,19 +2,27 @@
 
 @section('title', 'SecureCorp - Iniciar Sesión')
 
+@section('styles')
+    <style>
+        .login-card-shadow {
+            box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.04), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+        }
+        .login-card-shadow:hover {
+            box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.08);
+        }
+    </style>
+@endsection
+
 @section('content')
     <div class="w-full max-w-md z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <!-- Logo Section -->
         <div class="flex flex-col items-center mb-xl">
             <img alt="SecureCorp Logo" class="w-[250px] h-[250px] object-contain mb-md drop-shadow-sm transition-transform duration-500 hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcv7U0puuCB9jsR5bvpFuWCfPzMEIbnBNKUUr7Fp3bAxpvfXQR9ugEGJ_JEsVPS2dsj4tyyFMJy-clYQI5RX5HKPXUz0TR5oSUTHXA0i0N0Rh_0ukHkusVq5p8NfLlKw0-E_9weq4_tWH4q4FLhDMldt7MEnW6BDnu_5d77P_5WfCzF4JyEdboUdkCaLo3f2eP3VZDb29oAV_6kfRYXXNbnEmPlprCq6KYXRnUiBlPmxbOJOMSbVInVA">
             <h1 class="font-headline-md text-headline-md text-primary tracking-tight">Acceso Corporativo</h1>
             <p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">Bienvenido de nuevo a SecureCorp</p>
         </div>
-        <!-- Login Form Card -->
         <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg login-card-shadow transition-shadow duration-300">
             <form class="space-y-md" id="login-form" method="POST" action="#">
                 @csrf
-                <!-- Email Input Group -->
                 <div class="space-y-xs">
                     <label class="font-label-sm text-label-sm text-on-surface-variant block ml-1" for="email">Correo Electrónico</label>
                     <div class="relative group">
@@ -24,7 +32,6 @@
                         <input class="w-full pl-10 pr-4 py-3 bg-white border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all" id="email" name="email" placeholder="ejemplo@securecorp.com" required type="email">
                     </div>
                 </div>
-                <!-- Password Input Group -->
                 <div class="space-y-xs">
                     <div class="flex justify-between items-center px-1">
                         <label class="font-label-sm text-label-sm text-on-surface-variant block" for="password">Contraseña</label>
@@ -40,26 +47,22 @@
                         </button>
                     </div>
                 </div>
-                <!-- Remember Me & Policy -->
                 <div class="flex items-center space-x-2 px-1">
                     <input class="w-4 h-4 text-secondary border-outline-variant rounded focus:ring-secondary cursor-pointer" id="remember" type="checkbox">
                     <label class="font-body-sm text-body-sm text-on-surface-variant cursor-pointer select-none" for="remember">Recordar mi sesión</label>
                 </div>
-                <!-- Primary Action -->
                 <button class="w-full bg-[#10B981] text-white font-label-md text-label-md py-4 rounded-lg shadow-sm hover:bg-[#059669] active:scale-[0.98] transition-all duration-200 mt-md flex items-center justify-center space-x-2" type="submit">
                     <span>Iniciar Sesión</span>
                     <span class="material-symbols-outlined text-[18px]">login</span>
                 </button>
             </form>
         </div>
-        <!-- Footer Links -->
         <div class="mt-xl text-center">
             <p class="font-body-sm text-body-sm text-on-surface-variant">
                 ¿No tienes una cuenta?
                 <a class="text-secondary font-label-sm text-label-sm font-semibold hover:underline decoration-2 underline-offset-4" href="#">Contactar Soporte IT</a>
             </p>
         </div>
-        <!-- Legal Footer -->
         <div class="mt-2xl text-center space-y-2 opacity-50">
             <div class="flex justify-center space-x-md text-[10px] uppercase tracking-widest font-bold text-on-surface-variant">
                 <a class="hover:text-primary" href="#">Privacidad</a>
@@ -114,7 +117,6 @@
             }, 1500);
         });
 
-        // Subtle mouse movement parallax effect
         document.addEventListener('mousemove', (e) => {
             const x = e.clientX / window.innerWidth;
             const y = e.clientY / window.innerHeight;
@@ -125,15 +127,4 @@
             });
         });
     </script>
-@endpush
-
-@push('styles')
-    <style>
-        .login-card-shadow {
-            box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.04), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
-        }
-        .login-card-shadow:hover {
-            box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.08);
-        }
-    </style>
 @endpush

@@ -1,6 +1,6 @@
 @extends('layouts.dueño')
 
-@section('page_title', 'Configuración del Colaborador')
+@section('page_title', 'Editar Colaborador')
 
 @section('content')
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-md">
@@ -8,10 +8,10 @@
             <nav class="flex gap-2 text-label-sm text-on-surface-variant mb-2">
                 <span>Colaboradores</span>
                 <span class="material-symbols-outlined text-xs leading-none">chevron_right</span>
-                <span class="text-secondary font-bold">Nuevo Colaborador</span>
+                <span class="text-secondary font-bold">Editar Colaborador</span>
             </nav>
             <h1 class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">Configuración del Colaborador</h1>
-            <p class="font-body-md text-body-md text-on-surface-variant max-w-2xl">Ingrese la información personal, profesional y operativa del nuevo miembro del equipo.</p>
+            <p class="font-body-md text-body-md text-on-surface-variant max-w-2xl">Actualice la información personal, profesional y operativa del colaborador.</p>
         </div>
         <div class="flex gap-sm">
             <button class="px-lg py-sm rounded-lg border-[1.5px] border-primary text-primary font-bold hover:bg-surface-container-high transition-colors active:scale-95">Cancelar</button>
@@ -29,24 +29,24 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-xl">
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Nombre Completo</label>
-                        <input class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md" type="text" placeholder="Ej. Juan Pérez">
+                        <input class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md" type="text" value="{{ $colaborador->nombre }}">
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Correo Electrónico</label>
-                        <input class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md" type="email" placeholder="juan@empresa.com">
+                        <input class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md" type="email" value="{{ $colaborador->email }}">
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Teléfono de Contacto</label>
-                        <input class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md" type="tel" placeholder="+52 55 1234 5678">
+                        <input class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md" type="tel" value="{{ $colaborador->telefono }}">
                     </div>
                     <div class="flex flex-col gap-xs">
                         <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Especialidad / Rol</label>
-                        <input class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md" type="text" placeholder="Ej. Desarrollador Senior">
+                        <input class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md" type="text" value="{{ $colaborador->especialidad }}">
                     </div>
                 </div>
                 <div class="mt-xl flex flex-col gap-xs">
                     <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Notas u Observaciones</label>
-                    <textarea class="w-full p-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md" placeholder="Información adicional sobre el colaborador..." rows="6"></textarea>
+                    <textarea class="w-full p-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md" rows="6">{{ $colaborador->observaciones }}</textarea>
                 </div>
             </section>
         </div>

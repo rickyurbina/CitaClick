@@ -21,7 +21,6 @@
             </div>
         </div>
 
-        <!-- KPI Cards -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-lg mb-xl">
             <div class="bg-white rounded-xl p-lg border border-outline-variant shadow-sm hover:shadow-md transition-shadow">
                 <div class="flex justify-between items-start mb-4">
@@ -70,8 +69,7 @@
             </div>
         </div>
 
-        <!-- Bento Grid: Chart & Sources -->
-        <div class="bento-grid grid grid-cols-12 gap-xl">
+        <div class="grid grid-cols-12 gap-xl">
             <div class="col-span-12 lg:col-span-8 bg-white rounded-xl p-lg border border-outline-variant shadow-sm h-[450px] flex flex-col">
                 <div class="flex justify-between items-center mb-6">
                     <h4 class="font-headline-md text-label-md text-on-background">Tendencia de Entrada de Efectivo</h4>

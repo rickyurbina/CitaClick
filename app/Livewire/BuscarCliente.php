@@ -78,6 +78,6 @@ class BuscarCliente extends Component
 
     public function render()
     {
-        return view('livewire.cliente-flow');
+        return view('livewire.buscar-cliente');
     }
 }

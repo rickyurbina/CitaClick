@@ -3,7 +3,6 @@
 @section('page_title', 'Gestión de Citas')
 
 @section('content')
-    <!-- Quick Actions / Stats (Bento Style) -->
     <div class="grid grid-cols-1 md:grid-cols-5 gap-lg mb-2xl">
         <div class="bg-surface p-lg rounded-xl card-shadow border border-outline-variant col-span-1">
             <div class="flex items-center justify-between mb-sm">
@@ -45,7 +44,7 @@
                     <div class="font-label-md text-label-md text-on-secondary-container">Nuevo Colaborador</div>
                 </div>
                 <div class="mt-md">
-                    <button class="bg-primary text-on-primary px-4 py-1 rounded font-label-sm text-label-sm">Añadir</button>
+                    <a href="{{ route('dueño.colaboradores.create') }}" class="bg-primary text-on-primary px-4 py-1 rounded font-label-sm text-label-sm">Añadir</a>
                 </div>
             </div>
         </div>
@@ -56,13 +55,12 @@
                     <div class="font-label-md text-label-md text-on-secondary-container">Nuevo Servicio</div>
                 </div>
                 <div class="mt-md">
-                    <button class="bg-primary text-on-primary px-4 py-1 rounded font-label-sm text-label-sm">Crear</button>
+                    <a href="{{ route('dueño.servicios.create') }}" class="bg-primary text-on-primary px-4 py-1 rounded font-label-sm text-label-sm">Crear</a>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Table Section -->
     <div class="bg-surface rounded-xl card-shadow border border-outline-variant overflow-hidden">
         <div class="px-lg py-md flex flex-col md:flex-row justify-between items-start md:items-center gap-md border-b border-outline-variant">
             <div>
@@ -106,12 +104,11 @@
                         </td>
                         <td class="px-lg py-md text-right">
                             <div class="flex justify-end gap-sm">
-                                <button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-all" title="Editar"><span class="material-symbols-outlined text-[20px]">edit</span></button>
+                                <a href="{{ route('dueño.citas.edit', ['id' => 1]) }}" class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-all" title="Editar"><span class="material-symbols-outlined text-[20px]">edit</span></a>
                                 <button class="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-lg transition-all" title="Eliminar"><span class="material-symbols-outlined text-[20px]">delete</span></button>
                             </div>
                         </td>
                     </tr>
-                    <!-- Más filas... -->
                 </tbody>
             </table>
         </div>

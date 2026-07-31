@@ -1,7 +1,6 @@
 @extends('layouts.app')
 
 @section('body')
-    <!-- SideNavBar (Colaborador) -->
     <aside class="fixed left-0 top-0 h-full z-40 p-md h-full w-64 hidden md:flex flex-col bg-surface dark:bg-inverse-surface border-r border-outline-variant dark:border-outline">
         <div class="mb-3xl">
             <h1 class="font-headline-md text-headline-md font-bold text-primary">SecureCorp</h1>
@@ -37,9 +36,7 @@
         </div>
     </aside>
 
-    <!-- Main Content -->
     <div class="md:pl-64 flex flex-col min-h-screen">
-        <!-- TopAppBar -->
         <header class="sticky top-0 z-30 bg-surface dark:bg-inverse-surface border-b border-outline-variant dark:border-outline shadow-sm h-16 flex items-center">
             <div class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
                 <div class="flex items-center gap-4">
@@ -70,13 +67,11 @@
             @yield('content')
         </main>
 
-        <!-- Footer -->
         <footer class="mt-auto py-lg border-t border-outline-variant bg-surface px-margin-desktop text-center md:text-left">
             <p class="font-label-sm text-label-sm text-on-surface-variant">© 2023 SecureCorp Enterprise Systems. Todos los derechos reservados.</p>
         </footer>
     </div>
 
-    <!-- Mobile BottomNavBar -->
     <nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-safe bg-surface dark:bg-inverse-surface h-16 md:hidden border-t border-outline-variant dark:border-outline shadow-lg">
         <a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant px-4 py-1 active:bg-surface-container-high transition-all" href="#">
             <span class="material-symbols-outlined">inventory_2</span>

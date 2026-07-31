@@ -1,30 +1,31 @@
 @extends('layouts.admin')
 
-@section('page_title', 'Nuevo Negocio')
+@section('page_title', 'Editar Negocio')
 
 @section('content')
     <div class="max-w-5xl mx-auto w-full">
         <nav class="flex items-center gap-xs mb-lg text-on-surface-variant">
             <a class="font-label-sm text-label-sm hover:text-primary transition-colors" href="{{ route('admin.negocios.index') }}">Negocios</a>
             <span class="material-symbols-outlined text-[16px]">chevron_right</span>
-            <span class="font-label-sm text-label-sm text-on-surface font-semibold">Nuevo Registro</span>
+            <span class="font-label-sm text-label-sm text-on-surface font-semibold">Editar Registro</span>
         </nav>
 
         <div class="bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden">
             <div class="px-xl py-lg border-b border-outline-variant bg-surface-container-low/30">
                 <div class="flex justify-between items-start">
                     <div>
-                        <h3 class="font-headline-md text-headline-md text-on-surface">Información del Negocio</h3>
-                        <p class="font-body-md text-body-md text-on-surface-variant mt-xs">Complete todos los campos requeridos para registrar una nueva entidad comercial en la plataforma.</p>
+                        <h3 class="font-headline-md text-headline-md text-on-surface">Editar Negocio</h3>
+                        <p class="font-body-md text-body-md text-on-surface-variant mt-xs">Actualice la información del negocio seleccionado.</p>
                     </div>
                     <div class="flex items-center gap-sm bg-surface-container rounded-full px-md py-xs border border-outline-variant">
                         <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                        <span class="font-label-sm text-label-sm text-on-surface-variant">Edición en progreso</span>
+                        <span class="font-label-sm text-label-sm text-on-surface-variant">Editando</span>
                     </div>
                 </div>
             </div>
             <form class="p-xl" method="POST" action="#">
                 @csrf
+                @method('PUT')
                 <div class="grid grid-cols-12 gap-xl">
                     <div class="col-span-12 lg:col-span-4 flex flex-col items-center justify-start text-center border-r-0 lg:border-r border-outline-variant lg:pr-xl pb-xl lg:pb-0">
                         <div class="relative group">
@@ -42,7 +43,7 @@
                             <div>
                                 <label class="block font-label-md text-label-md text-on-surface-variant mb-xs">Estado del Negocio</label>
                                 <select class="w-full h-10 px-md bg-surface-container-lowest border border-outline-variant rounded-lg text-body-md appearance-none cursor-pointer">
-                                    <option value="activo">Activo</option>
+                                    <option value="activo" {{ $negocio->estado ?? 'activo' == 'activo' ? 'selected' : '' }}>Activo</option>
                                     <option value="pendiente">Pendiente</option>
                                     <option value="inactivo">Inactivo</option>
                                 </select>
@@ -59,38 +60,38 @@
                     <div class="col-span-12 lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-lg">
                         <div class="col-span-1 md:col-span-2">
                             <label class="block font-label-md text-label-md text-on-surface-variant mb-xs" for="nombre">Nombre del Negocio <span class="text-error">*</span></label>
-                            <input class="w-full h-10 px-md bg-white border border-outline-variant rounded-lg text-body-md" id="nombre" name="nombre" placeholder="Ej. Soluciones Corporativas S.A." required type="text">
+                            <input class="w-full h-10 px-md bg-white border border-outline-variant rounded-lg text-body-md" id="nombre" name="nombre" value="{{ $negocio->nombre }}" required type="text">
                         </div>
                         <div>
                             <label class="block font-label-md text-label-md text-on-surface-variant mb-xs" for="telefono">Teléfono de Oficina</label>
                             <div class="relative">
                                 <span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-[18px]">call</span>
-                                <input class="w-full h-10 pl-10 pr-md bg-white border border-outline-variant rounded-lg text-body-md" id="telefono" name="telefono" placeholder="+52 (55) 0000-0000" type="tel">
+                                <input class="w-full h-10 pl-10 pr-md bg-white border border-outline-variant rounded-lg text-body-md" id="telefono" name="telefono" value="{{ $negocio->telefono }}" type="tel">
                             </div>
                         </div>
                         <div>
                             <label class="block font-label-md text-label-md text-on-surface-variant mb-xs" for="contacto">Persona de Contacto</label>
                             <div class="relative">
                                 <span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-[18px]">person</span>
-                                <input class="w-full h-10 pl-10 pr-md bg-white border border-outline-variant rounded-lg text-body-md" id="contacto" name="contacto" placeholder="Nombre completo" type="text">
+                                <input class="w-full h-10 pl-10 pr-md bg-white border border-outline-variant rounded-lg text-body-md" id="contacto" name="contacto" value="{{ $negocio->contacto }}" type="text">
                             </div>
                         </div>
                         <div>
                             <label class="block font-label-md text-label-md text-on-surface-variant mb-xs" for="dueno">Dueño / Representante Legal</label>
-                            <input class="w-full h-10 px-md bg-white border border-outline-variant rounded-lg text-body-md" id="dueno" name="dueno" placeholder="Nombre del propietario" type="text">
+                            <input class="w-full h-10 px-md bg-white border border-outline-variant rounded-lg text-body-md" id="dueno" name="dueno" value="{{ $negocio->dueno }}" type="text">
                         </div>
                         <div>
                             <label class="block font-label-md text-label-md text-on-surface-variant mb-xs" for="fecha_contratacion">Fecha de Contratación</label>
                             <div class="relative">
                                 <span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-[18px]">calendar_today</span>
-                                <input class="w-full h-10 pl-10 pr-md bg-white border border-outline-variant rounded-lg text-body-md" id="fecha_contratacion" name="fecha_contratacion" type="date">
+                                <input class="w-full h-10 pl-10 pr-md bg-white border border-outline-variant rounded-lg text-body-md" id="fecha_contratacion" name="fecha_contratacion" value="{{ $negocio->fecha_contratacion }}" type="date">
                             </div>
                         </div>
                         <div class="col-span-1 md:col-span-2">
                             <label class="block font-label-md text-label-md text-on-surface-variant mb-xs" for="siguiente_pago">Siguiente Fecha de Pago</label>
                             <div class="relative max-w-md">
                                 <span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-[18px]">payments</span>
-                                <input class="w-full h-10 pl-10 pr-md bg-white border border-outline-variant rounded-lg text-body-md" id="siguiente_pago" name="siguiente_pago" type="date">
+                                <input class="w-full h-10 pl-10 pr-md bg-white border border-outline-variant rounded-lg text-body-md" id="siguiente_pago" name="siguiente_pago" value="{{ $negocio->siguiente_pago }}" type="date">
                             </div>
                         </div>
                         <div class="col-span-1 md:col-span-2">
@@ -98,10 +99,10 @@
                             <div class="relative max-w-md">
                                 <span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-[18px]">update</span>
                                 <select class="w-full h-10 pl-10 pr-md bg-white border border-outline-variant rounded-lg text-body-md appearance-none cursor-pointer" id="periodo_pago" name="periodo_pago">
-                                    <option value="libre">Libre</option>
-                                    <option value="semanal">Semanal</option>
-                                    <option value="mensual">Mensual</option>
-                                    <option value="anual">Anual</option>
+                                    <option value="libre" {{ $negocio->periodo_pago == 'libre' ? 'selected' : '' }}>Libre</option>
+                                    <option value="semanal" {{ $negocio->periodo_pago == 'semanal' ? 'selected' : '' }}>Semanal</option>
+                                    <option value="mensual" {{ $negocio->periodo_pago == 'mensual' ? 'selected' : '' }}>Mensual</option>
+                                    <option value="anual" {{ $negocio->periodo_pago == 'anual' ? 'selected' : '' }}>Anual</option>
                                 </select>
                                 <span class="absolute right-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline pointer-events-none">expand_more</span>
                             </div>
@@ -110,12 +111,12 @@
                             <label class="block font-label-md text-label-md text-on-surface-variant mb-xs" for="cantidad_pagar">Cantidad a Pagar</label>
                             <div class="relative max-w-md">
                                 <span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-[18px]">payments</span>
-                                <input class="w-full h-10 pl-10 pr-md bg-white border border-outline-variant rounded-lg text-body-md" id="cantidad_pagar" name="cantidad_pagar" placeholder="Ej. 1,500.00" type="text">
+                                <input class="w-full h-10 pl-10 pr-md bg-white border border-outline-variant rounded-lg text-body-md" id="cantidad_pagar" name="cantidad_pagar" value="{{ $negocio->cantidad_pagar }}" type="text">
                             </div>
                         </div>
                         <div class="col-span-1 md:col-span-2 mt-md">
                             <label class="block font-label-md text-label-md text-on-surface-variant mb-xs" for="observaciones">Observaciones Internas</label>
-                            <textarea class="w-full p-md bg-white border border-outline-variant rounded-lg text-body-md focus:ring-2 focus:ring-primary/20 transition-all resize-none" id="observaciones" name="observaciones" placeholder="Información adicional relevante sobre el cliente o términos especiales..." rows="3"></textarea>
+                            <textarea class="w-full p-md bg-white border border-outline-variant rounded-lg text-body-md focus:ring-2 focus:ring-primary/20 transition-all resize-none" id="observaciones" name="observaciones" rows="3">{{ $negocio->observaciones }}</textarea>
                         </div>
                     </div>
                 </div>
@@ -123,72 +124,10 @@
                     <a href="{{ route('admin.negocios.index') }}" class="px-xl py-2.5 rounded-lg border border-outline-variant text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high transition-colors active:scale-[0.98]">Cancelar</a>
                     <button class="px-xl py-2.5 rounded-lg bg-primary text-on-primary font-label-md text-label-md shadow-sm hover:opacity-90 transition-all active:scale-[0.98] flex items-center gap-sm" type="submit">
                         <span class="material-symbols-outlined text-[20px]">save</span>
-                        Guardar Registro
+                        Actualizar Registro
                     </button>
                 </div>
             </form>
         </div>
-
-        <div class="mt-xl grid grid-cols-1 md:grid-cols-3 gap-lg">
-            <div class="bg-surface-container-lowest p-lg rounded-lg border border-outline-variant shadow-sm flex items-start gap-md">
-                <div class="bg-primary/10 p-sm rounded-lg">
-                    <span class="material-symbols-outlined text-primary">security</span>
-                </div>
-                <div>
-                    <h5 class="font-label-md text-label-md text-on-surface mb-xs">Seguridad de Datos</h5>
-                    <p class="font-body-sm text-body-sm text-on-surface-variant">Toda la información ingresada es cifrada mediante protocolos bancarios de grado corporativo.</p>
-                </div>
-            </div>
-            <div class="bg-surface-container-lowest p-lg rounded-lg border border-outline-variant shadow-sm flex items-start gap-md">
-                <div class="bg-secondary-container/20 p-sm rounded-lg">
-                    <span class="material-symbols-outlined text-secondary">sync</span>
-                </div>
-                <div>
-                    <h5 class="font-label-md text-label-md text-on-surface mb-xs">Sincronización</h5>
-                    <p class="font-body-sm text-body-sm text-on-surface-variant">Los cambios realizados se reflejarán en todos los reportes y módulos financieros en tiempo real.</p>
-                </div>
-            </div>
-            <div class="bg-surface-container-lowest p-lg rounded-lg border border-outline-variant shadow-sm flex items-start gap-md">
-                <div class="bg-error-container/20 p-sm rounded-lg">
-                    <span class="material-symbols-outlined text-error">history</span>
-                </div>
-                <div>
-                    <h5 class="font-label-md text-label-md text-on-surface mb-xs">Historial de Cambios</h5>
-                    <p class="font-body-sm text-body-sm text-on-surface-variant">Cada modificación queda registrada en el log de auditoría con fecha y usuario responsable.</p>
-                </div>
-            </div>
-        </div>
     </div>
 @endsection
-
-@push('scripts')
-    <script>
-        const inputs = document.querySelectorAll('input, select, textarea');
-        inputs.forEach(input => {
-            input.addEventListener('focus', () => { input.parentElement.classList.add('focused'); });
-            input.addEventListener('blur', () => { input.parentElement.classList.remove('focused'); });
-        });
-
-        let formChanged = false;
-        document.querySelector('form').addEventListener('change', () => { formChanged = true; });
-
-        window.addEventListener('beforeunload', (e) => {
-            if (formChanged) {
-                e.preventDefault();
-                e.returnValue = '';
-            }
-        });
-
-        document.querySelectorAll('button').forEach(button => {
-            button.addEventListener('mousedown', function(e) {
-                const x = e.clientX - e.target.offsetLeft;
-                const y = e.clientY - e.target.offsetTop;
-                const ripple = document.createElement('span');
-                ripple.style.left = `${x}px`;
-                ripple.style.top = `${y}px`;
-                this.appendChild(ripple);
-                setTimeout(() => { ripple.remove(); }, 600);
-            });
-        });
-    </script>
-@endpush

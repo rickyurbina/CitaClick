@@ -2,18 +2,28 @@
 
 @section('title', 'AdminPanel - Iniciar Sesión')
 
+@section('styles')
+    <style>
+        .bg-subtle-pattern {
+            background-color: #f8f9ff;
+            background-image: radial-gradient(#e2e8f0 0.5px, transparent 0.5px);
+            background-size: 24px 24px;
+        }
+        .login-card {
+            box-shadow: 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 10px 15px -3px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+@endsection
+
 @section('content')
     <div class="w-full max-w-[440px]">
         <div class="login-card bg-white w-full rounded-lg p-xl border border-outline-variant">
-            <!-- Brand Identity -->
             <div class="text-center mb-xl">
                 <h1 class="font-display-lg text-display-lg text-primary tracking-tight">AdminPanel</h1>
                 <p class="font-body-md text-body-md text-on-surface-variant mt-xs">Gestión Corporativa</p>
             </div>
-            <!-- Login Form -->
             <form class="space-y-lg" method="POST" action="#">
                 @csrf
-                <!-- Email Field -->
                 <div class="space-y-xs">
                     <label class="font-label-md text-label-md text-on-surface" for="email">Correo Electrónico</label>
                     <div class="relative group">
@@ -21,7 +31,6 @@
                         <input class="w-full h-[40px] pl-[44px] pr-md border border-outline-variant rounded-lg bg-white font-body-md text-body-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" id="email" placeholder="nombre@empresa.com" type="email">
                     </div>
                 </div>
-                <!-- Password Field -->
                 <div class="space-y-xs">
                     <div class="flex justify-between items-center">
                         <label class="font-label-md text-label-md text-on-surface" for="password">Contraseña</label>
@@ -35,17 +44,14 @@
                         </button>
                     </div>
                 </div>
-                <!-- Remember Me -->
                 <div class="flex items-center gap-sm">
                     <input class="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary/20" id="remember" type="checkbox">
                     <label class="font-body-sm text-body-sm text-on-surface-variant cursor-pointer select-none" for="remember">Recordarme en este dispositivo</label>
                 </div>
-                <!-- Action Button -->
                 <button class="w-full h-[40px] bg-primary text-white font-label-md text-label-md rounded-lg hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-sm" type="submit">
                     Iniciar Sesión
                 </button>
             </form>
-            <!-- Decorative divider -->
             <div class="relative my-xl">
                 <div class="absolute inset-0 flex items-center">
                     <div class="w-full border-t border-outline-variant"></div>
@@ -89,17 +95,4 @@
             }, 1500);
         });
     </script>
-@endpush
-
-@push('styles')
-    <style>
-        .bg-subtle-pattern {
-            background-color: #f8f9ff;
-            background-image: radial-gradient(#e2e8f0 0.5px, transparent 0.5px);
-            background-size: 24px 24px;
-        }
-        .login-card {
-            box-shadow: 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 10px 15px -3px rgba(0, 0, 0, 0.05);
-        }
-    </style>
 @endpush
