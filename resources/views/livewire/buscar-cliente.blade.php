@@ -56,7 +56,7 @@
 
         @elseif ($step === 'agendar')
             {{-- Aquí puedes meter el componente de agendar directo, o su propio formulario --}}
-            <livewire:agendar-cita :empresa="$empresa" :cliente-id="$clienteId" />
+            
         @endif
 
     </div>

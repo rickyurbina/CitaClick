@@ -44,6 +44,6 @@ class VerificarUsuario extends Component
 
     public function render()
     {
-        return view('livewire.super-admin.super-admin-flow');
+        return view('livewire.superadmin.verificar-usuario');
     }
 }

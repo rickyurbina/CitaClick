@@ -2,6 +2,9 @@
 
 use App\Http\Controllers\BarberiaController;
 use App\Http\Controllers\EmpresasController;
+use App\Livewire\BuscarCliente;
+use App\Livewire\Superadmin\VerificarUsuario as SuperadminVerificarUsuario;
+use App\Livewire\VerificarUsuario;
 use GuzzleHttp\Middleware;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
@@ -10,11 +13,14 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
-Route::get('/{empresa:slug}', [BarberiaController::class, 'showCliente']);
+Route::get('/dashboard',SuperadminVerificarUsuario::class)->name('superadmin');
 
-Route::get('/{empresa:slug}/panel', [BarberiaController::class, 'showRecepcion']);
+Route::get('/{empresa:slug}', BuscarCliente::class)->name('clientes');
 
-Route::get('/dashboard',[EmpresasController::class, 'show']);
+Route::get('/{empresa:slug}/panel', VerificarUsuario::class)->name('usuarios');
+
+
+
 
 Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])

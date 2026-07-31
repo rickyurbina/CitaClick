@@ -48,6 +48,6 @@ class VerificarUsuario extends Component
 
     public function render()
     {
-        return view('livewire.admin.admin-flow');
+        return view('livewire.verificar-usuario');
     }
 }
