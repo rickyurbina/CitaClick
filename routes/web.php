@@ -20,6 +20,10 @@ use App\Http\Controllers\ClienteController;
 |--------------------------------------------------------------------------
 */
 
+Route::get('/', function () {
+    return view('welcome');
+})->name('home');
+
 Route::get('/dashboard',SuperadminVerificarUsuario::class)->name('superadmin');
 
 Route::get('/{empresa:slug}', BuscarCliente::class)->name('clientes');

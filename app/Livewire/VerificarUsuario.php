@@ -4,8 +4,10 @@ namespace App\Livewire;
 
 use App\Models\EmpresasModel;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Layout;
 use Livewire\Component;
 
+#[Layout('components.layouts.auth')]
 class VerificarUsuario extends Component
 {
     public EmpresasModel $empresa;
