@@ -2,81 +2,40 @@
 
 namespace App\Livewire;
 
-use App\Models\ClientesModel;
 use App\Models\EmpresasModel;
-use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
-#[Layout('components.layouts.auth')]
 class BuscarCliente extends Component
 {
     public EmpresasModel $empresa;
-
-    // Controla qué pantalla se muestra: 'verificar', 'registro', 'agendar'
     public $step = 'verificar';
-
-    // Verificación de teléfono
-    public $telefono = '';
-
-    // Registro
-    public $nombre = '';
-    public $email = '';
-    public $fecha_nacimiento = '';
-
-    // Cliente ya identificado (una vez que existe o se crea)
     public $clienteId = null;
 
-    protected function rules()
+    #[On('telefono-verificado')]
+    public function irAAgendar($clienteId)
     {
-        return match ($this->step) {
-            'verificar' => ['telefono' => 'required|digits:10'],
-            'registro' => [
-                'telefono' => 'required|digits:10',
-                'nombre' => 'required|min:3',
-                'email' => 'nullable|email',
-            ],
-            default => [],
-        };
-    }
-
-    public function verificar()
-    {
-        $this->validate(['telefono' => 'required|digits:10']);
-
-        $cliente = ClientesModel::where('telefono', $this->telefono)
-            ->where('empresa_id', $this->empresa->id)
-            ->first();
-
-        if ($cliente) {
-            $this->clienteId = $cliente->id;
-            session(['cliente_id' => $cliente->id]);
-            $this->step = 'agendar';
-        } else {
-            $this->step = 'registro'; // ya trae $this->telefono precargado
-        }
-    }
-
-    public function registrar()
-    {
-        $this->validate();
-
-        $cliente = ClientesModel::create([
-            'empresa_id' => $this->empresa->id,
-            'telefono' => $this->telefono,
-            'nombre' => $this->nombre,
-            'email' => $this->email,
-            'fecha_nacimiento' => $this->fecha_nacimiento,
-        ]);
-
-        $this->clienteId = $cliente->id;
-        session(['cliente_id' => $cliente->id]);
+        $this->clienteId = $clienteId;
         $this->step = 'agendar';
     }
 
-    public function volver()
+    #[On('telefono-no-encontrado')]
+    public function irARegistro()
+    {
+        $this->step = 'registro';
+    }
+
+    #[On('cliente-registrado')]
+    public function clienteRegistrado($clienteId)
+    {
+        $this->clienteId = $clienteId;
+        $this->step = 'agendar';
+    }
+
+    #[On('volver-a-verificar')]
+    public function irAVerificar()
     {
         $this->step = 'verificar';
-        $this->reset(['nombre', 'email']);
     }
 
     public function render()
