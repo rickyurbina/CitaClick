@@ -23,6 +23,6 @@ class Dashboard extends Component
 
     public function render()
     {
-        return view('livewire.super-admin.dashboard');
+        return view('livewire.superadmin.dashboard');
     }
 }

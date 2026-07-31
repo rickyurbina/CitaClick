@@ -4,8 +4,10 @@ namespace App\Livewire;
 
 use App\Models\ClientesModel;
 use App\Models\EmpresasModel;
+use Livewire\Attributes\Layout;
 use Livewire\Component;
 
+#[Layout('components.layouts.auth')]
 class BuscarCliente extends Component
 {
     public EmpresasModel $empresa;
@@ -19,6 +21,7 @@ class BuscarCliente extends Component
     // Registro
     public $nombre = '';
     public $email = '';
+    public $fecha_nacimiento = '';
 
     // Cliente ya identificado (una vez que existe o se crea)
     public $clienteId = null;

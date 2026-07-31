@@ -3,8 +3,10 @@
 namespace App\Livewire\Superadmin;
 
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Layout;
 use Livewire\Component;
 
+#[Layout('components.layouts.auth')]
 class VerificarUsuario extends Component
 {
     public $email = '';
@@ -44,6 +46,6 @@ class VerificarUsuario extends Component
 
     public function render()
     {
-        return view('livewire.super-admin.super-admin-flow');
+        return view('livewire.superadmin.verificar-usuario');
     }
 }
