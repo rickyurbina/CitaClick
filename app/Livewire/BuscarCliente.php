@@ -3,9 +3,11 @@
 namespace App\Livewire;
 
 use App\Models\EmpresasModel;
+use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
+#[Layout('components.layouts.auth')]
 class BuscarCliente extends Component
 {
     public EmpresasModel $empresa;
