@@ -3,7 +3,6 @@
 use App\Http\Controllers\BarberiaController;
 use App\Http\Controllers\EmpresasController;
 use App\Livewire\BuscarCliente;
-use App\Livewire\Superadmin\VerificarUsuario as SuperadminVerificarUsuario;
 use GuzzleHttp\Middleware;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
@@ -13,6 +12,7 @@ use App\Http\Controllers\RecepcionistaController;
 use App\Http\Controllers\ColaboradorController;
 use App\Http\Controllers\ClienteController;
 use App\Livewire\AdminPanel;
+use App\Livewire\SuperAdmin\SuperAdminPanel;
 use Livewire\Volt\Volt;
 
 /*
@@ -25,7 +25,7 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
-Route::get('/dashboard',SuperadminVerificarUsuario::class)->name('superadmin');
+Route::get('/dashboard',SuperAdminPanel::class)->name('superadmin');
 
 Route::get('/{empresa:slug}', BuscarCliente::class)->name('clientes');
 
