@@ -1,6 +1,7 @@
 <div class="min-h-screen bg-gray-100">
     @if($isAuthenticated)
         <div class="flex h-screen">
+            {{-- SIDEBAR --}}
             <div class="w-64 bg-white shadow-lg flex flex-col">
                 <div class="p-4 border-b">
                     <h2 class="text-xl font-bold text-gray-800">{{ $empresa->nombre }}</h2>
@@ -14,6 +15,7 @@
                 </div>
 
                 <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+                    {{-- Dashboard --}}
                     <button wire:click="cambiarSeccion('dashboard')" 
                             class="w-full text-left px-4 py-2.5 rounded-lg transition flex items-center space-x-3
                                 {{ $seccionActiva === 'dashboard' ? 'bg-blue-600 text-white' : 'hover:bg-gray-100' }}">
@@ -21,6 +23,7 @@
                         <span>Dashboard</span>
                     </button>
 
+                    {{-- Citas --}}
                     @if($puedeGestionarCitas)
                     <button wire:click="cambiarSeccion('citas')" 
                             class="w-full text-left px-4 py-2.5 rounded-lg transition flex items-center space-x-3
@@ -30,38 +33,30 @@
                     </button>
                     @endif
 
+                    {{-- Colaboradores --}}
                     @if($esAdmin)
-                    <div class="pt-4 mt-4 border-t border-gray-200">
-                        <p class="text-xs text-gray-400 uppercase font-semibold px-4 mb-2">Administración</p>
-                        
-                        <button wire:click="cambiarSeccion('clientes')" 
-                                class="w-full text-left px-4 py-2 rounded-lg transition flex items-center space-x-3 hover:bg-gray-100
-                                    {{ $seccionActiva === 'clientes' ? 'bg-blue-600 text-white' : '' }}">
-                            <span>👥</span>
-                            <span>Clientes</span>
-                        </button>
+                    <button wire:click="cambiarSeccion('colaboradores')" 
+                            class="w-full text-left px-4 py-2.5 rounded-lg transition flex items-center space-x-3
+                                {{ $seccionActiva === 'colaboradores' ? 'bg-blue-600 text-white' : 'hover:bg-gray-100' }}">
+                        <span>👤</span>
+                        <span>Colaboradores</span>
+                    </button>
 
-                        <button wire:click="cambiarSeccion('colaboradores')" 
-                                class="w-full text-left px-4 py-2 rounded-lg transition flex items-center space-x-3 hover:bg-gray-100
-                                    {{ $seccionActiva === 'colaboradores' ? 'bg-blue-600 text-white' : '' }}">
-                            <span>👤</span>
-                            <span>Colaboradores</span>
-                        </button>
+                    {{-- Servicios --}}
+                    <button wire:click="cambiarSeccion('servicios')" 
+                            class="w-full text-left px-4 py-2.5 rounded-lg transition flex items-center space-x-3
+                                {{ $seccionActiva === 'servicios' ? 'bg-blue-600 text-white' : 'hover:bg-gray-100' }}">
+                        <span>💇</span>
+                        <span>Servicios</span>
+                    </button>
 
-                        <button wire:click="cambiarSeccion('servicios')" 
-                                class="w-full text-left px-4 py-2 rounded-lg transition flex items-center space-x-3 hover:bg-gray-100
-                                    {{ $seccionActiva === 'servicios' ? 'bg-blue-600 text-white' : '' }}">
-                            <span>💇</span>
-                            <span>Servicios</span>
-                        </button>
-
-                        <button wire:click="cambiarSeccion('comisiones')" 
-                                class="w-full text-left px-4 py-2 rounded-lg transition flex items-center space-x-3 hover:bg-gray-100
-                                    {{ $seccionActiva === 'comisiones' ? 'bg-blue-600 text-white' : '' }}">
-                            <span>💰</span>
-                            <span>Comisiones</span>
-                        </button>
-                    </div>
+                    {{-- Comisiones --}}
+                    <button wire:click="cambiarSeccion('comisiones')" 
+                            class="w-full text-left px-4 py-2.5 rounded-lg transition flex items-center space-x-3
+                                {{ $seccionActiva === 'comisiones' ? 'bg-blue-600 text-white' : 'hover:bg-gray-100' }}">
+                        <span>💰</span>
+                        <span>Comisiones</span>
+                    </button>
                     @endif
                 </nav>
 
@@ -74,11 +69,18 @@
                 </div>
             </div>
 
+            {{-- CONTENIDO --}}
             <div class="flex-1 overflow-y-auto p-6">
                 @if($seccionActiva === 'dashboard')
                     <livewire:admin.dashboard :empresa="$empresa" wire:key="dashboard-{{ $empresa->id }}" />
                 @elseif($seccionActiva === 'citas')
                     <livewire:admin.gestion-citas :empresa="$empresa" wire:key="citas-{{ $empresa->id }}" />
+                @elseif($seccionActiva === 'colaboradores')
+                    <livewire:admin.gestion-colaboradores :empresa="$empresa" wire:key="colaboradores-{{ $empresa->id }}" />
+                @elseif($seccionActiva === 'servicios')
+                    <livewire:admin.gestion-servicios :empresa="$empresa" wire:key="servicios-{{ $empresa->id }}" />
+                @elseif($seccionActiva === 'comisiones')
+                    <livewire:admin.gestion-comisiones :empresa="$empresa" wire:key="comisiones-{{ $empresa->id }}" />
                 @else
                     <div class="text-center py-12">
                         <p class="text-gray-500">Sección en construcción...</p>
@@ -87,11 +89,12 @@
             </div>
         </div>
     @else
+        {{-- LOGIN --}}
         <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
             <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
                 <div class="text-center mb-8">
                     @if($empresa->logo_url)
-                        <img src="{{ $empresa->logo_url }}" 
+                        <img src="{{ Storage::url($empresa->logo_url) }}" 
                              alt="{{ $empresa->nombre }}" 
                              class="h-16 mx-auto mb-4 object-contain">
                     @endif
@@ -117,7 +120,9 @@
                         <input type="email" 
                                wire:model.live.debounce.300ms="email"
                                class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                               placeholder="trabajador@empresa.com">
+                               placeholder="trabajador@empresa.com"
+                               autocomplete="email"
+                               autofocus>
                         @error('email') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                     </div>
 
@@ -126,13 +131,14 @@
                         <input type="password" 
                                wire:model.live.debounce.300ms="password"
                                class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                               placeholder="••••••••">
+                               placeholder="••••••••"
+                               autocomplete="current-password">
                         @error('password') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                     </div>
 
                     <div class="flex items-center justify-between">
                         <label class="flex items-center">
-                            <input type="checkbox" wire:model="remember" class="mr-2">
+                            <input type="checkbox" wire:model="remember" class="mr-2 rounded border-gray-300">
                             <span class="text-sm text-gray-600">Recordarme</span>
                         </label>
                     </div>

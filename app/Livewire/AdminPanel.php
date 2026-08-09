@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
-#[Layout('components.layouts.auth')]
 class AdminPanel extends Component
 {
     public EmpresasModel $empresa;
@@ -24,6 +23,7 @@ class AdminPanel extends Component
     public string $info = '';
     public int $intentos = 0;
 
+    #[Layout('components.layouts.auth')]
     public function mount(EmpresasModel $empresa)
     {
         $this->empresa = $empresa;
@@ -158,15 +158,11 @@ class AdminPanel extends Component
 
     public function cambiarSeccion($seccion)
     {
-        $seccionesPermitidas = ['dashboard'];
-        
-        if ($this->puedeGestionarCitas) {
-            $seccionesPermitidas[] = 'citas';
-        }
+        $seccionesPermitidas = ['dashboard', 'citas'];
         
         if ($this->esAdmin) {
             $seccionesPermitidas = array_merge($seccionesPermitidas, [
-                'clientes', 'colaboradores', 'servicios', 'comisiones'
+                'colaboradores', 'servicios', 'comisiones'
             ]);
         }
 
