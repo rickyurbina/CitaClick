@@ -7,6 +7,7 @@ use App\Models\CitasModel;
 use App\Models\ComisionesModel;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -16,57 +17,42 @@ class Dashboard extends Component
 
     protected $paginationTheme = 'tailwind';
 
-    // Filtros para la tabla de empresas
     public $filtroBuscar = '';
     public $filtroPlan = '';
     public $filtroEstatus = '';
 
-    // ==================== PROPIEDADES COMPUTADAS ====================
+    // 👈 VARIABLES PARA CONTROLAR APERTURA FORZADA
+    public $forzarApertura = false;
+    public $empresaIdForzar = null;
+    public $accionForzar = 'crear'; // 'crear' o 'editar'
 
     public function getStatsProperty()
     {
-        $today = Carbon::today();
-        $startOfMonth = Carbon::now()->startOfMonth();
-
-        // Total de empresas
         $totalEmpresas = EmpresasModel::count();
-
-        // Empresas activas
         $empresasActivas = EmpresasModel::where('estatus', 'activo')->count();
-
-        // Empresas en prueba
         $empresasPrueba = EmpresasModel::where('estatus', 'prueba')->count();
-
-        // Empresas suspendidas
         $empresasSuspendidas = EmpresasModel::where('estatus', 'suspendido')->count();
-
-        // Empresas inactivas
         $empresasInactivas = EmpresasModel::where('estatus', 'inactivo')->count();
 
-        // Cobro del mes (suma de comisiones de todas las empresas)
         $cobroMes = ComisionesModel::whereMonth('created_at', Carbon::now()->month)
             ->whereYear('created_at', Carbon::now()->year)
             ->where('estatus', 'pagada')
             ->sum('monto');
 
-        // Ingresos totales del mes (citas pagadas)
         $ingresosMes = CitasModel::whereMonth('fecha_pago', Carbon::now()->month)
             ->whereYear('fecha_pago', Carbon::now()->year)
             ->where('pagado', 1)
             ->sum('monto_pagado');
 
-        // Citas totales del mes
         $citasMes = CitasModel::whereMonth('fecha', Carbon::now()->month)
             ->whereYear('fecha', Carbon::now()->year)
             ->count();
 
-        // Empresas por plan
         $empresasPorPlan = EmpresasModel::select('plan', DB::raw('count(*) as total'))
             ->groupBy('plan')
             ->pluck('total', 'plan')
             ->toArray();
 
-        // Crecimiento de empresas por mes (últimos 6 meses)
         $crecimientoMensual = [];
         $labelsCrecimiento = [];
         for ($i = 5; $i >= 0; $i--) {
@@ -126,15 +112,20 @@ class Dashboard extends Component
         return ['activo', 'inactivo', 'prueba', 'suspendido'];
     }
 
-    // ==================== MÉTODOS ====================
-
+    // 👈 MÉTODOS PARA FORZAR APERTURA
     public function abrirCrearEmpresa()
     {
+        $this->forzarApertura = true;
+        $this->accionForzar = 'crear';
+        $this->empresaIdForzar = null;
         $this->dispatch('abrir-crear-empresa');
     }
 
     public function abrirEditarEmpresa($id)
     {
+        $this->forzarApertura = true;
+        $this->accionForzar = 'editar';
+        $this->empresaIdForzar = $id;
         $this->dispatch('abrir-editar-empresa', id: $id);
     }
 
@@ -170,18 +161,21 @@ class Dashboard extends Component
 
             $empresa = EmpresasModel::findOrFail($id);
             
-            // Verificar si tiene datos asociados
             $tieneDatos = $empresa->users()->count() > 0 || 
                           $empresa->clientes()->count() > 0 || 
                           $empresa->citas()->count() > 0;
 
             if ($tieneDatos) {
                 $this->dispatch('mostrar-mensaje', 
-                    mensaje: 'No se puede eliminar. La empresa tiene datos asociados (usuarios, clientes o citas).',
+                    mensaje: 'No se puede eliminar. La empresa tiene datos asociados.',
                     tipo: 'error'
                 );
                 DB::rollBack();
                 return;
+            }
+
+            if ($empresa->logo_url && Storage::disk('public')->exists($empresa->logo_url)) {
+                Storage::disk('public')->delete($empresa->logo_url);
             }
 
             $empresa->delete();
@@ -211,8 +205,6 @@ class Dashboard extends Component
         $this->resetPage();
     }
 
-    // ==================== RENDER ====================
-
     public function render()
     {
         return view('livewire.superadmin.dashboard', [
@@ -220,6 +212,9 @@ class Dashboard extends Component
             'empresas' => $this->empresas,
             'planes' => $this->planes,
             'estatuses' => $this->estatuses,
+            'forzarApertura' => $this->forzarApertura,
+            'accionForzar' => $this->accionForzar,
+            'empresaIdForzar' => $this->empresaIdForzar,
         ]);
     }
 }

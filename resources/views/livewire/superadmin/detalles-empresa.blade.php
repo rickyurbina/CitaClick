@@ -21,7 +21,7 @@
             <div class="p-6 space-y-6">
                 <div class="flex items-center space-x-4">
                     @if($empresa->logo_url)
-                        <img src="{{ $empresa->logo_url }}" alt="{{ $empresa->nombre }}" 
+                        <img src="{{ Storage::url($empresa->logo_url) }}" alt="{{ $empresa->nombre }}" 
                              class="h-20 w-20 rounded-full object-cover border-2 border-gray-200">
                     @else
                         <div class="h-20 w-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">

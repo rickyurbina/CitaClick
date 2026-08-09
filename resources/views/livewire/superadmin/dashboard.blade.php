@@ -1,5 +1,4 @@
 <div>
-    {{-- ==================== HEADER ==================== --}}
     <div class="flex justify-between items-center mb-6">
         <div>
             <h2 class="text-2xl font-bold text-gray-800">📊 Dashboard SuperAdmin</h2>
@@ -14,7 +13,6 @@
         </button>
     </div>
 
-    {{-- ==================== TARJETAS DE MÉTRICAS ==================== --}}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <div class="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500 hover:shadow-lg transition">
             <div class="text-sm text-gray-500">Total Empresas</div>
@@ -38,7 +36,6 @@
         </div>
     </div>
 
-    {{-- ==================== SEGUNDA FILA DE MÉTRICAS ==================== --}}
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div class="bg-white rounded-lg shadow p-4 hover:shadow-lg transition">
             <div class="text-sm text-gray-500">Ingresos Totales del Mes</div>
@@ -62,7 +59,6 @@
         </div>
     </div>
 
-    {{-- ==================== GRÁFICA DE CRECIMIENTO ==================== --}}
     <div class="bg-white rounded-lg shadow p-6 mb-6">
         <h3 class="text-lg font-semibold mb-4">📈 Crecimiento de Empresas (Últimos 6 meses)</h3>
         <div class="flex items-end space-x-2 h-48">
@@ -83,14 +79,12 @@
         </div>
     </div>
 
-    {{-- ==================== LISTADO DE EMPRESAS ==================== --}}
     <div class="bg-white rounded-lg shadow overflow-hidden">
         <div class="p-4 border-b border-gray-200 flex justify-between items-center">
             <h3 class="text-lg font-semibold text-gray-800">🏢 Listado de Empresas</h3>
             <span class="text-sm text-gray-500">Total: {{ $empresas->total() }}</span>
         </div>
 
-        {{-- Filtros --}}
         <div class="p-4 bg-gray-50 border-b border-gray-200">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div>
@@ -125,7 +119,6 @@
             </div>
         </div>
 
-        {{-- Tabla --}}
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -144,7 +137,7 @@
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
                                 @if($empresa->logo_url)
-                                    <img src="{{ $empresa->logo_url }}" alt="{{ $empresa->nombre }}" 
+                                    <img src="{{ Storage::url($empresa->logo_url) }}" alt="{{ $empresa->nombre }}" 
                                          class="h-10 w-10 rounded-full object-cover mr-3 border border-gray-200">
                                 @else
                                     <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mr-3">
@@ -197,6 +190,7 @@
                                     </svg>
                                 </button>
 
+                                {{-- 👈 BOTÓN EDITAR --}}
                                 <button wire:click="abrirEditarEmpresa({{ $empresa->id }})" 
                                         class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
                                         title="Editar empresa">
@@ -205,6 +199,7 @@
                                     </svg>
                                 </button>
 
+                                {{-- 👈 BOTÓN ELIMINAR --}}
                                 <button wire:click="eliminarEmpresa({{ $empresa->id }})" 
                                         onclick="confirm('¿Eliminar esta empresa? Esto eliminará todos sus datos.') || event.stopImmediatePropagation()"
                                         class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
@@ -231,9 +226,11 @@
             </table>
         </div>
         
-        {{-- Paginación --}}
         <div class="px-6 py-4 border-t border-gray-200">
             {{ $empresas->links() }}
         </div>
     </div>
+
+    <livewire:superadmin.formulario-empresa />
+    <livewire:superadmin.detalles-empresa />
 </div>

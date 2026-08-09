@@ -4,26 +4,31 @@ namespace App\Livewire\SuperAdmin;
 
 use App\Models\EmpresasModel;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class FormularioEmpresa extends Component
 {
-    public $empresaId = null;
-    public $modo = 'crear'; // crear | editar
+    use WithFileUploads;
 
-    // Campos del formulario
+    public $empresaId = null;
+    public $modo = 'crear';
+
     public $nombre = '';
     public $emailContacto = '';
     public $telefono = '';
     public $plan = 'basico';
     public $estatus = 'prueba';
     public $logoUrl = '';
+    public $logoFile = null;
     public $fechaVencimiento = '';
 
-    // Estados
     public $cargando = false;
     public $mostrarModal = false;
+    public $logoExistente = null;
 
     protected $listeners = [
         'abrir-crear-empresa' => 'abrirCrear',
@@ -31,46 +36,12 @@ class FormularioEmpresa extends Component
         'cerrar-formulario-empresa' => 'cerrarModal',
     ];
 
-    protected function rules()
-    {
-        $uniqueRule = $this->empresaId 
-            ? 'unique:empresas,email_contacto,' . $this->empresaId 
-            : 'unique:empresas,email_contacto';
-
-        return [
-            'nombre' => 'required|string|max:200',
-            'emailContacto' => 'required|email|max:150|' . $uniqueRule,
-            'telefono' => 'nullable|string|max:20',
-            'plan' => 'required|in:basico,pro,empresa',
-            'estatus' => 'required|in:activo,inactivo,prueba,suspendido',
-            'logoUrl' => 'nullable|string|max:500|url',
-            'fechaVencimiento' => 'nullable|date|after:today',
-        ];
-    }
-
-    protected function messages()
-    {
-        return [
-            'nombre.required' => 'El nombre de la empresa es obligatorio.',
-            'nombre.max' => 'El nombre no puede exceder los 200 caracteres.',
-            'emailContacto.required' => 'El email de contacto es obligatorio.',
-            'emailContacto.email' => 'Ingresa un email válido.',
-            'emailContacto.unique' => 'Este email ya está registrado en otra empresa.',
-            'plan.required' => 'Selecciona un plan.',
-            'plan.in' => 'El plan seleccionado no es válido.',
-            'estatus.required' => 'Selecciona un estatus.',
-            'estatus.in' => 'El estatus seleccionado no es válido.',
-            'logoUrl.url' => 'La URL del logo no es válida.',
-            'fechaVencimiento.date' => 'Ingresa una fecha válida.',
-            'fechaVencimiento.after' => 'La fecha de vencimiento debe ser posterior a hoy.',
-        ];
-    }
-
     public function abrirCrear()
     {
         $this->resetFormulario();
         $this->modo = 'crear';
         $this->empresaId = null;
+        $this->logoExistente = null;
         $this->mostrarModal = true;
         $this->dispatch('modal-abierto');
     }
@@ -87,10 +58,49 @@ class FormularioEmpresa extends Component
         $this->plan = $empresa->plan;
         $this->estatus = $empresa->estatus;
         $this->logoUrl = $empresa->logo_url;
+        $this->logoExistente = $empresa->logo_url;
         $this->fechaVencimiento = $empresa->fecha_vencimiento ? $empresa->fecha_vencimiento->format('Y-m-d') : '';
+        $this->logoFile = null;
 
         $this->mostrarModal = true;
         $this->dispatch('modal-abierto');
+    }
+
+    protected function rules()
+    {
+        $uniqueRule = $this->empresaId 
+            ? 'unique:empresas,email_contacto,' . $this->empresaId 
+            : 'unique:empresas,email_contacto';
+
+        return [
+            'nombre' => 'required|string|max:200',
+            'emailContacto' => 'required|email|max:150|' . $uniqueRule,
+            'telefono' => 'nullable|string|max:20',
+            'plan' => 'required|in:basico,pro,empresa',
+            'estatus' => 'required|in:activo,inactivo,prueba,suspendido',
+            'logoFile' => 'nullable|image|max:2048|mimes:jpeg,png,jpg,gif,svg,webp',
+            'fechaVencimiento' => 'nullable|date|after:today',
+        ];
+    }
+
+    protected function messages()
+    {
+        return [
+            'nombre.required' => 'El nombre de la empresa es obligatorio.',
+            'nombre.max' => 'El nombre no puede exceder los 200 caracteres.',
+            'emailContacto.required' => 'El email de contacto es obligatorio.',
+            'emailContacto.email' => 'Ingresa un email válido.',
+            'emailContacto.unique' => 'Este email ya está registrado en otra empresa.',
+            'plan.required' => 'Selecciona un plan.',
+            'plan.in' => 'El plan seleccionado no es válido.',
+            'estatus.required' => 'Selecciona un estatus.',
+            'estatus.in' => 'El estatus seleccionado no es válido.',
+            'logoFile.image' => 'El archivo debe ser una imagen.',
+            'logoFile.max' => 'La imagen no puede pesar más de 2MB.',
+            'logoFile.mimes' => 'La imagen debe ser de tipo: jpeg, png, jpg, gif, svg, webp.',
+            'fechaVencimiento.date' => 'Ingresa una fecha válida.',
+            'fechaVencimiento.after' => 'La fecha de vencimiento debe ser posterior a hoy.',
+        ];
     }
 
     public function guardar()
@@ -102,26 +112,49 @@ class FormularioEmpresa extends Component
         try {
             DB::beginTransaction();
 
+            // Manejar correctamente el logo
+            $logoPath = null;
+
+            // 1. Si se subió un archivo nuevo, guardarlo
+            if ($this->logoFile) {
+                // Si existe un logo anterior, eliminarlo
+                if ($this->logoExistente && $this->modo === 'editar') {
+                    $this->eliminarLogoAnterior($this->logoExistente);
+                }
+                $logoPath = $this->guardarLogo($this->logoFile);
+            } 
+            // 2. Si no se subió archivo, mantener el logo existente
+            else {
+                $logoPath = $this->logoExistente;
+            }
+
             $datos = [
                 'nombre' => $this->nombre,
                 'email_contacto' => $this->emailContacto,
                 'telefono' => $this->telefono,
                 'plan' => $this->plan,
                 'estatus' => $this->estatus,
-                'logo_url' => $this->logoUrl ?: null,
+                'logo_url' => $logoPath,
                 'fecha_vencimiento' => $this->fechaVencimiento ?: null,
             ];
 
             if ($this->modo === 'editar') {
-                // Actualizar empresa
                 $empresa = EmpresasModel::findOrFail($this->empresaId);
                 $empresa->update($datos);
+                
+                // 👈 LOG PARA DEBUG
+                Log::info('Logo guardado:', [
+                    'empresa' => $empresa->nombre,
+                    'logo_path' => $logoPath,
+                    'logo_file' => $this->logoFile ? 'Subido' : 'No subido',
+                    'logo_existente' => $this->logoExistente,
+                ]);
+                
                 $mensaje = 'Empresa actualizada correctamente.';
                 $tipo = 'success';
             } else {
-                // Crear empresa - Generar slug automático
                 $datos['slug'] = $this->generarSlug($this->nombre);
-                $empresa = EmpresasModel::create($datos);
+                EmpresasModel::create($datos);
                 $mensaje = 'Empresa creada correctamente.';
                 $tipo = 'success';
             }
@@ -133,6 +166,12 @@ class FormularioEmpresa extends Component
 
         } catch (\Exception $e) {
             DB::rollBack();
+            
+            // Si hubo error y se subió un logo, eliminarlo
+            if ($this->logoFile && isset($logoPath)) {
+                Storage::disk('public')->delete($logoPath);
+            }
+
             $this->dispatch('mostrar-mensaje', 
                 mensaje: 'Ocurrió un error al guardar la empresa: ' . $e->getMessage(),
                 tipo: 'error'
@@ -142,11 +181,24 @@ class FormularioEmpresa extends Component
         $this->cargando = false;
     }
 
+    protected function guardarLogo($file)
+    {
+        $nombre = Str::slug($this->nombre) . '-' . time() . '.' . $file->getClientOriginalExtension();
+        $path = $file->storeAs('logos', $nombre, 'public');
+        return $path;
+    }
+
+    protected function eliminarLogoAnterior($path)
+    {
+        if ($path && Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
+    }
+
     protected function generarSlug($nombre)
     {
         $slug = Str::slug($nombre) . '-' . Str::random(4);
         
-        // Verificar que no exista
         while (EmpresasModel::where('slug', $slug)->exists()) {
             $slug = Str::slug($nombre) . '-' . Str::random(4);
         }
@@ -159,6 +211,7 @@ class FormularioEmpresa extends Component
         $this->mostrarModal = false;
         $this->resetFormulario();
         $this->resetErrorBag();
+        $this->logoFile = null;
         $this->dispatch('modal-cerrado');
     }
 
@@ -170,6 +223,8 @@ class FormularioEmpresa extends Component
         $this->plan = 'basico';
         $this->estatus = 'prueba';
         $this->logoUrl = '';
+        $this->logoFile = null;
+        $this->logoExistente = null;
         $this->fechaVencimiento = '';
         $this->empresaId = null;
         $this->modo = 'crear';

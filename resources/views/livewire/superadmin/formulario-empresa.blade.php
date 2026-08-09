@@ -18,7 +18,7 @@
                 </button>
             </div>
 
-            <form wire:submit.prevent="guardar" class="p-6 space-y-4">
+            <form wire:submit.prevent="guardar" enctype="multipart/form-data" class="p-6 space-y-4">
                 <div>
                     <label for="nombre" class="block text-sm font-medium text-gray-700 mb-1">
                         Nombre de la empresa *
@@ -84,30 +84,75 @@
                 </div>
 
                 <div>
-                    <label for="logoUrl" class="block text-sm font-medium text-gray-700 mb-1">
-                        URL del Logo
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Logo de la empresa
                     </label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                            </svg>
-                        </div>
-                        <input type="text" 
-                               id="logoUrl"
-                               wire:model="logoUrl" 
-                               class="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                               placeholder="https://ejemplo.com/logo.png">
-                    </div>
-                    @error('logoUrl') 
-                        <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> 
-                    @enderror
-                    @if($logoUrl)
-                        <div class="mt-2 p-2 border border-gray-200 rounded-lg flex items-center justify-between">
-                            <span class="text-xs text-gray-500">Vista previa:</span>
-                            <img src="{{ $logoUrl }}" alt="Logo preview" class="h-10 w-10 object-contain rounded">
+                    
+                    @if($logoExistente && $modo === 'editar' && !$logoFile)
+                        <div class="mb-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <img src="{{ Storage::url($logoExistente) }}" 
+                                         alt="Logo actual" 
+                                         class="h-12 w-12 object-contain rounded border border-gray-200">
+                                    <span class="ml-3 text-sm text-gray-600">Logo actual</span>
+                                </div>
+                                <button type="button" 
+                                        wire:click="$set('logoExistente', null)"
+                                        class="text-sm text-red-600 hover:text-red-800">
+                                    Eliminar
+                                </button>
+                            </div>
                         </div>
                     @endif
+
+                    <div class="relative">
+                        <div class="flex items-center justify-center w-full">
+                            <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition">
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <svg class="w-8 h-8 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    <p class="mb-1 text-sm text-gray-500">
+                                        <span class="font-semibold">Haz clic para subir</span> o arrastra y suelta
+                                    </p>
+                                    <p class="text-xs text-gray-500">
+                                        PNG, JPG, SVG, WEBP (Máx. 2MB)
+                                    </p>
+                                </div>
+                                <input type="file" 
+                                       wire:model="logoFile" 
+                                       accept="image/*"
+                                       class="hidden">
+                            </label>
+                        </div>
+                    </div>
+
+                    @if($logoFile)
+                        <div class="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <img src="{{ $logoFile->temporaryUrl() }}" 
+                                         alt="Vista previa" 
+                                         class="h-12 w-12 object-contain rounded border border-gray-200">
+                                    <div class="ml-3">
+                                        <p class="text-sm font-medium text-gray-700">{{ $logoFile->getClientOriginalName() }}</p>
+                                        <p class="text-xs text-gray-500">{{ round($logoFile->getSize() / 1024) }} KB</p>
+                                    </div>
+                                </div>
+                                <button type="button" 
+                                        wire:click="$set('logoFile', null)"
+                                        class="text-sm text-red-600 hover:text-red-800">
+                                    Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    @endif
+
+                    @error('logoFile') 
+                        <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> 
+                    @enderror
+                    <p class="text-xs text-gray-400 mt-1">Formatos permitidos: JPG, PNG, SVG, WEBP. Tamaño máximo: 2MB</p>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
