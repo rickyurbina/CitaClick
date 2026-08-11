@@ -1,101 +1,137 @@
 <div>
-    <div class="flex justify-between items-center mb-6">
+    <div class="flex justify-between items-end mb-lg">
         <div>
-            <h2 class="text-2xl font-bold text-gray-800">📊 Dashboard SuperAdmin</h2>
-            <p class="text-sm text-gray-500">Última actualización: {{ now()->format('d/m/Y H:i') }}</p>
+            <nav class="flex items-center gap-xs text-on-surface-variant font-label-sm mb-xs">
+                <span class="hover:text-primary">Dashboard</span>
+                <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                <span class="text-primary font-bold">Empresas</span>
+            </nav>
+            <h3 class="font-headline-lg text-headline-lg text-on-surface">Listado Maestro</h3>
+            <p class="text-on-surface-variant font-body-md mt-xs">Administra los parámetros de facturación y contacto de tus empresas aliadas.</p>
         </div>
-        <button wire:click="abrirCrearEmpresa" 
-                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center shadow-md hover:shadow-lg transition">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-            </svg>
-            Nueva Empresa
-        </button>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500 hover:shadow-lg transition">
-            <div class="text-sm text-gray-500">Total Empresas</div>
-            <div class="text-2xl font-bold text-blue-600">{{ $stats['totalEmpresas'] }}</div>
-        </div>
-        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-green-500 hover:shadow-lg transition">
-            <div class="text-sm text-gray-500">Empresas Activas</div>
-            <div class="text-2xl font-bold text-green-600">{{ $stats['empresasActivas'] }}</div>
-        </div>
-        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500 hover:shadow-lg transition">
-            <div class="text-sm text-gray-500">Empresas en Prueba</div>
-            <div class="text-2xl font-bold text-yellow-600">{{ $stats['empresasPrueba'] }}</div>
-        </div>
-        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-red-500 hover:shadow-lg transition">
-            <div class="text-sm text-gray-500">Empresas Suspendidas</div>
-            <div class="text-2xl font-bold text-red-600">{{ $stats['empresasSuspendidas'] }}</div>
-        </div>
-        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-purple-500 hover:shadow-lg transition">
-            <div class="text-sm text-gray-500">Cobro del Mes</div>
-            <div class="text-2xl font-bold text-purple-600">${{ number_format($stats['cobroMes'] ?? 0, 2) }}</div>
+        <div class="flex gap-md">
+            <button type="button"
+                    wire:click="abrirCrearEmpresa"
+                    class="flex items-center gap-sm px-lg py-sm bg-primary text-on-primary rounded font-label-md hover:opacity-90 transition-all shadow-sm">
+                <span class="material-symbols-outlined">add</span>
+                Nueva Empresa
+            </button>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div class="bg-white rounded-lg shadow p-4 hover:shadow-lg transition">
-            <div class="text-sm text-gray-500">Ingresos Totales del Mes</div>
-            <div class="text-2xl font-bold text-green-600">${{ number_format($stats['ingresosMes'] ?? 0, 2) }}</div>
-            <div class="text-sm text-gray-400 mt-1">{{ $stats['citasMes'] ?? 0 }} citas realizadas</div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-lg mb-xl">
+        <div class="bg-surface-container-lowest p-md border border-outline-variant rounded shadow-sm">
+            <div class="flex justify-between items-start mb-sm">
+                <div class="p-xs bg-primary/10 rounded">
+                    <span class="material-symbols-outlined text-primary">store</span>
+                </div>
+            </div>
+            <p class="text-on-surface-variant font-label-sm">Negocios Totales</p>
+            <p class="text-headline-md font-bold text-on-surface">{{ $stats['totalEmpresas'] }}</p>
         </div>
-        <div class="bg-white rounded-lg shadow p-4 hover:shadow-lg transition">
-            <div class="text-sm text-gray-500">Empresas Inactivas</div>
-            <div class="text-2xl font-bold text-gray-600">{{ $stats['empresasInactivas'] ?? 0 }}</div>
+        <div class="bg-surface-container-lowest p-md border border-outline-variant rounded shadow-sm">
+            <div class="flex justify-between items-start mb-sm">
+                <div class="p-xs bg-secondary-container rounded">
+                    <span class="material-symbols-outlined text-secondary">task_alt</span>
+                </div>
+            </div>
+            <p class="text-on-surface-variant font-label-sm">Activos</p>
+            <p class="text-headline-md font-bold text-on-surface">{{ $stats['empresasActivas'] }}</p>
         </div>
-        <div class="bg-white rounded-lg shadow p-4 hover:shadow-lg transition">
-            <div class="text-sm text-gray-500">Empresas por Plan</div>
-            <div class="flex space-x-4 mt-1">
-                @foreach(['basico' => '🟢', 'pro' => '🔵', 'empresa' => '🟣'] as $plan => $icono)
+        <div class="bg-surface-container-lowest p-md border border-outline-variant rounded shadow-sm">
+            <div class="flex justify-between items-start mb-sm">
+                <div class="p-xs bg-surface-container rounded">
+                    <span class="material-symbols-outlined text-on-surface-variant">pending</span>
+                </div>
+            </div>
+            <p class="text-on-surface-variant font-label-sm">En Prueba</p>
+            <p class="text-headline-md font-bold text-on-surface">{{ $stats['empresasPrueba'] }}</p>
+        </div>
+        <div class="bg-surface-container-lowest p-md border border-outline-variant rounded shadow-sm">
+            <div class="flex justify-between items-start mb-sm">
+                <div class="p-xs bg-error-container rounded">
+                    <span class="material-symbols-outlined text-error">block</span>
+                </div>
+            </div>
+            <p class="text-on-surface-variant font-label-sm">Suspendidas</p>
+            <p class="text-headline-md font-bold text-on-surface">{{ $stats['empresasSuspendidas'] }}</p>
+        </div>
+        <div class="bg-surface-container-lowest p-md border border-outline-variant rounded shadow-sm">
+            <div class="flex justify-between items-start mb-sm">
+                <div class="p-xs bg-primary/10 rounded">
+                    <span class="material-symbols-outlined text-primary">payments</span>
+                </div>
+            </div>
+            <p class="text-on-surface-variant font-label-sm">Cobros Mes</p>
+            <p class="text-headline-md font-bold text-on-surface">${{ number_format($stats['cobroMes'] ?? 0, 2) }}</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-lg mb-xl">
+        <div class="bg-surface-container-lowest p-md border border-outline-variant rounded shadow-sm">
+            <p class="text-on-surface-variant font-label-sm">Ingresos Totales del Mes</p>
+            <p class="text-headline-md font-bold text-secondary">${{ number_format($stats['ingresosMes'] ?? 0, 2) }}</p>
+            <p class="font-body-sm text-on-surface-variant mt-xs">{{ $stats['citasMes'] ?? 0 }} citas realizadas</p>
+        </div>
+        <div class="bg-surface-container-lowest p-md border border-outline-variant rounded shadow-sm">
+            <p class="text-on-surface-variant font-label-sm">Empresas Inactivas</p>
+            <p class="text-headline-md font-bold text-on-surface">{{ $stats['empresasInactivas'] ?? 0 }}</p>
+        </div>
+        <div class="bg-surface-container-lowest p-md border border-outline-variant rounded shadow-sm">
+            <p class="text-on-surface-variant font-label-sm mb-sm">Empresas por Plan</p>
+            <div class="flex gap-lg">
+                @foreach(['basico' => 'Básico', 'pro' => 'Pro', 'empresa' => 'Empresa'] as $plan => $label)
                     <div>
-                        <span class="text-sm">{{ $icono }}</span>
-                        <span class="text-sm font-bold">{{ $stats['empresasPorPlan'][$plan] ?? 0 }}</span>
+                        <p class="font-label-sm text-on-surface-variant">{{ $label }}</p>
+                        <p class="font-headline-md text-headline-md font-bold text-on-surface">{{ $stats['empresasPorPlan'][$plan] ?? 0 }}</p>
                     </div>
                 @endforeach
             </div>
         </div>
     </div>
 
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
-        <h3 class="text-lg font-semibold mb-4">📈 Crecimiento de Empresas (Últimos 6 meses)</h3>
-        <div class="flex items-end space-x-2 h-48">
+    <div class="bg-surface-container-lowest p-lg border border-outline-variant rounded-xl shadow-sm mb-xl">
+        <h3 class="font-headline-md text-headline-md text-on-surface mb-lg">Crecimiento de Empresas (Últimos 6 meses)</h3>
+        <div class="flex items-end gap-md h-48">
             @foreach($stats['crecimientoMensual'] as $index => $cantidad)
                 <div class="flex-1 flex flex-col items-center">
-                    <div class="w-full bg-blue-200 rounded-t relative" 
+                    <div class="w-full bg-surface-container rounded-t relative"
                          style="height: {{ $stats['totalEmpresas'] > 0 ? ($cantidad / $stats['totalEmpresas'] * 100) + 20 : 20 }}px">
-                        <div class="w-full bg-blue-600 rounded-t absolute bottom-0" 
+                        <div class="w-full bg-primary rounded-t absolute bottom-0"
                              style="height: {{ $stats['totalEmpresas'] > 0 ? $cantidad / $stats['totalEmpresas'] * 100 : 0 }}%">
-                            <span class="absolute -top-5 left-1/2 transform -translate-x-1/2 text-xs font-bold text-blue-600">
+                            <span class="absolute -top-5 left-1/2 transform -translate-x-1/2 font-label-sm text-label-sm font-bold text-primary">
                                 {{ $cantidad }}
                             </span>
                         </div>
                     </div>
-                    <span class="text-xs text-gray-600 mt-1">{{ $stats['labelsCrecimiento'][$index] ?? '' }}</span>
+                    <span class="font-label-sm text-label-sm text-on-surface-variant mt-xs">{{ $stats['labelsCrecimiento'][$index] ?? '' }}</span>
                 </div>
             @endforeach
         </div>
     </div>
 
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-        <div class="p-4 border-b border-gray-200 flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-gray-800">🏢 Listado de Empresas</h3>
-            <span class="text-sm text-gray-500">Total: {{ $empresas->total() }}</span>
+    <div class="bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden shadow-sm">
+        <div class="px-lg py-md border-b border-outline-variant flex justify-between items-center bg-surface-container-low/30">
+            <h3 class="font-headline-md text-headline-md text-on-surface">Listado de Empresas</h3>
+            <span class="font-body-sm text-on-surface-variant">Total: {{ $empresas->total() }}</span>
         </div>
 
-        <div class="p-4 bg-gray-50 border-b border-gray-200">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div class="p-lg border-b border-outline-variant bg-surface-container-low/20">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-md">
                 <div>
-                    <label class="text-sm text-gray-600">Buscar</label>
-                    <input type="text" wire:model.live.debounce.300ms="filtroBuscar" 
-                           placeholder="Nombre, email o slug..." 
-                           class="w-full border rounded-lg p-2 text-sm">
+                    <label class="font-label-sm text-label-sm text-on-surface-variant mb-xs block">Buscar</label>
+                    <div class="relative">
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">search</span>
+                        <input type="text"
+                               wire:model.live.debounce.300ms="filtroBuscar"
+                               placeholder="Nombre, email o slug..."
+                               class="w-full h-10 pl-10 pr-md bg-surface-container-lowest border border-outline-variant rounded-lg font-body-sm text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none">
+                    </div>
                 </div>
                 <div>
-                    <label class="text-sm text-gray-600">Plan</label>
-                    <select wire:model.live="filtroPlan" class="w-full border rounded-lg p-2 text-sm">
+                    <label class="font-label-sm text-label-sm text-on-surface-variant mb-xs block">Plan</label>
+                    <select wire:model.live="filtroPlan"
+                            class="w-full h-10 px-md bg-surface-container-lowest border border-outline-variant rounded-lg font-body-sm text-on-surface">
                         <option value="">Todos</option>
                         @foreach($planes as $plan)
                             <option value="{{ $plan }}">{{ ucfirst($plan) }}</option>
@@ -103,16 +139,20 @@
                     </select>
                 </div>
                 <div>
-                    <label class="text-sm text-gray-600">Estatus</label>
-                    <select wire:model.live="filtroEstatus" class="w-full border rounded-lg p-2 text-sm">
+                    <label class="font-label-sm text-label-sm text-on-surface-variant mb-xs block">Estatus</label>
+                    <select wire:model.live="filtroEstatus"
+                            class="w-full h-10 px-md bg-surface-container-lowest border border-outline-variant rounded-lg font-body-sm text-on-surface">
                         <option value="">Todos</option>
                         @foreach($estatuses as $estatus)
                             <option value="{{ $estatus }}">{{ ucfirst($estatus) }}</option>
                         @endforeach
                     </select>
                 </div>
-                <div class="flex items-end space-x-2">
-                    <button wire:click="limpiarFiltros" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm w-full">
+                <div class="flex items-end">
+                    <button type="button"
+                            wire:click="limpiarFiltros"
+                            class="w-full h-10 flex items-center justify-center gap-sm px-md border border-outline-variant rounded-lg font-label-md text-on-surface-variant hover:bg-surface-container transition-colors">
+                        <span class="material-symbols-outlined text-[18px]">filter_alt_off</span>
                         Limpiar filtros
                     </button>
                 </div>
@@ -120,55 +160,57 @@
         </div>
 
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Empresa</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contacto</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estatus</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vencimiento</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-surface-container-low border-b border-outline-variant">
+                        <th class="px-lg py-md font-label-sm text-on-surface-variant uppercase tracking-wider">Empresa</th>
+                        <th class="px-lg py-md font-label-sm text-on-surface-variant uppercase tracking-wider">Contacto</th>
+                        <th class="px-lg py-md font-label-sm text-on-surface-variant uppercase tracking-wider">Plan</th>
+                        <th class="px-lg py-md font-label-sm text-on-surface-variant uppercase tracking-wider text-center">Estatus</th>
+                        <th class="px-lg py-md font-label-sm text-on-surface-variant uppercase tracking-wider">Vencimiento</th>
+                        <th class="px-lg py-md font-label-sm text-on-surface-variant uppercase tracking-wider text-right">Acciones</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="divide-y divide-outline-variant">
                     @forelse($empresas as $empresa)
-                    <tr class="hover:bg-gray-50 transition">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center">
+                    <tr class="hover:bg-surface-container/50 transition-colors group">
+                        <td class="px-lg py-md">
+                            <div class="flex items-center gap-md">
                                 @if($empresa->logo_url)
-                                    <img src="{{ Storage::url($empresa->logo_url) }}" alt="{{ $empresa->nombre }}" 
-                                         class="h-10 w-10 rounded-full object-cover mr-3 border border-gray-200">
+                                    <div class="w-10 h-10 rounded-full overflow-hidden border border-outline-variant flex-shrink-0 bg-white">
+                                        <img src="{{ Storage::url($empresa->logo_url) }}" alt="{{ $empresa->nombre }}"
+                                             class="w-full h-full object-cover">
+                                    </div>
                                 @else
-                                    <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mr-3">
-                                        <span class="text-white font-bold text-sm">{{ substr($empresa->nombre, 0, 2) }}</span>
+                                    <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                                        <span class="text-on-primary font-label-md">{{ substr($empresa->nombre, 0, 2) }}</span>
                                     </div>
                                 @endif
                                 <div>
-                                    <div class="text-sm font-medium text-gray-900">{{ $empresa->nombre }}</div>
-                                    <div class="text-xs text-gray-400">{{ $empresa->slug }}</div>
+                                    <p class="font-label-md text-on-surface group-hover:text-primary transition-colors">{{ $empresa->nombre }}</p>
+                                    <p class="font-body-sm text-on-surface-variant">{{ $empresa->slug }}</p>
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-900">{{ $empresa->email_contacto }}</div>
-                            <div class="text-xs text-gray-400">{{ $empresa->telefono ?? 'Sin teléfono' }}</div>
+                        <td class="px-lg py-md">
+                            <p class="font-body-md text-on-surface">{{ $empresa->email_contacto }}</p>
+                            <p class="font-body-sm text-on-surface-variant">{{ $empresa->telefono ?? 'Sin teléfono' }}</p>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 py-1 text-xs rounded-full font-medium
-                                @if($empresa->plan == 'basico') bg-gray-100 text-gray-700
-                                @elseif($empresa->plan == 'pro') bg-blue-100 text-blue-700
-                                @else bg-purple-100 text-purple-700 @endif">
+                        <td class="px-lg py-md">
+                            <span class="px-sm py-1 rounded-full font-label-sm
+                                @if($empresa->plan == 'basico') bg-surface-container text-on-surface-variant
+                                @elseif($empresa->plan == 'pro') bg-primary/10 text-primary
+                                @else bg-secondary-container text-on-secondary-container @endif">
                                 {{ ucfirst($empresa->plan) }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-lg py-md text-center">
                             <select wire:change="cambiarEstatus({{ $empresa->id }}, $event.target.value)"
-                                    class="text-xs rounded-full px-2 py-1 border-0 font-semibold cursor-pointer focus:ring-2 focus:ring-offset-2
-                                        @if($empresa->estatus == 'activo') bg-green-100 text-green-800 hover:bg-green-200
-                                        @elseif($empresa->estatus == 'prueba') bg-yellow-100 text-yellow-800 hover:bg-yellow-200
-                                        @elseif($empresa->estatus == 'suspendido') bg-red-100 text-red-800 hover:bg-red-200
-                                        @else bg-gray-100 text-gray-800 hover:bg-gray-200 @endif">
+                                    class="font-label-sm rounded-full px-sm py-1 border-0 cursor-pointer focus:ring-2 focus:ring-primary/20
+                                        @if($empresa->estatus == 'activo') bg-secondary-container text-on-secondary-container
+                                        @elseif($empresa->estatus == 'prueba') bg-surface-container-high text-on-surface
+                                        @elseif($empresa->estatus == 'suspendido') bg-error-container text-on-error-container
+                                        @else bg-surface-container text-on-surface-variant @endif">
                                 @foreach($estatuses as $estatus)
                                     <option value="{{ $estatus }}" {{ $empresa->estatus == $estatus ? 'selected' : '' }}>
                                         {{ ucfirst($estatus) }}
@@ -176,57 +218,47 @@
                                 @endforeach
                             </select>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        <td class="px-lg py-md font-body-md text-on-surface">
                             {{ $empresa->fecha_vencimiento ? $empresa->fecha_vencimiento->format('d/m/Y') : 'N/A' }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div class="flex items-center space-x-1">
-                                <button wire:click="verDetallesEmpresa({{ $empresa->id }})" 
-                                        class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                        <td class="px-lg py-md text-right">
+                            <div class="flex justify-end gap-sm">
+                                <button type="button"
+                                        wire:click="verDetallesEmpresa({{ $empresa->id }})"
+                                        class="w-8 h-8 rounded hover:bg-primary/10 text-primary transition-all flex items-center justify-center"
                                         title="Ver detalles">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                    </svg>
+                                    <span class="material-symbols-outlined text-[18px]">visibility</span>
                                 </button>
-
-                                {{-- 👈 BOTÓN EDITAR --}}
-                                <button wire:click="abrirEditarEmpresa({{ $empresa->id }})" 
-                                        class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                <button type="button"
+                                        wire:click="abrirEditarEmpresa({{ $empresa->id }})"
+                                        class="w-8 h-8 rounded hover:bg-primary/10 text-primary transition-all flex items-center justify-center"
                                         title="Editar empresa">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                    </svg>
+                                    <span class="material-symbols-outlined text-[18px]">edit</span>
                                 </button>
-
-                                {{-- 👈 BOTÓN ELIMINAR --}}
-                                <button wire:click="eliminarEmpresa({{ $empresa->id }})" 
+                                <button type="button"
+                                        wire:click="eliminarEmpresa({{ $empresa->id }})"
                                         onclick="confirm('¿Eliminar esta empresa? Esto eliminará todos sus datos.') || event.stopImmediatePropagation()"
-                                        class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                                        class="w-8 h-8 rounded hover:bg-error-container text-error transition-all flex items-center justify-center"
                                         title="Eliminar empresa">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                    </svg>
+                                    <span class="material-symbols-outlined text-[18px]">delete</span>
                                 </button>
                             </div>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="px-6 py-12 text-center text-gray-500">
-                            <svg class="w-16 h-16 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                            </svg>
-                            <p>No hay empresas registradas</p>
-                            <p class="text-sm text-gray-400">Haz clic en "Nueva Empresa" para crear una</p>
+                        <td colspan="6" class="px-lg py-xl text-center">
+                            <span class="material-symbols-outlined text-[48px] text-outline mb-md block">storefront</span>
+                            <p class="font-body-md text-on-surface-variant">No hay empresas registradas</p>
+                            <p class="font-body-sm text-on-surface-variant mt-xs">Haz clic en "Nueva Empresa" para crear una</p>
                         </td>
                     </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-        
-        <div class="px-6 py-4 border-t border-gray-200">
+
+        <div class="px-lg py-md bg-surface-container-lowest border-t border-outline-variant">
             {{ $empresas->links() }}
         </div>
     </div>

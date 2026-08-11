@@ -1,99 +1,127 @@
 <div>
     @if($isAuthenticated)
-        <div class="flex h-screen">
-            <div class="w-64 bg-gradient-to-b from-gray-900 to-gray-800 text-white flex flex-col shadow-xl">
-                <div class="p-4 border-b border-gray-700">
-                    <h2 class="text-xl font-bold text-white">👑 CitaClick</h2>
-                    <p class="text-sm text-gray-400">Panel SuperAdmin</p>
-                    <p class="text-xs text-gray-500 mt-1">{{ $usuarioActual->nombre ?? 'Administrador' }}</p>
+        <aside class="fixed left-0 top-0 h-full w-64 bg-surface border-r border-outline-variant flex flex-col py-lg z-50">
+            <div class="px-md mb-xl flex items-center gap-sm">
+                <div class="w-10 h-10 rounded bg-primary flex items-center justify-center text-on-primary">
+                    <span class="material-symbols-outlined">admin_panel_settings</span>
                 </div>
+                <div>
+                    <h1 class="font-headline-md text-headline-md font-bold text-primary leading-tight">AdminPanel</h1>
+                    <p class="font-label-sm text-label-sm text-on-surface-variant">Gestión Corporativa</p>
+                </div>
+            </div>
 
-                <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-                    <div class="w-full text-left px-4 py-2.5 rounded-lg bg-blue-600 text-white flex items-center space-x-3 cursor-default">
-                        <span>📊</span>
-                        <span>Dashboard</span>
-                        <span class="ml-auto text-xs bg-white/20 px-2 py-0.5 rounded">Activo</span>
+            <nav class="flex-1 space-y-1">
+                <div class="flex items-center gap-md px-md py-sm font-label-md bg-secondary-container text-on-secondary-container border-l-4 border-primary">
+                    <span class="material-symbols-outlined">dashboard</span>
+                    <span>Dashboard</span>
+                </div>
+            </nav>
+
+            <div class="mt-auto px-md py-lg border-t border-outline-variant">
+                <div class="flex items-center gap-md mb-md px-md">
+                    <div class="w-10 h-10 rounded-full border border-primary/20 overflow-hidden bg-surface-container-high flex items-center justify-center">
+                        <span class="material-symbols-outlined text-on-surface-variant">person</span>
                     </div>
-                </nav>
+                    <div class="min-w-0">
+                        <p class="font-label-md text-on-surface leading-tight truncate">{{ $usuarioActual->nombre ?? 'Administrador' }}</p>
+                        <p class="font-label-sm text-on-surface-variant">Superusuario</p>
+                    </div>
+                </div>
+                <button type="button"
+                        wire:click="logout"
+                        class="w-full flex items-center gap-md text-on-surface-variant px-md py-sm hover:bg-surface-container-high transition-colors font-label-md rounded">
+                    <span class="material-symbols-outlined">logout</span>
+                    <span>Cerrar Sesión</span>
+                </button>
+            </div>
+        </aside>
 
-                <div class="p-4 border-t border-gray-700">
-                    <button wire:click="logout" 
-                            class="w-full text-left px-4 py-2 text-red-400 hover:bg-red-900/30 hover:text-red-300 rounded-lg transition flex items-center space-x-3">
-                        <span>🚪</span>
-                        <span>Cerrar sesión</span>
-                    </button>
+        <header class="ml-64 flex justify-between items-center h-16 px-lg bg-surface-container-lowest sticky top-0 z-40 shadow-sm border-b border-outline-variant">
+            <div class="flex items-center gap-xl flex-1">
+                <h2 class="font-headline-md text-headline-md text-primary font-bold">Panel Admin</h2>
+            </div>
+            <div class="flex items-center gap-md">
+                <div class="text-right hidden sm:block">
+                    <p class="font-label-md text-on-surface leading-tight">{{ $usuarioActual->nombre ?? 'Administrador' }}</p>
+                    <p class="font-label-sm text-on-surface-variant">Superusuario</p>
+                </div>
+                <div class="w-10 h-10 rounded-full border border-primary/20 overflow-hidden bg-surface-container-high flex items-center justify-center">
+                    <span class="material-symbols-outlined text-on-surface-variant">person</span>
                 </div>
             </div>
+        </header>
 
-            <div class="flex-1 overflow-y-auto p-6 bg-gray-100">
-                <livewire:superadmin.dashboard wire:key="dashboard" />
-            </div>
-        </div>
+        <main class="ml-64 p-lg">
+            <livewire:superadmin.dashboard wire:key="dashboard" />
+        </main>
     @else
-        <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-700">
-            <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
-                <div class="text-center mb-8">
-                    <div class="w-20 h-20 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                        <span class="text-3xl">👑</span>
-                    </div>
-                    <h2 class="text-2xl font-bold text-gray-800">CitaClick</h2>
-                    <p class="text-gray-500 text-sm mt-1">Panel de Super Administrador</p>
-                </div>
-
-                @if($error)
-                    <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-md mb-4">
-                        {{ $error }}
-                    </div>
-                @endif
-
-                @if($info)
-                    <div class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded-md mb-4">
-                        {{ $info }}
-                    </div>
-                @endif
-
-                <form wire:submit="login" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
-                        <input type="email" 
-                               wire:model.live.debounce.300ms="email"
-                               class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                               placeholder="superadmin@citaclick.com">
-                        @error('email') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+        <div class="min-h-screen flex items-center justify-center p-md bg-surface"
+             style="background-color: #f8f9ff; background-image: radial-gradient(#e2e8f0 0.5px, transparent 0.5px); background-size: 24px 24px;">
+            <div class="w-full max-w-[440px]">
+                <div class="login-card bg-white w-full rounded-lg p-xl border border-outline-variant">
+                    <div class="text-center mb-xl">
+                        <h1 class="font-headline-lg text-headline-lg text-primary tracking-tight">AdminPanel</h1>
+                        <p class="font-body-md text-body-md text-on-surface-variant mt-xs">Gestión Corporativa</p>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-                        <input type="password" 
-                               wire:model.live.debounce.300ms="password"
-                               class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                               placeholder="••••••••">
-                        @error('password') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                    </div>
+                    @if($error)
+                        <div class="mb-md p-md rounded-lg border border-outline-variant bg-error-container text-on-error-container font-body-sm">
+                            {{ $error }}
+                        </div>
+                    @endif
 
-                    <div class="flex items-center justify-between">
-                        <label class="flex items-center">
-                            <input type="checkbox" wire:model="remember" class="mr-2 rounded border-gray-300">
-                            <span class="text-sm text-gray-600">Recordarme</span>
-                        </label>
-                    </div>
+                    @if($info)
+                        <div class="mb-md p-md rounded-lg border border-outline-variant bg-secondary-container text-on-secondary-container font-body-sm">
+                            {{ $info }}
+                        </div>
+                    @endif
 
-                    <button type="submit"
-                            class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-2.5 rounded-lg font-medium transition flex items-center justify-center"
-                            wire:loading.attr="disabled">
-                        <span wire:loading.remove>Iniciar sesión</span>
-                        <span wire:loading class="flex items-center">
-                            <svg class="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                            </svg>
-                            Verificando...
-                        </span>
-                    </button>
-                </form>
+                    <form wire:submit="login" class="space-y-lg">
+                        <div class="space-y-xs">
+                            <label class="font-label-md text-label-md text-on-surface" for="email">Correo Electrónico</label>
+                            <div class="relative group">
+                                <span class="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors">mail</span>
+                                <input type="email"
+                                       id="email"
+                                       wire:model.live.debounce.300ms="email"
+                                       class="w-full h-[40px] pl-[44px] pr-md border border-outline-variant rounded-lg bg-white font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                       placeholder="nombre@empresa.com">
+                            </div>
+                            @error('email') <span class="text-error font-label-sm text-label-sm">{{ $message }}</span> @enderror
+                        </div>
 
-                <div class="mt-8 pt-6 border-t border-gray-200 text-center">
-                    <p class="text-xs text-gray-400">© {{ date('Y') }} CitaClick - Todos los derechos reservados</p>
+                        <div class="space-y-xs">
+                            <label class="font-label-md text-label-md text-on-surface" for="password">Contraseña</label>
+                            <div class="relative group">
+                                <span class="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors">lock</span>
+                                <input type="password"
+                                       id="password"
+                                       wire:model.live.debounce.300ms="password"
+                                       class="w-full h-[40px] pl-[44px] pr-md border border-outline-variant rounded-lg bg-white font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                       placeholder="••••••••">
+                            </div>
+                            @error('password') <span class="text-error font-label-sm text-label-sm">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="flex items-center gap-sm">
+                            <input type="checkbox"
+                                   id="remember"
+                                   wire:model="remember"
+                                   class="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary/20">
+                            <label class="font-body-sm text-body-sm text-on-surface-variant cursor-pointer select-none" for="remember">Recordarme en este dispositivo</label>
+                        </div>
+
+                        <button type="submit"
+                                class="w-full h-[40px] bg-primary text-on-primary font-label-md text-label-md rounded-lg hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-sm"
+                                wire:loading.attr="disabled">
+                            <span wire:loading.remove>Iniciar Sesión</span>
+                            <span wire:loading class="flex items-center gap-sm">
+                                <span class="material-symbols-outlined animate-spin text-[20px]">progress_activity</span>
+                                Verificando...
+                            </span>
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>

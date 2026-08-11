@@ -1,183 +1,231 @@
 <div>
-    <div class="flex justify-between items-center mb-6">
-        <h2 class="text-2xl font-bold text-gray-800">📅 Gestión de Citas</h2>
-        <div class="flex space-x-2">
-            @if($puedeCrearServicios ?? false)
-                <button wire:click="abrirCrearServicio" 
-                        class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center text-sm">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                    </svg>
-                    Nuevo Servicio
-                </button>
-            @endif
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-lg mb-2xl">
+        <div class="bg-surface p-lg rounded-xl border border-outline-variant col-span-1 shadow-sm">
+            <div class="flex items-center justify-between mb-sm">
+                <span class="text-on-surface-variant font-label-sm text-label-sm">Citas Hoy</span>
+                <span class="material-symbols-outlined text-secondary">today</span>
+            </div>
+            <div class="font-headline-lg text-headline-lg text-primary">{{ $citasHoy }}</div>
+        </div>
+        <div class="bg-surface p-lg rounded-xl border border-outline-variant col-span-1 shadow-sm">
+            <div class="flex items-center justify-between mb-sm">
+                <span class="text-on-surface-variant font-label-sm text-label-sm">Ingresos Hoy</span>
+                <span class="material-symbols-outlined text-secondary">payments</span>
+            </div>
+            <div class="font-headline-md text-headline-md text-primary">${{ number_format($ingresosHoy, 2) }}</div>
+        </div>
 
-            @if($puedeCrearColaboradores ?? false)
-                <button wire:click="abrirCrearColaborador" 
-                        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center text-sm">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
-                    </svg>
-                    Nuevo Colaborador
-                </button>
-            @endif
+        @if($puedeGestionar ?? false)
+        <div wire:click="abrirCrearCita"
+             class="bg-secondary-container p-lg rounded-xl border border-outline-variant col-span-1 relative overflow-hidden group cursor-pointer hover:opacity-90 transition-opacity">
+            <div class="relative z-10 flex flex-col h-full justify-between">
+                <div>
+                    <span class="material-symbols-outlined text-on-secondary-container mb-sm">calendar_add_on</span>
+                    <div class="font-label-md text-label-md text-on-secondary-container">Nueva Cita</div>
+                </div>
+                <div class="mt-md">
+                    <span class="bg-primary text-on-primary px-4 py-1 rounded font-label-sm text-label-sm">Agendar</span>
+                </div>
+            </div>
+        </div>
+        @endif
 
-            @if($puedeGestionar ?? false)
-                <button wire:click="abrirCrearCita" 
-                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                    </svg>
-                    Nueva Cita
-                </button>
-            @endif
+        @if($puedeCrearColaboradores ?? false)
+        <div wire:click="abrirCrearColaborador"
+             class="bg-secondary-container p-lg rounded-xl border border-outline-variant col-span-1 relative overflow-hidden group cursor-pointer hover:opacity-90 transition-opacity">
+            <div class="relative z-10 flex flex-col h-full justify-between">
+                <div>
+                    <span class="material-symbols-outlined text-on-secondary-container mb-sm">person_add</span>
+                    <div class="font-label-md text-label-md text-on-secondary-container">Nuevo Colaborador</div>
+                </div>
+                <div class="mt-md">
+                    <span class="bg-primary text-on-primary px-4 py-1 rounded font-label-sm text-label-sm">Añadir</span>
+                </div>
+            </div>
+        </div>
+        @endif
+
+        @if($puedeCrearServicios ?? false)
+        <div wire:click="abrirCrearServicio"
+             class="bg-secondary-container p-lg rounded-xl border border-outline-variant col-span-1 relative overflow-hidden group cursor-pointer hover:opacity-90 transition-opacity">
+            <div class="relative z-10 flex flex-col h-full justify-between">
+                <div>
+                    <span class="material-symbols-outlined text-on-secondary-container mb-sm">add_box</span>
+                    <div class="font-label-md text-label-md text-on-secondary-container">Nuevo Servicio</div>
+                </div>
+                <div class="mt-md">
+                    <span class="bg-primary text-on-primary px-4 py-1 rounded font-label-sm text-label-sm">Crear</span>
+                </div>
+            </div>
+        </div>
+        @endif
+
+        <div class="bg-surface p-lg rounded-xl border border-outline-variant col-span-1 shadow-sm">
+            <div class="flex items-center justify-between mb-sm">
+                <span class="text-on-surface-variant font-label-sm text-label-sm">Total Citas</span>
+                <span class="material-symbols-outlined text-secondary">event_note</span>
+            </div>
+            <div class="font-headline-lg text-headline-lg text-primary">{{ $citas->total() }}</div>
         </div>
     </div>
 
-    <!-- Tarjetas de métricas -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div class="bg-white rounded-lg shadow p-4">
-            <div class="text-sm text-gray-500">Citas de Hoy</div>
-            <div class="text-2xl font-bold">{{ $citasHoy }}</div>
+    <div class="bg-surface rounded-xl border border-outline-variant overflow-hidden shadow-sm mb-lg">
+        <div class="px-lg py-md border-b border-outline-variant">
+            <h2 class="font-headline-md text-headline-md text-primary">Filtros</h2>
+            <p class="font-body-sm text-body-sm text-on-surface-variant">Refine el listado de citas activas.</p>
         </div>
-        <div class="bg-white rounded-lg shadow p-4">
-            <div class="text-sm text-gray-500">Ingresos de Hoy</div>
-            <div class="text-2xl font-bold text-green-600">${{ number_format($ingresosHoy, 2) }}</div>
-        </div>
-        <div class="bg-white rounded-lg shadow p-4">
-            <div class="text-sm text-gray-500">Total Citas</div>
-            <div class="text-2xl font-bold">{{ $citas->total() }}</div>
+        <div class="p-lg">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-md">
+                <div class="flex flex-col gap-xs">
+                    <label class="font-label-sm text-label-sm text-on-surface-variant">Fecha</label>
+                    <input type="date" wire:model.live="filtroFecha"
+                           class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface bg-surface-container-lowest focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
+                </div>
+                <div class="flex flex-col gap-xs">
+                    <label class="font-label-sm text-label-sm text-on-surface-variant">Estado</label>
+                    <select wire:model.live="filtroEstado"
+                            class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface bg-surface-container-lowest focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
+                        <option value="">Todos</option>
+                        <option value="agendada">Agendada</option>
+                        <option value="confirmada">Confirmada</option>
+                        <option value="en_curso">En curso</option>
+                        <option value="atendida">Atendida</option>
+                        <option value="cancelada">Cancelada</option>
+                        <option value="no_asistio">No asistió</option>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-xs">
+                    <label class="font-label-sm text-label-sm text-on-surface-variant">Colaborador</label>
+                    <select wire:model.live="filtroColaborador"
+                            class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface bg-surface-container-lowest focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
+                        <option value="">Todos</option>
+                        @foreach($colaboradores as $colab)
+                            <option value="{{ $colab->id }}">{{ $colab->nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="flex flex-col gap-xs">
+                    <label class="font-label-sm text-label-sm text-on-surface-variant">Buscar cliente</label>
+                    <input type="text" wire:model.live.debounce.300ms="buscarCliente"
+                           placeholder="Nombre o teléfono..."
+                           class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface bg-surface-container-lowest focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
+                </div>
+            </div>
+            <div class="mt-md">
+                <button wire:click="limpiarFiltros" type="button"
+                        class="flex items-center gap-2 px-md py-sm rounded-lg border border-outline text-on-surface hover:bg-surface-container-low transition-colors font-label-md text-label-md">
+                    <span class="material-symbols-outlined text-[18px]">filter_alt_off</span>
+                    Limpiar filtros
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- Filtros -->
-    <div class="bg-white rounded-lg shadow p-4 mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+    <div class="bg-surface rounded-xl border border-outline-variant overflow-hidden shadow-sm">
+        <div class="px-lg py-md flex flex-col md:flex-row justify-between items-start md:items-center gap-md border-b border-outline-variant">
             <div>
-                <label class="text-sm text-gray-600">Fecha</label>
-                <input type="date" wire:model.live="filtroFecha" class="w-full border rounded-lg p-2 text-sm">
-            </div>
-            <div>
-                <label class="text-sm text-gray-600">Estado</label>
-                <select wire:model.live="filtroEstado" class="w-full border rounded-lg p-2 text-sm">
-                    <option value="">Todos</option>
-                    <option value="agendada">Agendada</option>
-                    <option value="confirmada">Confirmada</option>
-                    <option value="en_curso">En curso</option>
-                    <option value="atendida">Atendida</option>
-                    <option value="cancelada">Cancelada</option>
-                    <option value="no_asistio">No asistió</option>
-                </select>
-            </div>
-            <div>
-                <label class="text-sm text-gray-600">Colaborador</label>
-                <select wire:model.live="filtroColaborador" class="w-full border rounded-lg p-2 text-sm">
-                    <option value="">Todos</option>
-                    @foreach($colaboradores as $colab)
-                        <option value="{{ $colab->id }}">{{ $colab->nombre }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="text-sm text-gray-600">Buscar cliente</label>
-                <input type="text" wire:model.live.debounce.300ms="buscarCliente" 
-                       placeholder="Nombre o teléfono..." 
-                       class="w-full border rounded-lg p-2 text-sm">
+                <h2 class="font-headline-md text-headline-md text-primary">Listado de Citas</h2>
+                <p class="font-body-sm text-body-sm text-on-surface-variant">Gestione y supervise todas las citas activas.</p>
             </div>
         </div>
-        <div class="mt-3">
-            <button wire:click="limpiarFiltros" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-1 rounded-lg text-sm">
-                Limpiar filtros
-            </button>
-        </div>
-    </div>
-
-    <!-- Tabla de citas -->
-    <div class="bg-white rounded-lg shadow overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Servicio</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Colaborador</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha/Hora</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monto</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-surface-container-low border-b border-outline-variant">
+                        <th class="px-lg py-md font-label-md text-label-md text-on-surface-variant">Cliente</th>
+                        <th class="px-lg py-md font-label-md text-label-md text-on-surface-variant">Servicio</th>
+                        <th class="px-lg py-md font-label-md text-label-md text-on-surface-variant">Colaborador</th>
+                        <th class="px-lg py-md font-label-md text-label-md text-on-surface-variant">Fecha/Hora</th>
+                        <th class="px-lg py-md font-label-md text-label-md text-on-surface-variant">Estado</th>
+                        <th class="px-lg py-md font-label-md text-label-md text-on-surface-variant">Monto</th>
+                        <th class="px-lg py-md font-label-md text-label-md text-on-surface-variant text-right">Acciones</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="divide-y divide-outline-variant">
                     @forelse($citas as $cita)
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-gray-900">{{ $cita->cliente->nombre }}</div>
-                            <div class="text-xs text-gray-500">{{ $cita->cliente->telefono }}</div>
+                    <tr class="hover:bg-surface-container-lowest transition-colors">
+                        <td class="px-lg py-md">
+                            <div class="font-body-md text-body-md text-on-surface font-semibold">{{ $cita->cliente->nombre }}</div>
+                            <div class="font-body-sm text-body-sm text-on-surface-variant">{{ $cita->cliente->telefono }}</div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-900">{{ $cita->servicio->nombre }}</div>
-                            <div class="text-xs text-gray-500">{{ $cita->servicio->duracion_minutos }} min</div>
+                        <td class="px-lg py-md">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full bg-secondary"></div>
+                                <div>
+                                    <span class="font-body-md text-body-md text-on-surface">{{ $cita->servicio->nombre }}</span>
+                                    <div class="font-body-sm text-body-sm text-on-surface-variant">{{ $cita->servicio->duracion_minutos }} min</div>
+                                </div>
+                            </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-900">{{ $cita->colaborador->nombre }}</div>
+                        <td class="px-lg py-md font-body-md text-body-md text-on-surface">
+                            {{ $cita->colaborador->nombre }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-900">{{ $cita->fecha }}</div>
-                            <div class="text-xs text-gray-500">{{ $cita->hora_inicio }} - {{ $cita->hora_fin }}</div>
+                        <td class="px-lg py-md">
+                            <div class="font-body-md text-body-md text-on-surface">{{ $cita->fecha }}</div>
+                            <div class="font-body-sm text-body-sm text-on-surface-variant">{{ $cita->hora_inicio }} - {{ $cita->hora_fin }}</div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                @if($cita->estado == 'agendada') bg-yellow-100 text-yellow-800
-                                @elseif($cita->estado == 'confirmada') bg-blue-100 text-blue-800
-                                @elseif($cita->estado == 'en_curso') bg-purple-100 text-purple-800
-                                @elseif($cita->estado == 'atendida') bg-green-100 text-green-800
-                                @elseif($cita->estado == 'cancelada') bg-red-100 text-red-800
-                                @else bg-gray-100 text-gray-800 @endif">
+                        <td class="px-lg py-md">
+                            <span class="px-sm py-1 text-label-sm font-label-sm rounded-full
+                                @if($cita->estado == 'agendada') bg-surface-container-high text-on-surface
+                                @elseif($cita->estado == 'confirmada') bg-secondary-container text-on-secondary-container
+                                @elseif($cita->estado == 'en_curso') bg-primary-container text-on-primary-container
+                                @elseif($cita->estado == 'atendida') bg-secondary-container text-on-secondary-container
+                                @elseif($cita->estado == 'cancelada') bg-error-container text-on-error-container
+                                @else bg-surface-container text-on-surface-variant @endif">
                                 {{ ucfirst($cita->estado) }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium {{ $cita->pagado ? 'text-green-600' : 'text-red-600' }}">
+                        <td class="px-lg py-md">
+                            <div class="font-label-md text-label-md {{ $cita->pagado ? 'text-secondary' : 'text-error' }}">
                                 ${{ number_format($cita->monto_pagado ?? 0, 2) }}
                             </div>
-                            <div class="text-xs text-gray-500">
+                            <div class="font-body-sm text-body-sm text-on-surface-variant">
                                 {{ $cita->pagado ? 'Pagado' : 'Pendiente' }}
                             </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div class="flex space-x-2">
+                        <td class="px-lg py-md text-right">
+                            <div class="flex justify-end gap-sm items-center">
                                 @if($puedeGestionar ?? false)
-                                    <button wire:click="editarCita({{ $cita->id }})" 
-                                            class="text-blue-600 hover:text-blue-900">
-                                        Editar
+                                    <button wire:click="editarCita({{ $cita->id }})"
+                                            type="button"
+                                            class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-all"
+                                            title="Editar">
+                                        <span class="material-symbols-outlined text-[20px]">edit</span>
                                     </button>
-                                    <button wire:click="eliminarCita({{ $cita->id }})" 
+                                    <button wire:click="eliminarCita({{ $cita->id }})"
                                             onclick="confirm('¿Eliminar esta cita?') || event.stopImmediatePropagation()"
-                                            class="text-red-600 hover:text-red-900">
-                                        Eliminar
+                                            type="button"
+                                            class="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-lg transition-all"
+                                            title="Eliminar">
+                                        <span class="material-symbols-outlined text-[20px]">delete</span>
                                     </button>
                                 @endif
-                                
+
                                 @if($esColaborador ?? false)
-                                    <button wire:click="cambiarEstado({{ $cita->id }}, 'en_curso')" 
-                                            class="text-purple-600 hover:text-purple-900 text-xs">
+                                    <button wire:click="cambiarEstado({{ $cita->id }}, 'en_curso')"
+                                            type="button"
+                                            class="px-sm py-1 font-label-sm text-label-sm text-primary hover:bg-primary-container rounded-lg transition-colors">
                                         En curso
                                     </button>
-                                    <button wire:click="cambiarEstado({{ $cita->id }}, 'atendida')" 
-                                            class="text-green-600 hover:text-green-900 text-xs">
+                                    <button wire:click="cambiarEstado({{ $cita->id }}, 'atendida')"
+                                            type="button"
+                                            class="px-sm py-1 font-label-sm text-label-sm text-secondary hover:bg-secondary-container rounded-lg transition-colors">
                                         Atendida
                                     </button>
                                 @endif
 
                                 @if($puedeGestionar ?? false)
                                     <div class="relative group">
-                                        <button class="text-gray-600 hover:text-gray-900 text-xs">
-                                            Estados ▾
+                                        <button type="button"
+                                                class="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all font-label-sm text-label-sm flex items-center gap-1">
+                                            Estados
+                                            <span class="material-symbols-outlined text-[16px]">expand_more</span>
                                         </button>
-                                        <div class="absolute hidden group-hover:block bg-white shadow-lg rounded-lg p-2 z-10 min-w-32">
+                                        <div class="absolute right-0 hidden group-hover:block bg-surface-container-lowest border border-outline-variant shadow-lg rounded-lg p-2 z-10 min-w-32">
                                             @foreach(['agendada', 'confirmada', 'en_curso', 'atendida', 'cancelada', 'no_asistio'] as $estado)
-                                                <button wire:click="cambiarEstado({{ $cita->id }}, '{{ $estado }}')" 
-                                                        class="block w-full text-left px-3 py-1 text-sm hover:bg-gray-100 rounded">
+                                                <button wire:click="cambiarEstado({{ $cita->id }}, '{{ $estado }}')"
+                                                        type="button"
+                                                        class="block w-full text-left px-3 py-1 font-body-sm text-body-sm text-on-surface hover:bg-surface-container-low rounded">
                                                     {{ ucfirst($estado) }}
                                                 </button>
                                             @endforeach
@@ -189,7 +237,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="px-6 py-8 text-center text-gray-500">
+                        <td colspan="7" class="px-lg py-2xl text-center font-body-md text-body-md text-on-surface-variant">
                             No hay citas registradas
                         </td>
                     </tr>
@@ -197,37 +245,40 @@
                 </tbody>
             </table>
         </div>
-        
-        <div class="px-6 py-4 border-t">
+
+        <div class="px-lg py-md bg-surface-container-low border-t border-outline-variant">
             {{ $citas->links() }}
         </div>
     </div>
 
     <!-- ==================== MODAL CITA ==================== -->
     @if($mostrarModalCita)
-    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div class="p-6">
-                <h3 class="text-lg font-bold mb-4">
+    <div class="fixed inset-0 bg-on-surface/40 flex items-center justify-center z-50 p-4">
+        <div class="bg-surface-container-lowest rounded-xl border border-outline-variant max-w-md w-full max-h-[90vh] overflow-y-auto shadow-lg">
+            <div class="p-lg">
+                <h3 class="font-headline-md text-headline-md text-on-surface mb-lg flex items-center gap-2">
+                    <span class="material-symbols-outlined text-secondary">event</span>
                     {{ $citaIdEditar ? 'Editar Cita' : 'Nueva Cita' }}
                 </h3>
-                
+
                 <form wire:submit.prevent="guardarCita">
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Cliente *</label>
-                            <select wire:model="clienteId" class="w-full border rounded-lg p-2">
+                    <div class="space-y-md">
+                        <div class="flex flex-col gap-xs">
+                            <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Cliente *</label>
+                            <select wire:model="clienteId"
+                                    class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
                                 <option value="">Seleccionar cliente</option>
                                 @foreach($clientes as $cliente)
                                     <option value="{{ $cliente->id }}">{{ $cliente->nombre }} - {{ $cliente->telefono }}</option>
                                 @endforeach
                             </select>
-                            @error('clienteId') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                            @error('clienteId') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Servicio *</label>
-                            <select wire:model="servicioId" class="w-full border rounded-lg p-2">
+                        <div class="flex flex-col gap-xs">
+                            <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Servicio *</label>
+                            <select wire:model="servicioId"
+                                    class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
                                 <option value="">Seleccionar servicio</option>
                                 @foreach($servicios as $servicio)
                                     <option value="{{ $servicio->id }}">
@@ -236,12 +287,13 @@
                                     </option>
                                 @endforeach
                             </select>
-                            @error('servicioId') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                            @error('servicioId') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Colaborador *</label>
-                            <select wire:model="colaboradorId" class="w-full border rounded-lg p-2">
+                        <div class="flex flex-col gap-xs">
+                            <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Colaborador *</label>
+                            <select wire:model="colaboradorId"
+                                    class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
                                 <option value="">Seleccionar colaborador</option>
                                 @foreach($colaboradores as $colaborador)
                                     <option value="{{ $colaborador->id }}">
@@ -252,27 +304,28 @@
                                     </option>
                                 @endforeach
                             </select>
-                            @error('colaboradorId') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                            @error('colaboradorId') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha *</label>
-                                <input type="date" wire:model="fecha" min="{{ date('Y-m-d') }}" 
-                                       class="w-full border rounded-lg p-2">
-                                @error('fecha') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        <div class="grid grid-cols-2 gap-md">
+                            <div class="flex flex-col gap-xs">
+                                <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Fecha *</label>
+                                <input type="date" wire:model="fecha" min="{{ date('Y-m-d') }}"
+                                       class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
+                                @error('fecha') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Hora *</label>
+                            <div class="flex flex-col gap-xs">
+                                <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Hora *</label>
                                 <input type="time" wire:model="horaInicio" step="900"
-                                       class="w-full border rounded-lg p-2">
-                                @error('horaInicio') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                       class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
+                                @error('horaInicio') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                             </div>
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                            <select wire:model="estado" class="w-full border rounded-lg p-2">
+                        <div class="flex flex-col gap-xs">
+                            <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Estado</label>
+                            <select wire:model="estado"
+                                    class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
                                 <option value="agendada">Agendada</option>
                                 <option value="confirmada">Confirmada</option>
                                 <option value="en_curso">En curso</option>
@@ -280,40 +333,42 @@
                                 <option value="cancelada">Cancelada</option>
                                 <option value="no_asistio">No asistió</option>
                             </select>
-                            @error('estado') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                            @error('estado') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Monto</label>
-                            <input type="number" step="0.01" min="0" wire:model="montoPagado" 
-                                   class="w-full border rounded-lg p-2">
-                            @error('montoPagado') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        <div class="flex flex-col gap-xs">
+                            <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Monto</label>
+                            <input type="number" step="0.01" min="0" wire:model="montoPagado"
+                                   class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
+                            @error('montoPagado') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Método de pago</label>
-                            <select wire:model="metodoPago" class="w-full border rounded-lg p-2">
+                        <div class="flex flex-col gap-xs">
+                            <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Método de pago</label>
+                            <select wire:model="metodoPago"
+                                    class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
                                 <option value="">No especificado</option>
                                 <option value="efectivo">Efectivo</option>
                                 <option value="transferencia">Transferencia</option>
                                 <option value="tarjeta">Tarjeta</option>
                             </select>
-                            @error('metodoPago') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                            @error('metodoPago') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                         </div>
 
-                        <div class="flex items-center">
-                            <input type="checkbox" wire:model="pagado" id="pagado" class="rounded border-gray-300">
-                            <label for="pagado" class="ml-2 text-sm text-gray-700">¿Pagado?</label>
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" wire:model="pagado" id="pagado"
+                                   class="w-4 h-4 text-secondary border-outline-variant rounded focus:ring-secondary">
+                            <label for="pagado" class="font-body-sm text-body-sm text-on-surface">¿Pagado?</label>
                         </div>
                     </div>
 
-                    <div class="flex justify-end space-x-3 mt-6 pt-4 border-t">
-                        <button type="button" wire:click="cerrarModalCita" 
-                                class="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded-lg">
+                    <div class="flex justify-end gap-sm mt-lg pt-md border-t border-outline-variant">
+                        <button type="button" wire:click="cerrarModalCita"
+                                class="px-lg py-sm rounded-lg border border-outline-variant text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high transition-colors">
                             Cancelar
                         </button>
-                        <button type="submit" 
-                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                        <button type="submit"
+                                class="px-lg py-sm rounded-lg bg-primary text-on-primary font-label-md text-label-md hover:opacity-90 transition-opacity">
                             {{ $citaIdEditar ? 'Actualizar' : 'Guardar' }}
                         </button>
                     </div>
@@ -325,101 +380,103 @@
 
     <!-- ==================== MODAL COLABORADOR ==================== -->
     @if($mostrarModalColaborador)
-    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div class="p-6">
-                <h3 class="text-lg font-bold mb-4">
+    <div class="fixed inset-0 bg-on-surface/40 flex items-center justify-center z-50 p-4">
+        <div class="bg-surface-container-lowest rounded-xl border border-outline-variant max-w-md w-full max-h-[90vh] overflow-y-auto shadow-lg">
+            <div class="p-lg">
+                <h3 class="font-headline-md text-headline-md text-on-surface mb-lg flex items-center gap-2">
+                    <span class="material-symbols-outlined text-secondary">person_add</span>
                     {{ $colaboradorIdEditar ? 'Editar Colaborador' : 'Nuevo Colaborador' }}
                 </h3>
-                
+
                 <form wire:submit.prevent="guardarColaborador">
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
-                            <input type="text" wire:model="colaboradorNombre" 
-                                   class="w-full border rounded-lg p-2">
-                            @error('colaboradorNombre') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                    <div class="space-y-md">
+                        <div class="flex flex-col gap-xs">
+                            <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Nombre *</label>
+                            <input type="text" wire:model="colaboradorNombre"
+                                   class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
+                            @error('colaboradorNombre') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                            <input type="email" wire:model="colaboradorEmail" 
-                                   class="w-full border rounded-lg p-2">
-                            @error('colaboradorEmail') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        <div class="flex flex-col gap-xs">
+                            <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Email *</label>
+                            <input type="email" wire:model="colaboradorEmail"
+                                   class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
+                            @error('colaboradorEmail') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                            <input type="text" wire:model="colaboradorTelefono" 
-                                   class="w-full border rounded-lg p-2">
-                            @error('colaboradorTelefono') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        <div class="flex flex-col gap-xs">
+                            <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Teléfono</label>
+                            <input type="text" wire:model="colaboradorTelefono"
+                                   class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
+                            @error('colaboradorTelefono') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                        <div class="flex flex-col gap-xs">
+                            <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
                                 {{ $colaboradorIdEditar ? 'Nueva Contraseña (opcional)' : 'Contraseña *' }}
                             </label>
-                            <input type="password" wire:model="colaboradorPassword" 
-                                   class="w-full border rounded-lg p-2">
-                            @error('colaboradorPassword') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                            <input type="password" wire:model="colaboradorPassword"
+                                   class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
+                            @error('colaboradorPassword') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                             @if($colaboradorIdEditar)
-                                <p class="text-xs text-gray-500 mt-1">Dejar en blanco para mantener la contraseña actual</p>
+                                <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Dejar en blanco para mantener la contraseña actual</p>
                             @endif
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Comisión (%)</label>
-                            <input type="number" step="0.01" min="0" max="100" wire:model="colaboradorComision" 
-                                   class="w-full border rounded-lg p-2" placeholder="Ej: 10">
-                            @error('colaboradorComision') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        <div class="flex flex-col gap-xs">
+                            <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Comisión (%)</label>
+                            <input type="number" step="0.01" min="0" max="100" wire:model="colaboradorComision"
+                                   class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none"
+                                   placeholder="Ej: 10">
+                            @error('colaboradorComision') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Hora inicio</label>
-                                <input type="time" wire:model="colaboradorHorarioInicio" 
-                                       class="w-full border rounded-lg p-2">
-                                @error('colaboradorHorarioInicio') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        <div class="grid grid-cols-2 gap-md">
+                            <div class="flex flex-col gap-xs">
+                                <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Hora inicio</label>
+                                <input type="time" wire:model="colaboradorHorarioInicio"
+                                       class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
+                                @error('colaboradorHorarioInicio') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Hora fin</label>
-                                <input type="time" wire:model="colaboradorHorarioFin" 
-                                       class="w-full border rounded-lg p-2">
-                                @error('colaboradorHorarioFin') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                            <div class="flex flex-col gap-xs">
+                                <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Hora fin</label>
+                                <input type="time" wire:model="colaboradorHorarioFin"
+                                       class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
+                                @error('colaboradorHorarioFin') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                             </div>
                         </div>
 
                         <!-- Servicios del colaborador -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                        <div class="flex flex-col gap-xs">
+                            <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
                                 Servicios que puede realizar *
                             </label>
-                            <p class="text-xs text-gray-500 mb-2">Selecciona uno o varios servicios</p>
-                            
-                            <div class="space-y-2 max-h-40 overflow-y-auto border rounded-lg p-2">
+                            <p class="font-body-sm text-body-sm text-on-surface-variant mb-2">Selecciona uno o varios servicios</p>
+
+                            <div class="space-y-2 max-h-40 overflow-y-auto border border-outline-variant rounded-lg p-2 bg-surface">
                                 @foreach($serviciosAll as $servicio)
-                                    <label class="flex items-center hover:bg-gray-50 p-1 rounded cursor-pointer">
-                                        <input type="checkbox" 
-                                               wire:model="colaboradorServicios" 
+                                    <label class="flex items-center hover:bg-surface-container-low p-1 rounded cursor-pointer">
+                                        <input type="checkbox"
+                                               wire:model="colaboradorServicios"
                                                value="{{ $servicio->id }}"
-                                               class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                        <span class="ml-2 text-sm">
+                                               class="rounded border-outline-variant text-secondary focus:ring-secondary">
+                                        <span class="ml-2 font-body-sm text-body-sm text-on-surface">
                                             {{ $servicio->nombre }}
-                                            <span class="text-gray-400 text-xs">
+                                            <span class="text-on-surface-variant text-xs">
                                                 ({{ $servicio->duracion_minutos }} min - ${{ number_format($servicio->precio, 2) }})
                                             </span>
                                             @if(!$servicio->activo)
-                                                <span class="text-red-400 text-xs">(Inactivo)</span>
+                                                <span class="text-error text-xs">(Inactivo)</span>
                                             @endif
                                         </span>
                                     </label>
                                 @endforeach
                             </div>
-                            
-                            @error('colaboradorServicios') 
-                                <span class="text-red-500 text-sm block mt-1">{{ $message }}</span> 
+
+                            @error('colaboradorServicios')
+                                <span class="text-error text-label-sm font-label-sm block mt-1">{{ $message }}</span>
                             @enderror
-                            
+
                             @if(count($colaboradorServicios) > 0)
                                 <div class="mt-2 flex flex-wrap gap-1">
                                     @foreach($colaboradorServicios as $servicioId)
@@ -427,12 +484,12 @@
                                             $servicio = $serviciosAll->firstWhere('id', $servicioId);
                                         @endphp
                                         @if($servicio)
-                                            <span class="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                            <span class="inline-flex items-center px-2 py-1 bg-secondary-container text-on-secondary-container text-xs rounded-full font-label-sm">
                                                 {{ $servicio->nombre }}
-                                                <button type="button" 
+                                                <button type="button"
                                                         wire:click="$set('colaboradorServicios', {{ json_encode(array_diff($colaboradorServicios, [$servicioId])) }})"
-                                                        class="ml-1 text-blue-600 hover:text-blue-800">
-                                                    ×
+                                                        class="ml-1 text-on-secondary-container hover:opacity-70">
+                                                    <span class="material-symbols-outlined text-[14px]">close</span>
                                                 </button>
                                             </span>
                                         @endif
@@ -441,19 +498,20 @@
                             @endif
                         </div>
 
-                        <div class="flex items-center">
-                            <input type="checkbox" wire:model="colaboradorActivo" id="colaboradorActivo" class="rounded border-gray-300">
-                            <label for="colaboradorActivo" class="ml-2 text-sm text-gray-700">Activo</label>
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" wire:model="colaboradorActivo" id="colaboradorActivo"
+                                   class="w-4 h-4 text-secondary border-outline-variant rounded focus:ring-secondary">
+                            <label for="colaboradorActivo" class="font-body-sm text-body-sm text-on-surface">Activo</label>
                         </div>
                     </div>
 
-                    <div class="flex justify-end space-x-3 mt-6 pt-4 border-t">
-                        <button type="button" wire:click="cerrarModalColaborador" 
-                                class="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded-lg">
+                    <div class="flex justify-end gap-sm mt-lg pt-md border-t border-outline-variant">
+                        <button type="button" wire:click="cerrarModalColaborador"
+                                class="px-lg py-sm rounded-lg border border-outline-variant text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high transition-colors">
                             Cancelar
                         </button>
-                        <button type="submit" 
-                                class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg">
+                        <button type="submit"
+                                class="px-lg py-sm rounded-lg bg-secondary text-on-secondary font-label-md text-label-md hover:opacity-90 transition-opacity">
                             {{ $colaboradorIdEditar ? 'Actualizar' : 'Guardar' }}
                         </button>
                     </div>
@@ -465,57 +523,63 @@
 
     <!-- ==================== MODAL SERVICIO ==================== -->
     @if($mostrarModalServicio)
-    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div class="p-6">
-                <h3 class="text-lg font-bold mb-4">
+    <div class="fixed inset-0 bg-on-surface/40 flex items-center justify-center z-50 p-4">
+        <div class="bg-surface-container-lowest rounded-xl border border-outline-variant max-w-md w-full max-h-[90vh] overflow-y-auto shadow-lg">
+            <div class="p-lg">
+                <h3 class="font-headline-md text-headline-md text-on-surface mb-lg flex items-center gap-2">
+                    <span class="material-symbols-outlined text-secondary">add_box</span>
                     {{ $servicioIdEditar ? 'Editar Servicio' : 'Nuevo Servicio' }}
                 </h3>
-                
+
                 <form wire:submit.prevent="guardarServicio">
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
-                            <input type="text" wire:model="servicioNombre" 
-                                   class="w-full border rounded-lg p-2" placeholder="Ej: Corte de cabello">
-                            @error('servicioNombre') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                    <div class="space-y-md">
+                        <div class="flex flex-col gap-xs">
+                            <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Nombre *</label>
+                            <input type="text" wire:model="servicioNombre"
+                                   class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none"
+                                   placeholder="Ej: Corte de cabello">
+                            @error('servicioNombre') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Duración (minutos) *</label>
-                            <input type="number" min="5" step="5" wire:model="servicioDuracion" 
-                                   class="w-full border rounded-lg p-2" placeholder="30">
-                            @error('servicioDuracion') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        <div class="flex flex-col gap-xs">
+                            <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Duración (minutos) *</label>
+                            <input type="number" min="5" step="5" wire:model="servicioDuracion"
+                                   class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none"
+                                   placeholder="30">
+                            @error('servicioDuracion') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Precio *</label>
-                            <input type="number" step="0.01" min="0" wire:model="servicioPrecio" 
-                                   class="w-full border rounded-lg p-2" placeholder="0.00">
-                            @error('servicioPrecio') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        <div class="flex flex-col gap-xs">
+                            <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Precio *</label>
+                            <input type="number" step="0.01" min="0" wire:model="servicioPrecio"
+                                   class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none"
+                                   placeholder="0.00">
+                            @error('servicioPrecio') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Puntos que genera</label>
-                            <input type="number" min="0" wire:model="servicioPuntos" 
-                                   class="w-full border rounded-lg p-2" placeholder="10">
-                            @error('servicioPuntos') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-                            <p class="text-xs text-gray-500 mt-1">Puntos que recibe el cliente al agendar esta cita</p>
+                        <div class="flex flex-col gap-xs">
+                            <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Puntos que genera</label>
+                            <input type="number" min="0" wire:model="servicioPuntos"
+                                   class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none"
+                                   placeholder="10">
+                            @error('servicioPuntos') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
+                            <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Puntos que recibe el cliente al agendar esta cita</p>
                         </div>
 
-                        <div class="flex items-center">
-                            <input type="checkbox" wire:model="servicioActivo" id="servicioActivo" class="rounded border-gray-300">
-                            <label for="servicioActivo" class="ml-2 text-sm text-gray-700">Activo</label>
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" wire:model="servicioActivo" id="servicioActivo"
+                                   class="w-4 h-4 text-secondary border-outline-variant rounded focus:ring-secondary">
+                            <label for="servicioActivo" class="font-body-sm text-body-sm text-on-surface">Activo</label>
                         </div>
                     </div>
 
-                    <div class="flex justify-end space-x-3 mt-6 pt-4 border-t">
-                        <button type="button" wire:click="cerrarModalServicio" 
-                                class="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded-lg">
+                    <div class="flex justify-end gap-sm mt-lg pt-md border-t border-outline-variant">
+                        <button type="button" wire:click="cerrarModalServicio"
+                                class="px-lg py-sm rounded-lg border border-outline-variant text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high transition-colors">
                             Cancelar
                         </button>
-                        <button type="submit" 
-                                class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg">
+                        <button type="submit"
+                                class="px-lg py-sm rounded-lg bg-primary text-on-primary font-label-md text-label-md hover:opacity-90 transition-opacity">
                             {{ $servicioIdEditar ? 'Actualizar' : 'Guardar' }}
                         </button>
                     </div>

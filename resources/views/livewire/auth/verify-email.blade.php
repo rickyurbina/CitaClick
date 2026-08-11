@@ -34,7 +34,8 @@ new #[Layout('components.layouts.auth')] class extends Component {
     }
 }; ?>
 
-<div class="mt-4 flex flex-col gap-6">
+<div class="min-h-screen flex items-center justify-center p-margin-mobile md:p-margin-desktop">
+<div class="w-full max-w-sm mt-4 flex flex-col gap-6">
     <div class="text-center text-sm text-gray-600">
         {{ __('Please verify your email address by clicking on the link we just emailed to you.') }}
     </div>
@@ -58,4 +59,5 @@ new #[Layout('components.layouts.auth')] class extends Component {
             {{ __('Log out') }}
         </button>
     </div>
+</div>
 </div>

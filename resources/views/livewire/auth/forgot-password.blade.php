@@ -22,7 +22,8 @@ new #[Layout('components.layouts.auth')] class extends Component {
     }
 }; ?>
 
-<div class="flex flex-col gap-6">
+<div class="min-h-screen flex items-center justify-center p-margin-mobile md:p-margin-desktop">
+<div class="w-full max-w-sm flex flex-col gap-6">
     <x-auth-header title="Forgot password" description="Enter your email to receive a password reset link" />
 
     <!-- Session Status -->
@@ -41,4 +42,5 @@ new #[Layout('components.layouts.auth')] class extends Component {
         Or, return to
         <x-text-link href="{{ route('login') }}">log in</x-text-link>
     </div>
+</div>
 </div>

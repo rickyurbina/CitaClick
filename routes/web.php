@@ -25,6 +25,8 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
+require __DIR__.'/auth.php';
+
 Route::get('/dashboard',SuperAdminPanel::class)->name('superadmin');
 
 Route::get('/{empresa:slug}', BuscarCliente::class)->name('clientes');

@@ -72,7 +72,8 @@ new #[Layout('components.layouts.auth')] class extends Component {
     }
 }; ?>
 
-<div class="flex flex-col gap-6">
+<div class="min-h-screen flex items-center justify-center p-margin-mobile md:p-margin-desktop">
+<div class="w-full max-w-sm flex flex-col gap-6">
     <x-auth-header title="Log in to your account" description="Enter your email and password below to log in" />
 
     <!-- Session Status -->
@@ -113,4 +114,5 @@ new #[Layout('components.layouts.auth')] class extends Component {
         Don't have an account?
         <x-text-link href="{{ route('register') }}">Sign up</x-text-link>
     </div>
+</div>
 </div>
