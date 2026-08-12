@@ -5,8 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\Auth;  // 👈 Importar Auth
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Auth;
 
 class CitasModel extends Model
 {
@@ -80,17 +82,17 @@ class CitasModel extends Model
         return $this->belongsTo(User::class, 'cobrado_por');
     }
 
-    public function comision()
+    public function comision(): HasOne
     {
         return $this->hasOne(ComisionesModel::class, 'cita_id');
     }
 
-    public function auditorias()
+    public function auditorias(): HasMany
     {
         return $this->hasMany(AuditoriaCitasModel::class, 'cita_id');
     }
 
-    public function redenciones()
+    public function redenciones(): HasMany
     {
         return $this->hasMany(RedencionesPromocionModel::class, 'cita_id');
     }
@@ -100,6 +102,11 @@ class CitasModel extends Model
     public function scopeDeEmpresa($query, $empresaId)
     {
         return $query->where('empresa_id', $empresaId);
+    }
+
+    public function scopeDeColaborador($query, $colaboradorId)
+    {
+        return $query->where('colaborador_id', $colaboradorId);
     }
 
     public function scopeDelDia($query, $fecha = null)
@@ -119,11 +126,6 @@ class CitasModel extends Model
     public function scopePorEstado($query, $estado)
     {
         return $query->where('estado', $estado);
-    }
-
-    public function scopePorColaborador($query, $colaboradorId)
-    {
-        return $query->where('colaborador_id', $colaboradorId);
     }
 
     public function scopePorCliente($query, $clienteId)
@@ -161,6 +163,27 @@ class CitasModel extends Model
         return $query->whereIn('estado', ['atendida', 'cancelada', 'no_asistio']);
     }
 
+    public function scopeEnCurso($query)
+    {
+        return $query->where('estado', 'en_curso');
+    }
+
+    // ==================== MÉTODOS CHECK IN/OUT ====================
+
+    public function marcarCheckin(): void
+    {
+        $this->estado = 'en_curso';
+        $this->checkin_time = now();
+        $this->save();
+    }
+
+    public function marcarCheckout(): void
+    {
+        $this->estado = 'atendida';
+        $this->checkout_time = now();
+        $this->save();
+    }
+
     // ==================== MÉTODOS ====================
 
     public function estaPagada(): bool
@@ -183,6 +206,16 @@ class CitasModel extends Model
         return $this->estado === 'confirmada';
     }
 
+    public function estaEnCurso(): bool
+    {
+        return $this->estado === 'en_curso';
+    }
+
+    public function estaAgendada(): bool
+    {
+        return $this->estado === 'agendada';
+    }
+
     public function marcarPagada($monto = null, $metodo = null): void
     {
         $this->pagado = true;
@@ -197,7 +230,7 @@ class CitasModel extends Model
         
         $this->fecha_pago = now();
         
-        // 👈 CORRECCIÓN: Verificar si hay usuario autenticado
+        // 👈 CORREGIDO: Usar Auth:: en lugar de auth()
         if (Auth::check()) {
             $this->cobrado_por = Auth::id();
         }
@@ -210,7 +243,7 @@ class CitasModel extends Model
         $this->estado = 'cancelada';
         $this->motivo_cancelacion = $motivo;
         
-        // 👈 CORRECCIÓN: Usar Auth::check() y Auth::user()
+        // 👈 CORREGIDO: Usar Auth:: en lugar de auth()
         if (Auth::check() && Auth::user()) {
             $this->cancelada_por = Auth::user()->rol ?? 'cliente';
         } else {
@@ -218,33 +251,6 @@ class CitasModel extends Model
         }
         
         $this->save();
-    }
-
-    public function marcarAtendida(): void
-    {
-        $this->estado = 'atendida';
-        $this->checkout_time = now();
-        $this->save();
-    }
-
-    public function marcarCheckin(): void
-    {
-        $this->estado = 'en_curso';
-        $this->checkin_time = now();
-        $this->save();
-    }
-
-    // 👈 NUEVO MÉTODO: Para obtener el estado de cancelación con el rol
-    public function getCanceladaPorLabelAttribute(): string
-    {
-        $labels = [
-            'cliente' => 'Cliente',
-            'recepcionista' => 'Recepcionista',
-            'colaborador' => 'Colaborador',
-            'empresa_admin' => 'Administrador',
-        ];
-
-        return $labels[$this->cancelada_por] ?? $this->cancelada_por;
     }
 
     public function getMontoFormateadoAttribute(): string
@@ -288,7 +294,6 @@ class CitasModel extends Model
         return $this->hora_inicio . ' - ' . $this->hora_fin;
     }
 
-    // 👈 NUEVO MÉTODO: Para obtener el nombre de quien cobró
     public function getCobradoPorNombreAttribute(): ?string
     {
         if (!$this->cobrado_por) {
@@ -306,7 +311,6 @@ class CitasModel extends Model
         parent::boot();
 
         static::created(function ($cita) {
-            // Cuando se crea una cita, sumar puntos al cliente
             if ($cita->servicio && $cita->servicio->puntos_genera > 0) {
                 $cliente = ClientesModel::find($cita->cliente_id);
                 if ($cliente) {
@@ -316,7 +320,6 @@ class CitasModel extends Model
         });
 
         static::updated(function ($cita) {
-            // Si se marca como atendida y está pagada, generar comisión
             if ($cita->estado === 'atendida' && $cita->pagado && !$cita->comision) {
                 // La comisión se genera automáticamente por el Observer o Event
             }

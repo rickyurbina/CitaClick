@@ -20,7 +20,7 @@ class RegistroCliente extends Component
     protected $rules = [
         'nombre' => 'required|string|max:100|regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/',
         'telefono' => 'required|string|max:20',
-        'fechaNacimiento' => 'nullable|date|before:today|after:1900-01-01',
+        'fechaNacimiento' => 'required|date|before:today|after:1900-01-01',
         'aceptaTerminos' => 'accepted',
     ];
 
@@ -29,6 +29,7 @@ class RegistroCliente extends Component
         'nombre.regex' => 'El nombre solo puede contener letras y espacios.',
         'nombre.max' => 'El nombre no puede exceder los 100 caracteres.',
         'telefono.required' => 'El número de teléfono es obligatorio.',
+        'fechaNacimiento.required' => 'La fecha de nacimiento es obligatoria.',
         'fechaNacimiento.date' => 'Ingresa una fecha válida.',
         'fechaNacimiento.before' => 'La fecha debe ser anterior a hoy.',
         'fechaNacimiento.after' => 'La fecha debe ser posterior a 1900.',
@@ -51,7 +52,6 @@ class RegistroCliente extends Component
         try {
             DB::beginTransaction();
 
-            // Verificar si ya existe el cliente con ese teléfono
             $existe = ClientesModel::where('empresa_id', $this->empresa->id)
                 ->where('telefono', $this->telefono)
                 ->exists();
@@ -65,12 +65,11 @@ class RegistroCliente extends Component
                 return;
             }
 
-            // Crear cliente
             $cliente = ClientesModel::create([
                 'empresa_id' => $this->empresa->id,
                 'telefono' => $this->telefono,
                 'nombre' => $this->nombre,
-                'fecha_nacimiento' => $this->fechaNacimiento ? Carbon::parse($this->fechaNacimiento) : null,
+                'fecha_nacimiento' => Carbon::parse($this->fechaNacimiento),
                 'puntos_buenos' => 0,
                 'puntos_malos' => 0,
                 'total_gastado' => 0,

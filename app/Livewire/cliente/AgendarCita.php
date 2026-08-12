@@ -18,7 +18,6 @@ class AgendarCita extends Component
     public bool $mostrarFormulario = false;
     public bool $mostrarHistorial = true;
 
-    // Datos del cliente
     public $cliente;
     public $citasAnteriores = [];
     public int $totalCitas = 0;
@@ -31,12 +30,17 @@ class AgendarCita extends Component
     public $nombreAcompanante = '';
     public $observaciones = '';
 
-    // Estados
     public bool $cargando = false;
 
-    /**
-     * Reglas de validación - Solo reglas simples
-     */
+    // Datos para el calendario
+    public $diasDisponibles = [];
+    public $horasDisponibles = [];
+    public $duracionServicio = 0;
+
+    // 👈 NUEVO: Para el mes y año del calendario
+    public $mesCalendario;
+    public $anoCalendario;
+
     protected $rules = [
         'servicioId' => 'required|exists:servicios,id',
         'colaboradorId' => 'required|exists:users,id',
@@ -46,9 +50,6 @@ class AgendarCita extends Component
         'observaciones' => 'nullable|string|max:255',
     ];
 
-    /**
-     * Mensajes de validación personalizados
-     */
     protected $messages = [
         'servicioId.required' => 'Selecciona un servicio.',
         'servicioId.exists' => 'El servicio seleccionado no existe.',
@@ -75,16 +76,16 @@ class AgendarCita extends Component
         $this->totalCitas = CitasModel::where('cliente_id', $clienteId)->count();
         $this->citasAnteriores = $this->cliente->citas;
 
-        // Si no tiene citas anteriores, mostrar el formulario directamente
+        // 👈 Inicializar mes y año
+        $this->mesCalendario = date('n');
+        $this->anoCalendario = date('Y');
+
         if ($this->totalCitas === 0) {
             $this->mostrarFormulario = true;
             $this->mostrarHistorial = false;
         }
     }
 
-    /**
-     * Obtener servicios activos de la empresa
-     */
     public function getServiciosProperty()
     {
         return ServiciosModel::where('empresa_id', $this->empresa->id)
@@ -93,9 +94,6 @@ class AgendarCita extends Component
             ->get(['id', 'nombre', 'precio', 'duracion_minutos']);
     }
 
-    /**
-     * Obtener colaboradores disponibles
-     */
     public function getColaboradoresProperty()
     {
         $query = User::where('empresa_id', $this->empresa->id)
@@ -111,62 +109,216 @@ class AgendarCita extends Component
         return $query->orderBy('nombre')->get(['id', 'nombre']);
     }
 
-    // ==================== VALIDACIÓN PERSONALIZADA ====================
-
-    /**
-     * Validar que el horario esté disponible
-     * ✅ Reutilizable
-     * ✅ Testeable
-     * ✅ Acceso completo a $this
-     */
-    public function validarHorarioDisponible(): bool
+    // 👈 NUEVO: Actualizar mes desde Alpine
+    public function actualizarMes($mes, $ano)
     {
-        // Si falta información, no validar
-        if (!$this->colaboradorId || !$this->fecha || !$this->horaInicio || !$this->servicioId) {
-            return true;
+        $this->mesCalendario = $mes + 1; // Alpine usa 0-11, Blade usa 1-12
+        $this->anoCalendario = $ano;
+    }
+
+    public function cargarDisponibilidad()
+    {
+        if (!$this->colaboradorId || !$this->servicioId) {
+            $this->diasDisponibles = [];
+            $this->horasDisponibles = [];
+            return;
         }
 
         $servicio = ServiciosModel::find($this->servicioId);
         if (!$servicio) {
-            return true;
+            $this->diasDisponibles = [];
+            $this->horasDisponibles = [];
+            return;
         }
 
-        // Calcular hora de fin
-        $horaFin = Carbon::parse($this->horaInicio)->addMinutes($servicio->duracion_minutos);
+        $this->duracionServicio = $servicio->duracion_minutos;
 
-        // Verificar conflicto de horario
-        $conflicto = CitasModel::where('empresa_id', $this->empresa->id)
+        $colaborador = User::find($this->colaboradorId);
+        $horarioInicio = $colaborador->horario_inicio ?? '09:00';
+        $horarioFin = $colaborador->horario_fin ?? '20:00';
+
+        $citasOcupadas = CitasModel::where('empresa_id', $this->empresa->id)
+            ->where('colaborador_id', $this->colaboradorId)
+            ->where('fecha', '>=', Carbon::today())
+            ->where('fecha', '<=', Carbon::today()->addDays(60))
+            ->where('estado', '!=', 'cancelada')
+            ->where('estado', '!=', 'no_asistio')
+            ->get()
+            ->groupBy('fecha');
+
+        $diasDisponibles = [];
+
+        for ($i = 0; $i <= 60; $i++) {
+            $fecha = Carbon::today()->addDays($i);
+            $fechaStr = $fecha->format('Y-m-d');
+
+            if ($fecha->isPast() && !$fecha->isToday()) {
+                continue;
+            }
+
+            $citasDelDia = $citasOcupadas->get($fechaStr) ?? collect();
+            $espacios = $this->calcularEspacios($horarioInicio, $horarioFin, $this->duracionServicio, $citasDelDia);
+
+            if ($espacios > 0) {
+                $diasDisponibles[] = [
+                    'fecha' => $fechaStr,
+                    'dia' => $fecha->day,
+                    'mes' => $fecha->month,
+                    'año' => $fecha->year,
+                    'espacios' => $espacios,
+                    'esHoy' => $fecha->isToday(),
+                ];
+            }
+        }
+
+        $this->diasDisponibles = $diasDisponibles;
+    }
+
+    private function calcularEspacios($inicio, $fin, $duracion, $citasDelDia)
+    {
+        $inicio = Carbon::parse($inicio);
+        $fin = Carbon::parse($fin);
+
+        $bloques = [];
+        $horaActual = clone $inicio;
+
+        while ($horaActual->addMinutes($duracion) <= $fin) {
+            $inicioBloque = $horaActual->copy()->subMinutes($duracion);
+            $finBloque = $horaActual->copy();
+            
+            $bloques[] = [
+                'inicio' => $inicioBloque->format('H:i'),
+                'fin' => $finBloque->format('H:i'),
+            ];
+        }
+
+        $disponibles = 0;
+
+        foreach ($bloques as $bloque) {
+            $ocupado = false;
+            $bloqueInicio = Carbon::parse($bloque['inicio']);
+            $bloqueFin = Carbon::parse($bloque['fin']);
+
+            foreach ($citasDelDia as $cita) {
+                $citaInicio = Carbon::parse($cita->hora_inicio);
+                $citaFin = Carbon::parse($cita->hora_fin);
+
+                if ($bloqueInicio < $citaFin && $bloqueFin > $citaInicio) {
+                    $ocupado = true;
+                    break;
+                }
+            }
+
+            if (!$ocupado) {
+                $disponibles++;
+            }
+        }
+
+        return $disponibles;
+    }
+
+    public function obtenerHoras()
+    {
+        if (!$this->fecha || !$this->colaboradorId || !$this->servicioId) {
+            $this->horasDisponibles = [];
+            return;
+        }
+
+        $servicio = ServiciosModel::find($this->servicioId);
+        if (!$servicio) {
+            $this->horasDisponibles = [];
+            return;
+        }
+
+        $colaborador = User::find($this->colaboradorId);
+        $horarioInicio = $colaborador->horario_inicio ?? '09:00';
+        $horarioFin = $colaborador->horario_fin ?? '20:00';
+
+        $citasDelDia = CitasModel::where('empresa_id', $this->empresa->id)
             ->where('colaborador_id', $this->colaboradorId)
             ->where('fecha', $this->fecha)
             ->where('estado', '!=', 'cancelada')
             ->where('estado', '!=', 'no_asistio')
-            ->where(function ($query) use ($horaFin) {
-                $query->whereBetween('hora_inicio', [$this->horaInicio, $horaFin->format('H:i')])
-                    ->orWhereBetween('hora_fin', [$this->horaInicio, $horaFin->format('H:i')])
-                    ->orWhere(function ($q) use ($horaFin) {
-                        $q->where('hora_inicio', '<=', $this->horaInicio)
-                          ->where('hora_fin', '>=', $horaFin->format('H:i'));
-                    });
-            })
-            ->exists();
+            ->get();
 
-        if ($conflicto) {
-            $this->addError('horaInicio', 'El colaborador ya tiene una cita en ese horario.');
-            return false;
+        $inicio = Carbon::parse($horarioInicio);
+        $fin = Carbon::parse($horarioFin);
+        $duracion = $servicio->duracion_minutos;
+
+        $horas = [];
+        $horaActual = clone $inicio;
+
+        while ($horaActual->addMinutes($duracion) <= $fin) {
+            $inicioBloque = $horaActual->copy()->subMinutes($duracion);
+            $finBloque = $horaActual->copy();
+
+            $ocupado = false;
+
+            if ($this->fecha === Carbon::today()->format('Y-m-d')) {
+                if ($inicioBloque <= Carbon::now()) {
+                    $ocupado = true;
+                }
+            }
+
+            if (!$ocupado) {
+                foreach ($citasDelDia as $cita) {
+                    $citaInicio = Carbon::parse($cita->hora_inicio);
+                    $citaFin = Carbon::parse($cita->hora_fin);
+
+                    if ($inicioBloque < $citaFin && $finBloque > $citaInicio) {
+                        $ocupado = true;
+                        break;
+                    }
+                }
+            }
+
+            $horas[] = [
+                'inicio' => $inicioBloque->format('H:i'),
+                'fin' => $finBloque->format('H:i'),
+                'disponible' => !$ocupado,
+            ];
         }
 
-        // ✅ Agregar más validaciones fácilmente:
-        // - Verificar horario laboral del colaborador
-        // - Verificar días de descanso
-        // - Verificar límite de citas por día
-        // - Verificar tiempo mínimo entre citas
-
-        return true;
+        $this->horasDisponibles = $horas;
     }
 
-    /**
-     * Validar que el cliente no esté bloqueado
-     */
+    // ==================== EVENTOS ====================
+
+    public function updatedServicioId()
+    {
+        $this->colaboradorId = '';
+        $this->fecha = '';
+        $this->horaInicio = '';
+        $this->horasDisponibles = [];
+        $this->diasDisponibles = [];
+        $this->dispatch('limpiar-mensaje');
+    }
+
+    public function updatedColaboradorId()
+    {
+        $this->fecha = '';
+        $this->horaInicio = '';
+        $this->horasDisponibles = [];
+        $this->cargarDisponibilidad();
+        $this->dispatch('limpiar-mensaje');
+    }
+
+    public function seleccionarFecha($fecha)
+    {
+        $this->fecha = $fecha;
+        $this->horaInicio = '';
+        $this->obtenerHoras();
+        $this->dispatch('limpiar-mensaje');
+    }
+
+    public function seleccionarHora($hora)
+    {
+        $this->horaInicio = $hora;
+        $this->dispatch('limpiar-mensaje');
+    }
+
+    // ==================== VALIDACIÓN ====================
+
     public function validarClienteActivo(): bool
     {
         if ($this->cliente->estaBloqueado()) {
@@ -177,39 +329,6 @@ class AgendarCita extends Component
             return false;
         }
         return true;
-    }
-
-    // ==================== EVENTOS EN TIEMPO REAL ====================
-
-    public function updatedServicioId()
-    {
-        $this->colaboradorId = '';
-        $this->dispatch('limpiar-mensaje');
-    }
-
-    public function updatedFecha()
-    {
-        $this->dispatch('limpiar-mensaje');
-        // ✅ Validar en tiempo real
-        if ($this->horaInicio) {
-            $this->validarHorarioDisponible();
-        }
-    }
-
-    public function updatedHoraInicio()
-    {
-        $this->dispatch('limpiar-mensaje');
-        // ✅ Validar en tiempo real cuando el usuario cambia la hora
-        $this->validarHorarioDisponible();
-    }
-
-    public function updatedColaboradorId()
-    {
-        $this->dispatch('limpiar-mensaje');
-        // ✅ Validar en tiempo real cuando el usuario cambia el colaborador
-        if ($this->horaInicio && $this->fecha) {
-            $this->validarHorarioDisponible();
-        }
     }
 
     // ==================== NAVEGACIÓN ====================
@@ -237,16 +356,23 @@ class AgendarCita extends Component
 
     public function agendarCita()
     {
-        // 1. Validar reglas básicas
         $this->validate();
 
-        // 2. ✅ Validar disponibilidad de horario
-        if (!$this->validarHorarioDisponible()) {
+        if (!$this->validarClienteActivo()) {
             return;
         }
 
-        // 3. ✅ Validar que el cliente esté activo
-        if (!$this->validarClienteActivo()) {
+        // Verificar disponibilidad
+        $horaDisponible = false;
+        foreach ($this->horasDisponibles as $hora) {
+            if ($hora['inicio'] === $this->horaInicio && $hora['disponible']) {
+                $horaDisponible = true;
+                break;
+            }
+        }
+
+        if (!$horaDisponible) {
+            $this->addError('horaInicio', 'La hora seleccionada ya no está disponible.');
             return;
         }
 
@@ -258,7 +384,6 @@ class AgendarCita extends Component
             $servicio = ServiciosModel::find($this->servicioId);
             $horaFin = Carbon::parse($this->horaInicio)->addMinutes($servicio->duracion_minutos)->format('H:i');
 
-            // Crear la cita
             $cita = CitasModel::create([
                 'empresa_id' => $this->empresa->id,
                 'cliente_id' => $this->clienteId,
@@ -275,16 +400,15 @@ class AgendarCita extends Component
 
             DB::commit();
 
-            // Mensaje de éxito
             $this->dispatch('mostrar-mensaje', 
                 mensaje: '¡Cita agendada correctamente! Te esperamos el ' . Carbon::parse($this->fecha)->format('d/m/Y') . ' a las ' . $this->horaInicio,
                 tipo: 'success'
             );
 
-            // Resetear formulario
-            $this->reset(['servicioId', 'colaboradorId', 'horaInicio', 'nombreAcompanante', 'observaciones']);
+            $this->reset(['servicioId', 'colaboradorId', 'horaInicio', 'nombreAcompanante', 'observaciones', 'fecha']);
+            $this->diasDisponibles = [];
+            $this->horasDisponibles = [];
             
-            // Actualizar historial
             $this->totalCitas = CitasModel::where('cliente_id', $this->clienteId)->count();
             $this->citasAnteriores = CitasModel::where('cliente_id', $this->clienteId)
                 ->orderBy('fecha', 'desc')
@@ -292,7 +416,6 @@ class AgendarCita extends Component
                 ->limit(10)
                 ->get();
 
-            // Mostrar historial después de agendar
             $this->mostrarHistorial = true;
             $this->mostrarFormulario = false;
 
@@ -329,16 +452,13 @@ class AgendarCita extends Component
                 return;
             }
 
-            // Cancelar cita
             $cita->estado = 'cancelada';
             $cita->motivo_cancelacion = 'Cancelado por el cliente';
             $cita->cancelada_por = 'cliente';
             $cita->save();
 
-            // Sumar puntos negativos
             $this->cliente->sumarPuntosMalos(2);
 
-            // Bloquear si acumula 5 puntos negativos
             if ($this->cliente->puntos_malos >= 5) {
                 $this->cliente->bloquear(15);
                 $this->dispatch('mostrar-mensaje', 
@@ -347,12 +467,10 @@ class AgendarCita extends Component
                 );
             }
 
-            // Recargar cliente actualizado
             $this->cliente = ClientesModel::find($this->clienteId);
 
             DB::commit();
 
-            // Actualizar historial
             $this->citasAnteriores = CitasModel::where('cliente_id', $this->clienteId)
                 ->orderBy('fecha', 'desc')
                 ->orderBy('hora_inicio', 'desc')
@@ -373,8 +491,6 @@ class AgendarCita extends Component
         }
     }
 
-    // ==================== RENDER ====================
-
     public function render()
     {
         return view('livewire.cliente.agendar-cita', [
@@ -387,6 +503,11 @@ class AgendarCita extends Component
             'mostrarHistorial' => $this->mostrarHistorial,
             'puntosMalos' => $this->cliente->puntos_malos ?? 0,
             'puntosBuenos' => $this->cliente->puntos_buenos ?? 0,
+            'diasDisponibles' => $this->diasDisponibles,
+            'horasDisponibles' => $this->horasDisponibles,
+            'duracionServicio' => $this->duracionServicio,
+            'mesCalendario' => $this->mesCalendario,
+            'anoCalendario' => $this->anoCalendario,
         ]);
     }
 }

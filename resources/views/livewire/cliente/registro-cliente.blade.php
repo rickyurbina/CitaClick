@@ -51,21 +51,176 @@
             <p class="font-body-sm text-body-sm text-outline mt-xs">El teléfono no puede ser modificado</p>
         </div>
 
-        <div class="space-y-xs">
-            <label for="fechaNacimiento" class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
-                Fecha de nacimiento <span class="normal-case tracking-normal text-outline">(opcional)</span>
+        {{-- ============================================================ --}}
+        {{-- CALENDARIO CON NAVEGACIÓN: MES (< >) Y AÑO (<< >>) --}}
+        {{-- ============================================================ --}}
+        <div x-data="{
+            abierto: false,
+            mes: new Date().getMonth(),
+            año: new Date().getFullYear(),
+            diaSeleccionado: null,
+            texto: 'Seleccionar fecha',
+            dias: [],
+            hoy: new Date().getDate(),
+            mesActual: new Date().getMonth(),
+            añoActual: new Date().getFullYear(),
+
+            init() {
+                this.generarDias();
+                if (@this.fechaNacimiento) {
+                    const f = new Date(@this.fechaNacimiento + 'T00:00:00');
+                    if (!isNaN(f.getTime())) {
+                        this.diaSeleccionado = f.getDate();
+                        this.texto = f.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                        this.mes = f.getMonth();
+                        this.año = f.getFullYear();
+                        this.generarDias();
+                    }
+                }
+            },
+
+            toggle() {
+                this.abierto = !this.abierto;
+                if (this.abierto) this.generarDias();
+            },
+
+            cambiarMes(dir) {
+                const fecha = new Date(this.año, this.mes + dir, 1);
+                this.mes = fecha.getMonth();
+                this.año = fecha.getFullYear();
+                this.generarDias();
+            },
+
+            cambiarAño(dir) {
+                this.año += dir;
+                this.generarDias();
+            },
+
+            generarDias() {
+                const fecha = new Date(this.año, this.mes, 1);
+                const ultimoDia = new Date(this.año, this.mes + 1, 0).getDate();
+                const primerDia = fecha.getDay();
+                const dias = [];
+                const offset = primerDia === 0 ? 6 : primerDia - 1;
+                for (let i = 0; i < offset; i++) dias.push(null);
+                for (let i = 1; i <= ultimoDia; i++) dias.push(i);
+                this.dias = dias;
+            },
+
+            esFuturo(dia) {
+                const fecha = new Date(this.año, this.mes, dia);
+                const hoy = new Date();
+                hoy.setHours(0, 0, 0, 0);
+                return fecha > hoy;
+            },
+
+            seleccionar(dia) {
+                if (this.esFuturo(dia)) return;
+                const fecha = new Date(this.año, this.mes, dia);
+                const fechaStr = fecha.toISOString().split('T')[0];
+                this.diaSeleccionado = dia;
+                this.texto = fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                @this.set('fechaNacimiento', fechaStr);
+                this.abierto = false;
+            },
+
+            get titulo() {
+                const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                return meses[this.mes] + ' ' + this.año;
+            }
+        }" x-init="init()" class="space-y-xs">
+            
+            <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
+                Fecha de nacimiento *
             </label>
-            <div class="focus-ring flex items-center bg-surface border border-outline-variant rounded-lg transition-all duration-200">
-                <div class="px-md flex items-center border-r border-outline-variant bg-surface-container-low rounded-l-lg h-12">
-                    <span class="material-symbols-outlined text-on-surface-variant" style="font-size: 20px;">cake</span>
+
+            <div class="relative">
+                <button type="button"
+                        @click="toggle()"
+                        class="w-full h-12 px-md bg-surface border border-outline-variant rounded-lg hover:bg-surface-container-low transition-all duration-200 flex items-center justify-between font-body-md text-body-md text-on-surface">
+                    <span class="flex items-center gap-sm">
+                        <span class="material-symbols-outlined text-on-surface-variant" style="font-size: 20px;">cake</span>
+                        <span x-text="texto"></span>
+                    </span>
+                    <span class="material-symbols-outlined text-on-surface-variant" style="font-size: 20px;" x-text="abierto ? 'expand_less' : 'expand_more'"></span>
+                </button>
+
+                <div x-show="abierto"
+                     x-cloak
+                     class="absolute z-50 mt-2 bg-white border border-gray-200 rounded-xl shadow-2xl p-4 w-72"
+                     @click.away="abierto = false">
+
+                    {{-- ============================================================ --}}
+                    {{-- NAVEGACIÓN: << (año) < (mes)   MES AÑO   > (mes) >> (año) --}}
+                    {{-- ============================================================ --}}
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-0.5">
+                            <button type="button" @click="cambiarAño(-1)" class="p-2 hover:bg-gray-100 rounded transition" title="Año anterior">
+                                <span class="material-symbols-outlined text-gray-500" style="font-size: 18px;">keyboard_double_arrow_left</span>
+                            </button>
+                            <button type="button" @click="cambiarMes(-1)" class="p-2 hover:bg-gray-100 rounded transition" title="Mes anterior">
+                                <span class="material-symbols-outlined text-gray-600" style="font-size: 20px;">chevron_left</span>
+                            </button>
+                        </div>
+                        
+                        <span class="font-semibold text-gray-800" x-text="titulo"></span>
+                        
+                        <div class="flex items-center gap-0.5">
+                            <button type="button" @click="cambiarMes(1)" class="p-2 hover:bg-gray-100 rounded transition" title="Mes siguiente">
+                                <span class="material-symbols-outlined text-gray-600" style="font-size: 20px;">chevron_right</span>
+                            </button>
+                            <button type="button" @click="cambiarAño(1)" class="p-2 hover:bg-gray-100 rounded transition" title="Año siguiente">
+                                <span class="material-symbols-outlined text-gray-500" style="font-size: 18px;">keyboard_double_arrow_right</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Días de la semana --}}
+                    <div class="grid grid-cols-7 gap-1 mb-2">
+                        <div class="text-center text-xs font-medium text-gray-400 uppercase">L</div>
+                        <div class="text-center text-xs font-medium text-gray-400 uppercase">M</div>
+                        <div class="text-center text-xs font-medium text-gray-400 uppercase">X</div>
+                        <div class="text-center text-xs font-medium text-gray-400 uppercase">J</div>
+                        <div class="text-center text-xs font-medium text-gray-400 uppercase">V</div>
+                        <div class="text-center text-xs font-medium text-gray-400 uppercase">S</div>
+                        <div class="text-center text-xs font-medium text-gray-400 uppercase">D</div>
+                    </div>
+
+                    {{-- Días del mes --}}
+                    <div class="grid grid-cols-7 gap-1">
+                        <template x-for="(dia, idx) in dias" :key="idx">
+                            <div class="aspect-square flex items-center justify-center">
+                                <div x-show="dia === null" class="w-full h-full"></div>
+                                <button x-show="dia !== null"
+                                        type="button"
+                                        @click="seleccionar(dia)"
+                                        :disabled="dia < hoy && !(dia === hoy && mes === mesActual && año === añoActual)"
+                                        class="w-full h-full rounded-lg text-sm transition flex items-center justify-center"
+                                        :class="{
+                                            'bg-green-600 text-white hover:bg-green-700': dia === diaSeleccionado,
+                                            'text-gray-300 cursor-not-allowed': dia < hoy && !(dia === hoy && mes === mesActual && año === añoActual),
+                                            'hover:bg-gray-100': dia !== diaSeleccionado && !(dia < hoy && !(dia === hoy && mes === mesActual && año === añoActual))
+                                        }"
+                                        x-text="dia">
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+
+                    {{-- Leyenda --}}
+                    <div class="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100">
+                        <span class="flex items-center gap-1 text-xs text-gray-600">
+                            <span class="w-3 h-3 rounded-full bg-green-600 inline-block"></span>
+                            Seleccionado
+                        </span>
+                        <span class="flex items-center gap-1 text-xs text-gray-400">
+                            <span class="w-3 h-3 rounded-full bg-gray-200 inline-block"></span>
+                            No disponible
+                        </span>
+                    </div>
                 </div>
-                <input type="date"
-                       id="fechaNacimiento"
-                       wire:model="fechaNacimiento"
-                       max="{{ date('Y-m-d') }}"
-                       min="1900-01-01"
-                       class="w-full h-12 px-md bg-transparent border-none focus:ring-0 font-body-md text-body-md text-on-surface">
             </div>
+
             @error('fechaNacimiento')
                 <span class="font-body-sm text-body-sm text-error mt-xs block">{{ $message }}</span>
             @enderror
@@ -75,7 +230,7 @@
             <input type="checkbox"
                    id="aceptaTerminos"
                    wire:model="aceptaTerminos"
-                   class="mt-1 rounded border-outline-variant text-secondary focus:ring-secondary">
+                   class="mt-1 rounded border-gray-300 text-green-600 focus:ring-green-500">
             <label for="aceptaTerminos" class="font-body-sm text-body-sm text-on-surface-variant">
                 Acepto los <a href="#" class="text-secondary font-label-sm hover:underline">términos y condiciones</a> de la empresa
             </label>
@@ -110,3 +265,7 @@
         </div>
     </form>
 </div>
+
+<style>
+    [x-cloak] { display: none !important; }
+</style>

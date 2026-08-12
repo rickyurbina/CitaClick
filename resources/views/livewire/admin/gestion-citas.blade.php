@@ -12,7 +12,7 @@
                 <span class="text-on-surface-variant font-label-sm text-label-sm">Ingresos Hoy</span>
                 <span class="material-symbols-outlined text-secondary">payments</span>
             </div>
-            <div class="font-headline-md text-headline-md text-primary">${{ number_format($ingresosHoy, 2) }}</div>
+            <div class="font-headline-md text-headline-md text-secondary font-extrabold">${{ number_format($ingresosHoy, 2) }}</div>
         </div>
 
         @if($puedeGestionar ?? false)
@@ -69,6 +69,7 @@
         </div>
     </div>
 
+    {{-- FILTROS CON CALENDARIO INTERACTIVO --}}
     <div class="bg-surface rounded-xl border border-outline-variant overflow-hidden shadow-sm mb-lg">
         <div class="px-lg py-md border-b border-outline-variant">
             <h2 class="font-headline-md text-headline-md text-primary">Filtros</h2>
@@ -76,11 +77,116 @@
         </div>
         <div class="p-lg">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-md">
+                {{-- FECHA CON CALENDARIO INTERACTIVO --}}
                 <div class="flex flex-col gap-xs">
                     <label class="font-label-sm text-label-sm text-on-surface-variant">Fecha</label>
-                    <input type="date" wire:model.live="filtroFecha"
-                           class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface bg-surface-container-lowest focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
+                    <div class="relative" x-data="{ 
+                        abierto: false, 
+                        fecha: '{{ $filtroFecha }}',
+                        toggle() { this.abierto = !this.abierto; },
+                        seleccionar(dia) {
+                            const fecha = new Date(this.año, this.mes, dia);
+                            const fechaStr = fecha.getFullYear() + '-' + 
+                                             String(fecha.getMonth() + 1).padStart(2, '0') + '-' + 
+                                             String(fecha.getDate()).padStart(2, '0');
+                            this.fecha = fechaStr;
+                            @this.set('filtroFecha', fechaStr);
+                            this.abierto = false;
+                        },
+                        limpiar() {
+                            this.fecha = '';
+                            @this.set('filtroFecha', '');
+                        },
+                        mes: new Date().getMonth(),
+                        año: new Date().getFullYear(),
+                        dias: [],
+                        hoy: new Date().getDate(),
+                        mesActual: new Date().getMonth(),
+                        añoActual: new Date().getFullYear(),
+                        generarDias() {
+                            const fecha = new Date(this.año, this.mes, 1);
+                            const ultimoDia = new Date(this.año, this.mes + 1, 0).getDate();
+                            const primerDia = fecha.getDay();
+                            const dias = [];
+                            const offset = primerDia === 0 ? 6 : primerDia - 1;
+                            for (let i = 0; i < offset; i++) dias.push(null);
+                            for (let i = 1; i <= ultimoDia; i++) dias.push(i);
+                            this.dias = dias;
+                        },
+                        cambiarMes(dir) {
+                            const fecha = new Date(this.año, this.mes + dir, 1);
+                            this.mes = fecha.getMonth();
+                            this.año = fecha.getFullYear();
+                            this.generarDias();
+                        },
+                        get titulo() {
+                            const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                            return meses[this.mes] + ' ' + this.año;
+                        }
+                    }" x-init="generarDias()">
+                        <button type="button" @click="toggle()"
+                                class="w-full flex items-center justify-between border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface bg-surface-container-lowest focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
+                            <span class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[18px] text-on-surface-variant">event</span>
+                                <span x-text="fecha ? fecha.split('-').reverse().join('/') : 'Todas las fechas'"></span>
+                            </span>
+                            <div class="flex items-center gap-1">
+                                <span x-show="fecha" @click.stop="limpiar()" class="text-on-surface-variant hover:text-error cursor-pointer">
+                                    <span class="material-symbols-outlined text-[16px]">close</span>
+                                </span>
+                                <span class="material-symbols-outlined text-[18px] text-on-surface-variant" x-text="abierto ? 'expand_less' : 'expand_more'"></span>
+                            </div>
+                        </button>
+                        
+                        <div x-show="abierto" x-cloak
+                             class="absolute z-50 mt-1 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-lg p-4 w-72"
+                             @click.away="abierto = false">
+                            <div class="flex items-center justify-between mb-3">
+                                <button type="button" @click="cambiarMes(-1)" class="p-1 hover:bg-surface-container-high rounded">
+                                    <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                                </button>
+                                <span class="font-label-md text-label-md text-on-surface" x-text="titulo"></span>
+                                <button type="button" @click="cambiarMes(1)" class="p-1 hover:bg-surface-container-high rounded">
+                                    <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-7 gap-1 mb-2">
+                                <div class="text-center text-xs font-medium text-on-surface-variant">L</div>
+                                <div class="text-center text-xs font-medium text-on-surface-variant">M</div>
+                                <div class="text-center text-xs font-medium text-on-surface-variant">X</div>
+                                <div class="text-center text-xs font-medium text-on-surface-variant">J</div>
+                                <div class="text-center text-xs font-medium text-on-surface-variant">V</div>
+                                <div class="text-center text-xs font-medium text-on-surface-variant">S</div>
+                                <div class="text-center text-xs font-medium text-on-surface-variant">D</div>
+                            </div>
+                            <div class="grid grid-cols-7 gap-1">
+                                <template x-for="(dia, idx) in dias" :key="idx">
+                                    <div class="aspect-square flex items-center justify-center">
+                                        <template x-if="dia !== null">
+                                            <button type="button" @click="seleccionar(dia)"
+                                                    class="w-full h-full rounded-lg text-sm hover:bg-secondary-container hover:text-on-secondary-container transition"
+                                                    :class="{
+                                                        'bg-secondary text-on-secondary': dia === hoy && mes === mesActual && año === añoActual,
+                                                        'text-on-surface': !(dia === hoy && mes === mesActual && año === añoActual)
+                                                    }"
+                                                    x-text="dia">
+                                            </button>
+                                        </template>
+                                        <template x-if="dia === null">
+                                            <div class="w-full h-full"></div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                            <div class="mt-2 pt-2 border-t border-outline-variant text-center">
+                                <button type="button" @click="limpiar()" class="text-xs text-on-surface-variant hover:text-secondary">
+                                    Limpiar filtro
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
                 <div class="flex flex-col gap-xs">
                     <label class="font-label-sm text-label-sm text-on-surface-variant">Estado</label>
                     <select wire:model.live="filtroEstado"
@@ -121,6 +227,7 @@
         </div>
     </div>
 
+    {{-- TABLA --}}
     <div class="bg-surface rounded-xl border border-outline-variant overflow-hidden shadow-sm">
         <div class="px-lg py-md flex flex-col md:flex-row justify-between items-start md:items-center gap-md border-b border-outline-variant">
             <div>
@@ -135,7 +242,7 @@
                         <th class="px-lg py-md font-label-md text-label-md text-on-surface-variant">Cliente</th>
                         <th class="px-lg py-md font-label-md text-label-md text-on-surface-variant">Servicio</th>
                         <th class="px-lg py-md font-label-md text-label-md text-on-surface-variant">Colaborador</th>
-                        <th class="px-lg py-md font-label-md text-label-md text-on-surface-variant">Fecha/Hora</th>
+                        <th class="px-lg py-md font-label-md text-label-md text-on-surface-variant">Fecha / Hora</th>
                         <th class="px-lg py-md font-label-md text-label-md text-on-surface-variant">Estado</th>
                         <th class="px-lg py-md font-label-md text-label-md text-on-surface-variant">Monto</th>
                         <th class="px-lg py-md font-label-md text-label-md text-on-surface-variant text-right">Acciones</th>
@@ -161,37 +268,56 @@
                             {{ $cita->colaborador->nombre }}
                         </td>
                         <td class="px-lg py-md">
-                            <div class="font-body-md text-body-md text-on-surface">{{ $cita->fecha }}</div>
-                            <div class="font-body-sm text-body-sm text-on-surface-variant">{{ $cita->hora_inicio }} - {{ $cita->hora_fin }}</div>
+                            <div class="font-body-md text-body-md text-on-surface">
+                                {{ \Carbon\Carbon::parse($cita->fecha)->format('d/m/Y') }}
+                                <span class="text-on-surface-variant font-body-sm text-body-sm ml-2">
+                                    {{ $cita->hora_inicio }}
+                                    @if($cita->hora_fin)
+                                        - {{ $cita->hora_fin }}
+                                    @endif
+                                </span>
+                            </div>
                         </td>
                         <td class="px-lg py-md">
-                            <span class="px-sm py-1 text-label-sm font-label-sm rounded-full
-                                @if($cita->estado == 'agendada') bg-surface-container-high text-on-surface
-                                @elseif($cita->estado == 'confirmada') bg-secondary-container text-on-secondary-container
-                                @elseif($cita->estado == 'en_curso') bg-primary-container text-on-primary-container
-                                @elseif($cita->estado == 'atendida') bg-secondary-container text-on-secondary-container
-                                @elseif($cita->estado == 'cancelada') bg-error-container text-on-error-container
-                                @else bg-surface-container text-on-surface-variant @endif">
-                                {{ ucfirst($cita->estado) }}
-                            </span>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="px-sm py-1 text-label-sm font-label-sm rounded-full
+                                    @if($cita->estado == 'agendada') bg-surface-container-high text-on-surface
+                                    @elseif($cita->estado == 'confirmada') bg-secondary-container text-on-secondary-container
+                                    @elseif($cita->estado == 'en_curso') bg-primary-container text-on-primary-container
+                                    @elseif($cita->estado == 'atendida') bg-secondary-container text-on-secondary-container
+                                    @elseif($cita->estado == 'cancelada') bg-error-container text-on-error-container
+                                    @elseif($cita->estado == 'no_asistio') bg-surface-container text-on-surface-variant
+                                    @else bg-surface-container text-on-surface-variant @endif">
+                                    {{ ucfirst($cita->estado) }}
+                                </span>
+                                @if($cita->pagado)
+                                    <span class="px-sm py-1 text-label-sm font-label-sm rounded-full bg-secondary-container text-on-secondary-container font-semibold">
+                                        ✅ Pagado
+                                    </span>
+                                @endif
+                            </div>
                         </td>
                         <td class="px-lg py-md">
-                            <div class="font-label-md text-label-md {{ $cita->pagado ? 'text-secondary' : 'text-error' }}">
+                            <div class="font-label-md text-label-md {{ $cita->pagado ? 'text-secondary font-bold' : 'text-error' }}">
                                 ${{ number_format($cita->monto_pagado ?? 0, 2) }}
                             </div>
-                            <div class="font-body-sm text-body-sm text-on-surface-variant">
-                                {{ $cita->pagado ? 'Pagado' : 'Pendiente' }}
+                            <div class="font-body-sm text-body-sm {{ $cita->pagado ? 'text-secondary' : 'text-on-surface-variant' }}">
+                                {{ $cita->pagado ? 'Pagado ✅' : 'Pendiente ⏳' }}
                             </div>
                         </td>
                         <td class="px-lg py-md text-right">
-                            <div class="flex justify-end gap-sm items-center">
+                            <div class="flex justify-end gap-sm items-center flex-wrap">
+                                {{-- ==================== ADMIN / RECEPCIONISTA ==================== --}}
                                 @if($puedeGestionar ?? false)
+                                    {{-- Editar --}}
                                     <button wire:click="editarCita({{ $cita->id }})"
                                             type="button"
                                             class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-all"
                                             title="Editar">
                                         <span class="material-symbols-outlined text-[20px]">edit</span>
                                     </button>
+
+                                    {{-- Eliminar --}}
                                     <button wire:click="eliminarCita({{ $cita->id }})"
                                             onclick="confirm('¿Eliminar esta cita?') || event.stopImmediatePropagation()"
                                             type="button"
@@ -199,22 +325,40 @@
                                             title="Eliminar">
                                         <span class="material-symbols-outlined text-[20px]">delete</span>
                                     </button>
-                                @endif
 
-                                @if($esColaborador ?? false)
-                                    <button wire:click="cambiarEstado({{ $cita->id }}, 'en_curso')"
-                                            type="button"
-                                            class="px-sm py-1 font-label-sm text-label-sm text-primary hover:bg-primary-container rounded-lg transition-colors">
-                                        En curso
-                                    </button>
-                                    <button wire:click="cambiarEstado({{ $cita->id }}, 'atendida')"
-                                            type="button"
-                                            class="px-sm py-1 font-label-sm text-label-sm text-secondary hover:bg-secondary-container rounded-lg transition-colors">
-                                        Atendida
-                                    </button>
-                                @endif
+                                    {{-- Check In --}}
+                                    @if(in_array($cita->estado, ['agendada', 'confirmada']))
+                                        <button wire:click="checkIn({{ $cita->id }})"
+                                                onclick="confirm('¿Marcar Check-in de este cliente?') || event.stopImmediatePropagation()"
+                                                type="button"
+                                                class="p-2 text-on-surface-variant hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                                title="Check In">
+                                            <span class="material-symbols-outlined text-[20px]">login</span>
+                                        </button>
+                                    @endif
 
-                                @if($puedeGestionar ?? false)
+                                    {{-- Check Out --}}
+                                    @if($cita->estado === 'en_curso')
+                                        <button wire:click="checkOut({{ $cita->id }})"
+                                                onclick="confirm('¿Marcar Check-out?') || event.stopImmediatePropagation()"
+                                                type="button"
+                                                class="p-2 text-on-surface-variant hover:text-green-600 hover:bg-green-50 rounded-lg transition-all"
+                                                title="Check Out">
+                                            <span class="material-symbols-outlined text-[20px]">logout</span>
+                                        </button>
+                                    @endif
+
+                                    {{-- Cobrar --}}
+                                    @if(!$cita->pagado && in_array($cita->estado, ['agendada', 'confirmada', 'en_curso', 'atendida']))
+                                        <button wire:click="abrirModalPago({{ $cita->id }})"
+                                                type="button"
+                                                class="p-2 text-on-surface-variant hover:text-green-600 hover:bg-green-50 rounded-lg transition-all"
+                                                title="Cobrar cita">
+                                            <span class="material-symbols-outlined text-[20px]">payments</span>
+                                        </button>
+                                    @endif
+
+                                    {{-- Dropdown Estados --}}
                                     <div class="relative group">
                                         <button type="button"
                                                 class="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all font-label-sm text-label-sm flex items-center gap-1">
@@ -229,8 +373,51 @@
                                                     {{ ucfirst($estado) }}
                                                 </button>
                                             @endforeach
+                                            @if(!$cita->pagado)
+                                                <div class="border-t border-outline-variant my-1"></div>
+                                                <button wire:click="abrirModalPago({{ $cita->id }})"
+                                                        type="button"
+                                                        class="block w-full text-left px-3 py-1 font-body-sm text-body-sm text-green-600 hover:bg-green-50 rounded">
+                                                    💰 Cobrar cita
+                                                </button>
+                                            @endif
                                         </div>
                                     </div>
+                                @endif
+
+                                {{-- ==================== COLABORADOR ==================== --}}
+                                @if($esColaborador ?? false)
+                                    {{-- Check In (solo si es su cita) --}}
+                                    @if(in_array($cita->estado, ['agendada', 'confirmada']))
+                                        <button wire:click="checkIn({{ $cita->id }})"
+                                                onclick="confirm('¿Marcar Check-in?') || event.stopImmediatePropagation()"
+                                                type="button"
+                                                class="px-sm py-1 font-label-sm text-label-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                                            Check In
+                                        </button>
+                                    @endif
+
+                                    {{-- Check Out (solo si está en curso) --}}
+                                    @if($cita->estado === 'en_curso')
+                                        <button wire:click="checkOut({{ $cita->id }})"
+                                                onclick="confirm('¿Marcar Check-out?') || event.stopImmediatePropagation()"
+                                                type="button"
+                                                class="px-sm py-1 font-label-sm text-label-sm text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                                            Check Out
+                                        </button>
+                                    @endif
+
+                                    {{-- Cambiar estado (solo en_curso o atendida) --}}
+                                    <button wire:click="cambiarEstado({{ $cita->id }}, 'en_curso')"
+                                            type="button"
+                                            class="px-sm py-1 font-label-sm text-label-sm text-primary hover:bg-primary-container rounded-lg transition-colors">
+                                        En curso
+                                    </button>
+                                    <button wire:click="cambiarEstado({{ $cita->id }}, 'atendida')"
+                                            type="button"
+                                            class="px-sm py-1 font-label-sm text-label-sm text-secondary hover:bg-secondary-container rounded-lg transition-colors">
+                                        Atendida
+                                    </button>
                                 @endif
                             </div>
                         </td>
@@ -348,9 +535,9 @@
                             <select wire:model="metodoPago"
                                     class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
                                 <option value="">No especificado</option>
-                                <option value="efectivo">Efectivo</option>
-                                <option value="transferencia">Transferencia</option>
-                                <option value="tarjeta">Tarjeta</option>
+                                <option value="efectivo">💵 Efectivo</option>
+                                <option value="transferencia">🏦 Transferencia</option>
+                                <option value="tarjeta">💳 Tarjeta</option>
                             </select>
                             @error('metodoPago') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                         </div>
@@ -358,8 +545,9 @@
                         <div class="flex items-center gap-2">
                             <input type="checkbox" wire:model="pagado" id="pagado"
                                    class="w-4 h-4 text-secondary border-outline-variant rounded focus:ring-secondary">
-                            <label for="pagado" class="font-body-sm text-body-sm text-on-surface">¿Pagado?</label>
+                            <label for="pagado" class="font-body-sm text-body-sm text-on-surface font-semibold">¿Marcar como pagado?</label>
                         </div>
+                        <p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">Al marcar como pagado, se generará automáticamente la comisión del colaborador.</p>
                     </div>
 
                     <div class="flex justify-end gap-sm mt-lg pt-md border-t border-outline-variant">
@@ -588,4 +776,117 @@
         </div>
     </div>
     @endif
+
+    <!-- ==================== MODAL DE PAGO ==================== -->
+    @if($mostrarModalPago)
+    <div class="fixed inset-0 bg-on-surface/40 flex items-center justify-center z-50 p-4">
+        <div class="bg-surface-container-lowest rounded-xl border border-outline-variant max-w-md w-full max-h-[90vh] overflow-y-auto shadow-lg">
+            <div class="sticky top-0 bg-surface-container-lowest z-10 px-lg py-md border-b border-outline-variant flex justify-between items-center">
+                <h3 class="font-headline-md text-headline-md text-on-surface flex items-center gap-2">
+                    <span class="material-symbols-outlined text-secondary">payments</span>
+                    Cobrar Cita
+                </h3>
+                <button type="button" wire:click="cerrarModalPago"
+                        class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <div class="p-lg">
+                <div class="bg-surface-container-low rounded-lg p-md mb-lg">
+                    <div class="flex justify-between py-1 border-b border-outline-variant/40">
+                        <span class="text-on-surface-variant font-body-sm">Cliente</span>
+                        <span class="font-body-md text-body-md text-on-surface font-semibold">{{ $citaPago?->cliente->nombre ?? '' }}</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-outline-variant/40">
+                        <span class="text-on-surface-variant font-body-sm">Servicio</span>
+                        <span class="font-body-md text-body-md text-on-surface">{{ $citaPago?->servicio->nombre ?? '' }}</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-outline-variant/40">
+                        <span class="text-on-surface-variant font-body-sm">Estado</span>
+                        <span class="font-body-md text-body-md text-on-surface">{{ ucfirst($citaPago?->estado ?? '') }}</span>
+                    </div>
+                    <div class="flex justify-between py-1">
+                        <span class="text-on-surface-variant font-body-sm">Total a cobrar</span>
+                        <span class="font-headline-md text-headline-md text-secondary font-bold">${{ number_format($citaPago?->monto_pagado ?? 0, 2) }}</span>
+                    </div>
+                </div>
+
+                <form wire:submit.prevent="procesarPago">
+                    <div class="space-y-md">
+                        <div class="flex flex-col gap-xs">
+                            <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Monto *</label>
+                            <input type="number" step="0.01" min="0" wire:model="montoPago"
+                                   class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none"
+                                   placeholder="0.00">
+                            @error('montoPago') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="flex flex-col gap-xs">
+                            <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Método de pago *</label>
+                            <div class="grid grid-cols-3 gap-sm">
+                                <button type="button"
+                                        wire:click="$set('metodoPagoSeleccionado', 'efectivo')"
+                                        class="py-2 rounded-lg border-2 transition-all font-label-sm text-label-sm flex items-center justify-center gap-1
+                                            {{ $metodoPagoSeleccionado === 'efectivo' ? 'border-secondary bg-secondary-container text-on-secondary-container' : 'border-outline-variant hover:bg-surface-container-low' }}">
+                                    <span class="material-symbols-outlined text-[18px]">payments</span>
+                                    Efectivo
+                                </button>
+                                <button type="button"
+                                        wire:click="$set('metodoPagoSeleccionado', 'transferencia')"
+                                        class="py-2 rounded-lg border-2 transition-all font-label-sm text-label-sm flex items-center justify-center gap-1
+                                            {{ $metodoPagoSeleccionado === 'transferencia' ? 'border-secondary bg-secondary-container text-on-secondary-container' : 'border-outline-variant hover:bg-surface-container-low' }}">
+                                    <span class="material-symbols-outlined text-[18px]">account_balance</span>
+                                    Transferencia
+                                </button>
+                                <button type="button"
+                                        wire:click="$set('metodoPagoSeleccionado', 'tarjeta')"
+                                        class="py-2 rounded-lg border-2 transition-all font-label-sm text-label-sm flex items-center justify-center gap-1
+                                            {{ $metodoPagoSeleccionado === 'tarjeta' ? 'border-secondary bg-secondary-container text-on-secondary-container' : 'border-outline-variant hover:bg-surface-container-low' }}">
+                                    <span class="material-symbols-outlined text-[18px]">credit_card</span>
+                                    Tarjeta
+                                </button>
+                            </div>
+                            @error('metodoPagoSeleccionado') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="flex flex-col gap-xs">
+                            <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Referencia (opcional)</label>
+                            <input type="text" wire:model="referenciaPago"
+                                   class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none"
+                                   placeholder="N° de transacción, voucher, etc.">
+                            @error('referenciaPago') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-sm mt-lg pt-md border-t border-outline-variant">
+                        <button type="button" wire:click="cerrarModalPago"
+                                class="px-lg py-sm rounded-lg border border-outline-variant text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit"
+                                class="px-lg py-sm rounded-lg bg-secondary text-on-secondary font-label-md text-label-md hover:opacity-90 transition-opacity flex items-center gap-2"
+                                wire:loading.attr="disabled">
+                            <span wire:loading.remove>
+                                <span class="material-symbols-outlined text-[18px]">check</span>
+                                Cobrar
+                            </span>
+                            <span wire:loading>
+                                <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Procesando...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>
+
+<style>
+    [x-cloak] { display: none !important; }
+</style>

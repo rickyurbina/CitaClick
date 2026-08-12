@@ -30,16 +30,20 @@ class Dashboard extends Component
 
         $citasHoy = (clone $query)->whereDate('fecha', $today)->count();
 
-        $ingresosHoy = (clone $query)
-            ->whereDate('fecha', $today)
-            ->where('pagado', 1)
-            ->sum('monto_pagado');
+        $ingresosHoy = 0;
+        $efectivoHoy = 0;
+        if (in_array($rol, ['empresa_admin', 'recepcionista', 'super_admin'])) {
+            $ingresosHoy = (clone $query)
+                ->whereDate('fecha', $today)
+                ->where('pagado', 1)
+                ->sum('monto_pagado');
 
-        $efectivoHoy = (clone $query)
-            ->whereDate('fecha', $today)
-            ->where('pagado', 1)
-            ->where('metodo_pago', 'efectivo')
-            ->sum('monto_pagado');
+            $efectivoHoy = (clone $query)
+                ->whereDate('fecha', $today)
+                ->where('pagado', 1)
+                ->where('metodo_pago', 'efectivo')
+                ->sum('monto_pagado');
+        }
 
         $comisionesHoy = 0;
         if (in_array($rol, ['empresa_admin', 'super_admin'])) {
@@ -49,12 +53,23 @@ class Dashboard extends Component
                 ->sum('monto');
         }
 
-        $citasPorEstado = (clone $query)
-            ->whereDate('fecha', $today)
-            ->select('estado', DB::raw('count(*) as total'))
-            ->groupBy('estado')
-            ->pluck('total', 'estado')
-            ->toArray();
+        $miComisionHoy = 0;
+        if ($rol === 'colaborador') {
+            $miComisionHoy = ComisionesModel::where('empresa_id', $this->empresa->id)
+                ->where('colaborador_id', $userId)
+                ->whereDate('created_at', $today)
+                ->sum('monto');
+        }
+
+        $citasPorEstado = [];
+        if (in_array($rol, ['empresa_admin', 'recepcionista', 'super_admin'])) {
+            $citasPorEstado = (clone $query)
+                ->whereDate('fecha', $today)
+                ->select('estado', DB::raw('count(*) as total'))
+                ->groupBy('estado')
+                ->pluck('total', 'estado')
+                ->toArray();
+        }
 
         $topColaboradores = [];
         if (in_array($rol, ['empresa_admin', 'super_admin'])) {
@@ -67,7 +82,7 @@ class Dashboard extends Component
                 }], 'monto_pagado')
                 ->orderBy('citas_sum_monto_pagado', 'desc')
                 ->limit(5)
-                ->get(['id', 'nombre', 'comision_porcentaje', 'email']);
+                ->get(['id', 'nombre', 'comision_porcentaje']);
         }
 
         $ultimasCitas = (clone $query)
@@ -102,12 +117,31 @@ class Dashboard extends Component
                 ->sum('monto_pagado');
         }
 
+        $misCitasHoy = 0;
+        $misCitasPendientes = 0;
+        if ($rol === 'colaborador') {
+            $misCitasHoy = CitasModel::where('empresa_id', $this->empresa->id)
+                ->where('colaborador_id', $userId)
+                ->whereDate('fecha', $today)
+                ->count();
+
+            $misCitasPendientes = CitasModel::where('empresa_id', $this->empresa->id)
+                ->where('colaborador_id', $userId)
+                ->whereDate('fecha', $today)
+                ->whereIn('estado', ['agendada', 'confirmada'])
+                ->count();
+        }
+
         return [
+            'rol' => $rol,
             'citasHoy' => $citasHoy,
             'ingresosHoy' => $ingresosHoy,
             'efectivoHoy' => $efectivoHoy,
             'comisionesHoy' => $comisionesHoy,
             'gananciaNeta' => $ingresosHoy - $comisionesHoy,
+            'miComisionHoy' => $miComisionHoy,
+            'misCitasHoy' => $misCitasHoy,
+            'misCitasPendientes' => $misCitasPendientes,
             'citasPorEstado' => $citasPorEstado,
             'topColaboradores' => $topColaboradores,
             'ultimasCitas' => $ultimasCitas,
