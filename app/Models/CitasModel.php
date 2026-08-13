@@ -206,7 +206,7 @@ class CitasModel extends Model
     {
         $this->estado = 'cancelada';
         $this->motivo_cancelacion = $motivo;
-        $this->cancelada_por = $canceladoPor ?? auth()->user()?->rol ?? 'cliente';
+        $this->cancelada_por = $canceladoPor ?? 'cliente';
         $this->save();
 
         // Sumar puntos negativos al cliente (solo si canceló el cliente)
@@ -219,11 +219,6 @@ class CitasModel extends Model
                 }
             }
         }
-    }
-
-    public function getPuedeCancelarAttribute(): bool
-    {
-        return $this->puedeCancelar(auth()->user()?->rol);
     }
 
     // ==================== MÉTODOS ====================
