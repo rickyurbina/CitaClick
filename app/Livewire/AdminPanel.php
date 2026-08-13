@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
+#[Layout('components.layouts.auth')]
 class AdminPanel extends Component
 {
     public EmpresasModel $empresa;
@@ -23,13 +24,17 @@ class AdminPanel extends Component
     public string $info = '';
     public int $intentos = 0;
 
-    #[Layout('components.layouts.auth')]
     public function mount(EmpresasModel $empresa)
     {
         $this->empresa = $empresa;
         
         if ($this->isAuthenticated) {
-            $this->seccionActiva = 'dashboard';
+            // 👈 Si es colaborador, forzar a que solo vea citas
+            if ($this->esColaborador) {
+                $this->seccionActiva = 'citas';
+            } else {
+                $this->seccionActiva = 'dashboard';
+            }
         }
     }
 
@@ -134,7 +139,14 @@ class AdminPanel extends Component
             session()->regenerate();
             RateLimiter::clear($key);
             $this->reset(['password', 'error', 'info']);
-            $this->seccionActiva = 'dashboard';
+            
+            // 👈 Después de login, redirigir según rol
+            if ($this->esColaborador) {
+                $this->seccionActiva = 'citas';
+            } else {
+                $this->seccionActiva = 'dashboard';
+            }
+            
             $this->dispatch('login-success');
             return;
         }
@@ -158,6 +170,17 @@ class AdminPanel extends Component
 
     public function cambiarSeccion($seccion)
     {
+        // 👈 Si es colaborador, SOLO puede ir a citas
+        if ($this->esColaborador) {
+            if ($seccion !== 'citas') {
+                $this->dispatch('error', 'No tienes permiso para acceder a esta sección.');
+                return;
+            }
+            $this->seccionActiva = 'citas';
+            return;
+        }
+
+        // 👈 Para admin y recepcionista
         $seccionesPermitidas = ['dashboard', 'citas'];
         
         if ($this->esAdmin) {

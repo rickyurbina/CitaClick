@@ -168,7 +168,7 @@ class CitasModel extends Model
         return $query->where('estado', 'en_curso');
     }
 
-    // ==================== MÉTODOS ====================
+    // ==================== MÉTODOS CHECK IN/OUT ====================
 
     public function marcarCheckin(): void
     {
@@ -183,6 +183,50 @@ class CitasModel extends Model
         $this->checkout_time = now();
         $this->save();
     }
+
+    // ==================== MÉTODOS CANCELACIÓN ====================
+
+    public function puedeCancelar($rol = null): bool
+    {
+        // Admin, super_admin y recepcionista pueden cancelar siempre
+        if (in_array($rol, ['empresa_admin', 'super_admin', 'recepcionista'])) {
+            return true;
+        }
+
+        // Cliente y colaborador solo 24 horas antes
+        if (in_array($rol, ['cliente', 'colaborador'])) {
+            $horaCita = Carbon::parse($this->fecha . ' ' . $this->hora_inicio);
+            return now()->diffInHours($horaCita, false) >= 24;
+        }
+
+        return false;
+    }
+
+    public function cancelar($motivo = null, $canceladoPor = null): void
+    {
+        $this->estado = 'cancelada';
+        $this->motivo_cancelacion = $motivo;
+        $this->cancelada_por = $canceladoPor ?? auth()->user()?->rol ?? 'cliente';
+        $this->save();
+
+        // Sumar puntos negativos al cliente (solo si canceló el cliente)
+        if ($canceladoPor === 'cliente') {
+            $cliente = ClientesModel::find($this->cliente_id);
+            if ($cliente) {
+                $cliente->sumarPuntosMalos(2);
+                if ($cliente->puntos_malos >= 5) {
+                    $cliente->bloquear(15);
+                }
+            }
+        }
+    }
+
+    public function getPuedeCancelarAttribute(): bool
+    {
+        return $this->puedeCancelar(auth()->user()?->rol);
+    }
+
+    // ==================== MÉTODOS ====================
 
     public function estaPagada(): bool
     {
@@ -230,20 +274,6 @@ class CitasModel extends Model
         
         if (Auth::check()) {
             $this->cobrado_por = Auth::id();
-        }
-        
-        $this->save();
-    }
-
-    public function marcarCancelada($motivo = null): void
-    {
-        $this->estado = 'cancelada';
-        $this->motivo_cancelacion = $motivo;
-        
-        if (Auth::check() && Auth::user()) {
-            $this->cancelada_por = Auth::user()->rol ?? 'cliente';
-        } else {
-            $this->cancelada_por = 'cliente';
         }
         
         $this->save();

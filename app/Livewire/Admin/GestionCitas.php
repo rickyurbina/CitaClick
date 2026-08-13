@@ -109,6 +109,11 @@ class GestionCitas extends Component
         return $this->esAdmin;
     }
 
+    public function getUsuarioIdProperty()
+    {
+        return Auth::guard('web')->user()->id;
+    }
+
     // ==================== CONSULTAS ====================
 
     protected function citasQuery()
@@ -133,7 +138,7 @@ class GestionCitas extends Component
     public function getIngresosHoyTotalProperty()
     {
         return $this->citasQuery()
-            ->whereDate('fecha', Carbon::today())
+            ->whereDate('fecha_pago', Carbon::today())
             ->where('pagado', 1)
             ->sum('monto_pagado');
     }
@@ -150,7 +155,7 @@ class GestionCitas extends Component
             $query->where('estado', $this->filtroEstado);
         }
 
-        if ($this->filtroColaborador) {
+        if ($this->filtroColaborador && !$this->esColaborador) {
             $query->where('colaborador_id', $this->filtroColaborador);
         }
 
@@ -202,6 +207,50 @@ class GestionCitas extends Component
         }
 
         return $query->orderBy('nombre')->get(['id', 'nombre', 'comision_porcentaje']);
+    }
+
+    // ==================== ESTADÍSTICAS PARA COLABORADOR ====================
+
+    public function getTotalCitasColaboradorProperty()
+    {
+        if (!$this->esColaborador) {
+            return 0;
+        }
+
+        return CitasModel::where('empresa_id', $this->empresa->id)
+            ->where('colaborador_id', $this->usuarioId)
+            ->count();
+    }
+
+    public function getCitasAtendidasColaboradorProperty()
+    {
+        if (!$this->esColaborador) {
+            return 0;
+        }
+
+        return CitasModel::where('empresa_id', $this->empresa->id)
+            ->where('colaborador_id', $this->usuarioId)
+            ->where('estado', 'atendida')
+            ->count();
+    }
+
+    public function getIngresoColaboradorProperty()
+    {
+        if (!$this->esColaborador) {
+            return 0;
+        }
+
+        $colaborador = User::find($this->usuarioId);
+        if (!$colaborador || !$colaborador->comision_porcentaje) {
+            return 0;
+        }
+
+        $totalVentas = CitasModel::where('empresa_id', $this->empresa->id)
+            ->where('colaborador_id', $this->usuarioId)
+            ->where('pagado', 1)
+            ->sum('monto_pagado');
+
+        return $totalVentas * ($colaborador->comision_porcentaje / 100);
     }
 
     // ==================== MÉTODOS PARA CERRAR MODALES ====================
@@ -783,101 +832,100 @@ class GestionCitas extends Component
     }
 
     public function procesarPago()
-{
-    // 👈 VERIFICAR QUE LLEGA
-    Log::info('🚀 INICIO procesarPago');
+    {
+        try {
+            Log::info('=== PROCESAR PAGO ===');
+            Log::info('montoPago: ' . $this->montoPago);
+            Log::info('metodoPagoSeleccionado: ' . $this->metodoPagoSeleccionado);
+            Log::info('citaPagoId: ' . $this->citaPagoId);
 
-    // 👈 MOSTRAR LO QUE LLEGA
-    Log::info('📝 montoPago: ' . $this->montoPago);
-    Log::info('📝 metodoPagoSeleccionado: ' . $this->metodoPagoSeleccionado);
-    Log::info('📝 citaPagoId: ' . $this->citaPagoId);
+            $this->validate([
+                'montoPago' => 'required|numeric|min:0.01',
+                'metodoPagoSeleccionado' => 'required|in:efectivo,transferencia,tarjeta',
+                'referenciaPago' => 'nullable|string|max:100',
+            ]);
 
-    // 👈 VALIDAR
-    try {
-        $this->validate([
-            'montoPago' => 'required|numeric|min:0.01',
-            'metodoPagoSeleccionado' => 'required|in:efectivo,transferencia,tarjeta',
-        ]);
-        Log::info('✅ Validación pasada');
-    } catch (\Exception $e) {
-        Log::error('❌ Error en validación: ' . $e->getMessage());
-        $this->dispatch('error', 'Error en validación: ' . $e->getMessage());
-        return;
-    }
+            DB::beginTransaction();
 
-    // 👈 BUSCAR LA CITA
-    try {
-        $cita = CitasModel::where('empresa_id', $this->empresa->id)
-            ->where('id', $this->citaPagoId)
-            ->first();
+            $cita = CitasModel::where('empresa_id', $this->empresa->id)
+                ->where('id', $this->citaPagoId)
+                ->first();
 
-        if (!$cita) {
-            Log::error('❌ Cita no encontrada con ID: ' . $this->citaPagoId);
-            $this->dispatch('error', 'Cita no encontrada.');
-            return;
+            if (!$cita) {
+                $this->dispatch('error', 'Cita no encontrada.');
+                DB::rollBack();
+                return;
+            }
+
+            Log::info('✅ Cita encontrada. Estado: ' . $cita->estado . ', Pagado: ' . ($cita->pagado ? 'SI' : 'NO'));
+
+            if ($cita->pagado) {
+                $this->dispatch('error', 'Esta cita ya está pagada.');
+                DB::rollBack();
+                $this->cerrarModalPago();
+                return;
+            }
+
+            if (in_array($cita->estado, ['cancelada', 'no_asistio'])) {
+                $this->dispatch('error', 'Esta cita no se puede cobrar porque está ' . $cita->estado);
+                DB::rollBack();
+                return;
+            }
+
+            $cita->pagado = 1;
+            $cita->monto_pagado = $this->montoPago;
+            $cita->metodo_pago = $this->metodoPagoSeleccionado;
+            $cita->fecha_pago = now();
+            $cita->cobrado_por = Auth::id();
+
+            if ($this->referenciaPago) {
+                $cita->observaciones = ($cita->observaciones ? $cita->observaciones . "\n" : '') 
+                    . 'Pago ' . $this->metodoPagoSeleccionado . ' - Ref: ' . $this->referenciaPago;
+            }
+
+            Log::info('📝 Datos a guardar:');
+            Log::info('  pagado: ' . $cita->pagado);
+            Log::info('  monto_pagado: ' . $cita->monto_pagado);
+            Log::info('  metodo_pago: ' . $cita->metodo_pago);
+            Log::info('  cobrado_por: ' . $cita->cobrado_por);
+
+            $cita->save();
+
+            Log::info('✅ Cita guardada correctamente');
+
+            if ($cita->colaborador_id) {
+                $this->generarComision($cita);
+                Log::info('✅ Comisión generada');
+            }
+
+            DB::commit();
+
+            $this->cerrarModalPago();
+            $this->resetPage();
+
+            $this->dispatch('success', '✅ Pago completado: $' . number_format((float) $this->montoPago, 2));
+
+            Log::info('✅ PAGO COMPLETADO EXITOSAMENTE');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('❌ ERROR: ' . $e->getMessage());
+            Log::error('❌ Stack trace: ' . $e->getTraceAsString());
+            $this->dispatch('error', 'Error: ' . $e->getMessage());
         }
-
-        Log::info('✅ Cita encontrada: ID ' . $cita->id . ', Estado: ' . $cita->estado . ', Pagado: ' . ($cita->pagado ? 'SI' : 'NO'));
-
-    } catch (\Exception $e) {
-        Log::error('❌ Error al buscar cita: ' . $e->getMessage());
-        $this->dispatch('error', 'Error al buscar cita: ' . $e->getMessage());
-        return;
     }
 
-    // 👈 ACTUALIZAR LA CITA
-    try {
-        $cita->pagado = 1;
-        $cita->monto_pagado = $this->montoPago;
-        $cita->metodo_pago = $this->metodoPagoSeleccionado;
-        $cita->fecha_pago = now();
-        $cita->cobrado_por = Auth::id();
-
-        Log::info('📝 Datos a guardar:');
-        Log::info('  pagado: ' . $cita->pagado);
-        Log::info('  monto_pagado: ' . $cita->monto_pagado);
-        Log::info('  metodo_pago: ' . $cita->metodo_pago);
-        Log::info('  cobrado_por: ' . $cita->cobrado_por);
-
-        $resultado = $cita->save();
-        Log::info('✅ Resultado del save: ' . ($resultado ? 'TRUE' : 'FALSE'));
-
-    } catch (\Exception $e) {
-        Log::error('❌ Error al guardar: ' . $e->getMessage());
-        $this->dispatch('error', 'Error al guardar: ' . $e->getMessage());
-        return;
-    }
-
-    // 👈 VERIFICAR QUE SE GUARDÓ
-    try {
-        $citaVerificada = CitasModel::where('empresa_id', $this->empresa->id)
-            ->where('id', $this->citaPagoId)
-            ->first();
-
-        Log::info('📝 VERIFICACIÓN EN BD:');
-        Log::info('  pagado: ' . $citaVerificada->pagado);
-        Log::info('  monto_pagado: ' . $citaVerificada->monto_pagado);
-        Log::info('  metodo_pago: ' . $citaVerificada->metodo_pago);
-        Log::info('  fecha_pago: ' . $citaVerificada->fecha_pago);
-
-    } catch (\Exception $e) {
-        Log::error('❌ Error al verificar: ' . $e->getMessage());
-    }
-
-    // 👈 CERRAR MODAL Y RECARGAR
-    $this->cerrarModalPago();
-    $this->resetPage();
-
-    $this->dispatch('success', '✅ Pago completado: $' . number_format((float) $this->montoPago, 2));
-
-    Log::info('🏁 FIN procesarPago - EXITO');
-}
     // ==================== CHECK IN / CHECK OUT ====================
 
     public function checkIn($id)
     {
         $cita = CitasModel::where('empresa_id', $this->empresa->id)->findOrFail($id);
         
+        if ($this->esColaborador && $cita->colaborador_id !== $this->usuarioId) {
+            $this->dispatch('error', 'No puedes modificar esta cita.');
+            return;
+        }
+
         if (!in_array($cita->estado, ['agendada', 'confirmada'])) {
             $this->dispatch('error', 'Esta cita no puede iniciar.');
             return;
@@ -895,6 +943,11 @@ class GestionCitas extends Component
     {
         $cita = CitasModel::where('empresa_id', $this->empresa->id)->findOrFail($id);
         
+        if ($this->esColaborador && $cita->colaborador_id !== $this->usuarioId) {
+            $this->dispatch('error', 'No puedes modificar esta cita.');
+            return;
+        }
+
         if ($cita->estado !== 'en_curso') {
             $this->dispatch('error', 'La cita debe estar en curso para finalizar.');
             return;
@@ -906,6 +959,70 @@ class GestionCitas extends Component
 
         $this->dispatch('success', 'Check-out realizado. Cita finalizada.');
         $this->resetPage();
+    }
+
+    // ==================== CANCELAR CITA ====================
+
+    public function cancelarCita($id)
+    {
+        $cita = CitasModel::where('empresa_id', $this->empresa->id)->findOrFail($id);
+        $usuario = Auth::guard('web')->user();
+        $rol = $usuario->rol;
+
+        if (!in_array($cita->estado, ['agendada', 'confirmada'])) {
+            $this->dispatch('error', 'Esta cita ya no se puede cancelar.');
+            return;
+        }
+
+        if ($rol === 'colaborador' && $cita->colaborador_id !== $usuario->id) {
+            $this->dispatch('error', 'No puedes cancelar una cita que no es tuya.');
+            return;
+        }
+
+        if (!$cita->puedeCancelar($rol)) {
+            $this->dispatch('error', 'No se puede cancelar. Solo se permite 24 horas antes de la cita.');
+            return;
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $motivo = "Cancelado por " . ucfirst($rol);
+
+            if ($rol === 'recepcionista') {
+                $this->notificarAlDuenno($cita);
+                $motivo = "Cancelado por Recepcionista";
+            }
+
+            $cita->cancelar($motivo, $rol);
+
+            DB::commit();
+
+            $this->dispatch('success', 'Cita cancelada correctamente.');
+            $this->resetPage();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al cancelar cita: ' . $e->getMessage());
+            $this->dispatch('error', 'Error al cancelar: ' . $e->getMessage());
+        }
+    }
+
+    protected function notificarAlDuenno($cita)
+    {
+        $duenno = User::where('empresa_id', $this->empresa->id)
+            ->where('rol', 'empresa_admin')
+            ->first();
+
+        if ($duenno) {
+            Log::info("🔔 La recepcionista canceló una cita", [
+                'cita_id' => $cita->id,
+                'cliente' => $cita->cliente->nombre ?? 'N/A',
+                'fecha' => $cita->fecha,
+                'hora' => $cita->hora_inicio,
+                'duenno_email' => $duenno->email,
+            ]);
+        }
     }
 
     // ==================== FILTROS ====================
@@ -937,6 +1054,9 @@ class GestionCitas extends Component
             'puedeGestionar' => $this->puedeGestionar,
             'puedeCrearColaboradores' => $this->puedeCrearColaboradores,
             'puedeCrearServicios' => $this->puedeCrearServicios,
+            'totalCitasColaborador' => $this->totalCitasColaborador,
+            'citasAtendidasColaborador' => $this->citasAtendidasColaborador,
+            'ingresoColaborador' => $this->ingresoColaborador,
         ]);
     }
 }

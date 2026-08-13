@@ -32,14 +32,10 @@ class AgendarCita extends Component
 
     public bool $cargando = false;
 
-    // Datos para el calendario
+    // Datos para el calendario (se pasan a Alpine.js)
     public $diasDisponibles = [];
     public $horasDisponibles = [];
     public $duracionServicio = 0;
-
-    // 👈 NUEVO: Para el mes y año del calendario
-    public $mesCalendario;
-    public $anoCalendario;
 
     protected $rules = [
         'servicioId' => 'required|exists:servicios,id',
@@ -76,10 +72,6 @@ class AgendarCita extends Component
         $this->totalCitas = CitasModel::where('cliente_id', $clienteId)->count();
         $this->citasAnteriores = $this->cliente->citas;
 
-        // 👈 Inicializar mes y año
-        $this->mesCalendario = date('n');
-        $this->anoCalendario = date('Y');
-
         if ($this->totalCitas === 0) {
             $this->mostrarFormulario = true;
             $this->mostrarHistorial = false;
@@ -109,25 +101,26 @@ class AgendarCita extends Component
         return $query->orderBy('nombre')->get(['id', 'nombre']);
     }
 
-    // 👈 NUEVO: Actualizar mes desde Alpine
-    public function actualizarMes($mes, $ano)
+    public function getHorarioEmpresaProperty()
     {
-        $this->mesCalendario = $mes + 1; // Alpine usa 0-11, Blade usa 1-12
-        $this->anoCalendario = $ano;
+        return [
+            'inicio' => $this->empresa->config['horario_inicio'] ?? '09:00',
+            'fin' => $this->empresa->config['horario_fin'] ?? '20:00',
+        ];
     }
 
-    public function cargarDisponibilidad()
+    // ==================== CALCULAR DÍAS DISPONIBLES ====================
+
+    public function calcularDiasDisponibles()
     {
         if (!$this->colaboradorId || !$this->servicioId) {
             $this->diasDisponibles = [];
-            $this->horasDisponibles = [];
             return;
         }
 
         $servicio = ServiciosModel::find($this->servicioId);
         if (!$servicio) {
             $this->diasDisponibles = [];
-            $this->horasDisponibles = [];
             return;
         }
 
@@ -217,7 +210,9 @@ class AgendarCita extends Component
         return $disponibles;
     }
 
-    public function obtenerHoras()
+    // ==================== CARGAR HORAS DISPONIBLES ====================
+
+    public function cargarHorasDisponibles()
     {
         if (!$this->fecha || !$this->colaboradorId || !$this->servicioId) {
             $this->horasDisponibles = [];
@@ -299,7 +294,7 @@ class AgendarCita extends Component
         $this->fecha = '';
         $this->horaInicio = '';
         $this->horasDisponibles = [];
-        $this->cargarDisponibilidad();
+        $this->calcularDiasDisponibles();
         $this->dispatch('limpiar-mensaje');
     }
 
@@ -307,7 +302,7 @@ class AgendarCita extends Component
     {
         $this->fecha = $fecha;
         $this->horaInicio = '';
-        $this->obtenerHoras();
+        $this->cargarHorasDisponibles();
         $this->dispatch('limpiar-mensaje');
     }
 
@@ -350,6 +345,64 @@ class AgendarCita extends Component
     public function volver()
     {
         $this->dispatch('volver-a-verificar');
+    }
+
+    // ==================== CANCELAR CITA ====================
+
+    public function cancelarCita($citaId)
+    {
+        try {
+            DB::beginTransaction();
+
+            $cita = CitasModel::where('empresa_id', $this->empresa->id)
+                ->where('id', $citaId)
+                ->where('cliente_id', $this->clienteId)
+                ->whereIn('estado', ['agendada', 'confirmada'])
+                ->first();
+
+            if (!$cita) {
+                $this->dispatch('mostrar-mensaje', 
+                    mensaje: 'No se puede cancelar esta cita.',
+                    tipo: 'error'
+                );
+                DB::rollBack();
+                return;
+            }
+
+            // ✅ VERIFICAR 24 HORAS ANTES
+            if (!$cita->puedeCancelar('cliente')) {
+                $this->dispatch('mostrar-mensaje', 
+                    mensaje: 'Solo puedes cancelar 24 horas antes de la cita.',
+                    tipo: 'error'
+                );
+                DB::rollBack();
+                return;
+            }
+
+            $cita->cancelar('Cancelado por el cliente', 'cliente');
+
+            $this->cliente = ClientesModel::find($this->clienteId);
+
+            DB::commit();
+
+            $this->citasAnteriores = CitasModel::where('cliente_id', $this->clienteId)
+                ->orderBy('fecha', 'desc')
+                ->orderBy('hora_inicio', 'desc')
+                ->limit(10)
+                ->get();
+
+            $this->dispatch('mostrar-mensaje', 
+                mensaje: 'Cita cancelada correctamente.',
+                tipo: 'warning'
+            );
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->dispatch('mostrar-mensaje', 
+                mensaje: 'Ocurrió un error al cancelar la cita. Intenta nuevamente.',
+                tipo: 'error'
+            );
+        }
     }
 
     // ==================== AGENDAR CITA ====================
@@ -430,67 +483,6 @@ class AgendarCita extends Component
         $this->cargando = false;
     }
 
-    // ==================== CANCELAR CITA ====================
-
-    public function cancelarCita($citaId)
-    {
-        try {
-            DB::beginTransaction();
-
-            $cita = CitasModel::where('empresa_id', $this->empresa->id)
-                ->where('id', $citaId)
-                ->where('cliente_id', $this->clienteId)
-                ->whereIn('estado', ['agendada', 'confirmada'])
-                ->first();
-
-            if (!$cita) {
-                $this->dispatch('mostrar-mensaje', 
-                    mensaje: 'No se puede cancelar esta cita.',
-                    tipo: 'error'
-                );
-                DB::rollBack();
-                return;
-            }
-
-            $cita->estado = 'cancelada';
-            $cita->motivo_cancelacion = 'Cancelado por el cliente';
-            $cita->cancelada_por = 'cliente';
-            $cita->save();
-
-            $this->cliente->sumarPuntosMalos(2);
-
-            if ($this->cliente->puntos_malos >= 5) {
-                $this->cliente->bloquear(15);
-                $this->dispatch('mostrar-mensaje', 
-                    mensaje: 'Has acumulado 5 puntos negativos. Serás bloqueado por 15 días.',
-                    tipo: 'warning'
-                );
-            }
-
-            $this->cliente = ClientesModel::find($this->clienteId);
-
-            DB::commit();
-
-            $this->citasAnteriores = CitasModel::where('cliente_id', $this->clienteId)
-                ->orderBy('fecha', 'desc')
-                ->orderBy('hora_inicio', 'desc')
-                ->limit(10)
-                ->get();
-
-            $this->dispatch('mostrar-mensaje', 
-                mensaje: 'Cita cancelada correctamente.',
-                tipo: 'warning'
-            );
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            $this->dispatch('mostrar-mensaje', 
-                mensaje: 'Ocurrió un error al cancelar la cita. Intenta nuevamente.',
-                tipo: 'error'
-            );
-        }
-    }
-
     public function render()
     {
         return view('livewire.cliente.agendar-cita', [
@@ -506,8 +498,6 @@ class AgendarCita extends Component
             'diasDisponibles' => $this->diasDisponibles,
             'horasDisponibles' => $this->horasDisponibles,
             'duracionServicio' => $this->duracionServicio,
-            'mesCalendario' => $this->mesCalendario,
-            'anoCalendario' => $this->anoCalendario,
         ]);
     }
 }

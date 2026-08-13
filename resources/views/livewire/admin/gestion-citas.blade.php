@@ -1,4 +1,5 @@
 <div>
+    {{-- ==================== TARJETAS DE MÉTRICAS ==================== --}}
     <div class="grid grid-cols-1 md:grid-cols-5 gap-lg mb-2xl">
         <div class="bg-surface p-lg rounded-xl border border-outline-variant col-span-1 shadow-sm">
             <div class="flex items-center justify-between mb-sm">
@@ -7,57 +8,85 @@
             </div>
             <div class="font-headline-lg text-headline-lg text-primary">{{ $citasHoy }}</div>
         </div>
-        <div class="bg-surface p-lg rounded-xl border border-outline-variant col-span-1 shadow-sm">
-            <div class="flex items-center justify-between mb-sm">
-                <span class="text-on-surface-variant font-label-sm text-label-sm">Ingresos Hoy</span>
-                <span class="material-symbols-outlined text-secondary">payments</span>
-            </div>
-            <div class="font-headline-md text-headline-md text-secondary font-extrabold">${{ number_format($ingresosHoy, 2) }}</div>
-        </div>
 
-        @if($puedeGestionar ?? false)
-        <div wire:click="abrirCrearCita"
-             class="bg-secondary-container p-lg rounded-xl border border-outline-variant col-span-1 relative overflow-hidden group cursor-pointer hover:opacity-90 transition-opacity">
-            <div class="relative z-10 flex flex-col h-full justify-between">
-                <div>
-                    <span class="material-symbols-outlined text-on-secondary-container mb-sm">calendar_add_on</span>
-                    <div class="font-label-md text-label-md text-on-secondary-container">Nueva Cita</div>
+        @if($esColaborador)
+            <div class="bg-surface p-lg rounded-xl border border-outline-variant col-span-1 shadow-sm">
+                <div class="flex items-center justify-between mb-sm">
+                    <span class="text-on-surface-variant font-label-sm text-label-sm">Total Citas</span>
+                    <span class="material-symbols-outlined text-secondary">event_note</span>
                 </div>
-                <div class="mt-md">
-                    <span class="bg-primary text-on-primary px-4 py-1 rounded font-label-sm text-label-sm">Agendar</span>
-                </div>
+                <div class="font-headline-lg text-headline-lg text-primary">{{ $totalCitasColaborador }}</div>
             </div>
-        </div>
-        @endif
 
-        @if($puedeCrearColaboradores ?? false)
-        <div wire:click="abrirCrearColaborador"
-             class="bg-secondary-container p-lg rounded-xl border border-outline-variant col-span-1 relative overflow-hidden group cursor-pointer hover:opacity-90 transition-opacity">
-            <div class="relative z-10 flex flex-col h-full justify-between">
-                <div>
-                    <span class="material-symbols-outlined text-on-secondary-container mb-sm">person_add</span>
-                    <div class="font-label-md text-label-md text-on-secondary-container">Nuevo Colaborador</div>
+            <div class="bg-surface p-lg rounded-xl border border-outline-variant col-span-1 shadow-sm">
+                <div class="flex items-center justify-between mb-sm">
+                    <span class="text-on-surface-variant font-label-sm text-label-sm">Citas Atendidas</span>
+                    <span class="material-symbols-outlined text-secondary">check_circle</span>
                 </div>
-                <div class="mt-md">
-                    <span class="bg-primary text-on-primary px-4 py-1 rounded font-label-sm text-label-sm">Añadir</span>
-                </div>
+                <div class="font-headline-lg text-headline-lg text-primary">{{ $citasAtendidasColaborador }}</div>
             </div>
-        </div>
-        @endif
 
-        @if($puedeCrearServicios ?? false)
-        <div wire:click="abrirCrearServicio"
-             class="bg-secondary-container p-lg rounded-xl border border-outline-variant col-span-1 relative overflow-hidden group cursor-pointer hover:opacity-90 transition-opacity">
-            <div class="relative z-10 flex flex-col h-full justify-between">
-                <div>
-                    <span class="material-symbols-outlined text-on-secondary-container mb-sm">add_box</span>
-                    <div class="font-label-md text-label-md text-on-secondary-container">Nuevo Servicio</div>
+            <div class="bg-surface p-lg rounded-xl border-2 border-secondary col-span-1 shadow-sm relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 -mr-16 -mt-16 bg-secondary opacity-5 rounded-full"></div>
+                <div class="flex items-center justify-between mb-sm">
+                    <span class="text-on-surface-variant font-label-sm text-label-sm">Mi Ingreso</span>
+                    <span class="material-symbols-outlined text-secondary">payments</span>
                 </div>
-                <div class="mt-md">
-                    <span class="bg-primary text-on-primary px-4 py-1 rounded font-label-sm text-label-sm">Crear</span>
+                <div class="font-headline-md text-headline-md text-secondary font-extrabold">${{ number_format($ingresoColaborador, 2) }}</div>
+            </div>
+        @else
+            <div class="bg-surface p-lg rounded-xl border border-outline-variant col-span-1 shadow-sm">
+                <div class="flex items-center justify-between mb-sm">
+                    <span class="text-on-surface-variant font-label-sm text-label-sm">Ingresos Hoy</span>
+                    <span class="material-symbols-outlined text-secondary">payments</span>
+                </div>
+                <div class="font-headline-md text-headline-md text-secondary font-extrabold">${{ number_format($ingresosHoy, 2) }}</div>
+            </div>
+
+            @if($puedeGestionar ?? false)
+            <div wire:click="abrirCrearCita"
+                 class="bg-secondary-container p-lg rounded-xl border border-outline-variant col-span-1 relative overflow-hidden group cursor-pointer hover:opacity-90 transition-opacity">
+                <div class="relative z-10 flex flex-col h-full justify-between">
+                    <div>
+                        <span class="material-symbols-outlined text-on-secondary-container mb-sm">calendar_add_on</span>
+                        <div class="font-label-md text-label-md text-on-secondary-container">Nueva Cita</div>
+                    </div>
+                    <div class="mt-md">
+                        <span class="bg-primary text-on-primary px-4 py-1 rounded font-label-sm text-label-sm">Agendar</span>
+                    </div>
                 </div>
             </div>
-        </div>
+            @endif
+
+            @if($puedeCrearColaboradores ?? false)
+            <div wire:click="abrirCrearColaborador"
+                 class="bg-secondary-container p-lg rounded-xl border border-outline-variant col-span-1 relative overflow-hidden group cursor-pointer hover:opacity-90 transition-opacity">
+                <div class="relative z-10 flex flex-col h-full justify-between">
+                    <div>
+                        <span class="material-symbols-outlined text-on-secondary-container mb-sm">person_add</span>
+                        <div class="font-label-md text-label-md text-on-secondary-container">Nuevo Colaborador</div>
+                    </div>
+                    <div class="mt-md">
+                        <span class="bg-primary text-on-primary px-4 py-1 rounded font-label-sm text-label-sm">Añadir</span>
+                    </div>
+                </div>
+            </div>
+            @endif
+
+            @if($puedeCrearServicios ?? false)
+            <div wire:click="abrirCrearServicio"
+                 class="bg-secondary-container p-lg rounded-xl border border-outline-variant col-span-1 relative overflow-hidden group cursor-pointer hover:opacity-90 transition-opacity">
+                <div class="relative z-10 flex flex-col h-full justify-between">
+                    <div>
+                        <span class="material-symbols-outlined text-on-secondary-container mb-sm">add_box</span>
+                        <div class="font-label-md text-label-md text-on-secondary-container">Nuevo Servicio</div>
+                    </div>
+                    <div class="mt-md">
+                        <span class="bg-primary text-on-primary px-4 py-1 rounded font-label-sm text-label-sm">Crear</span>
+                    </div>
+                </div>
+            </div>
+            @endif
         @endif
 
         <div class="bg-surface p-lg rounded-xl border border-outline-variant col-span-1 shadow-sm">
@@ -69,7 +98,7 @@
         </div>
     </div>
 
-    {{-- FILTROS CON CALENDARIO INTERACTIVO --}}
+    {{-- FILTROS CON CALENDARIO --}}
     <div class="bg-surface rounded-xl border border-outline-variant overflow-hidden shadow-sm mb-lg">
         <div class="px-lg py-md border-b border-outline-variant">
             <h2 class="font-headline-md text-headline-md text-primary">Filtros</h2>
@@ -77,11 +106,116 @@
         </div>
         <div class="p-lg">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-md">
+                {{-- FECHA CON CALENDARIO --}}
                 <div class="flex flex-col gap-xs">
                     <label class="font-label-sm text-label-sm text-on-surface-variant">Fecha</label>
-                    <input type="date" wire:model.live="filtroFecha"
-                           class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface bg-surface-container-lowest focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
+                    <div class="relative" x-data="{ 
+                        abierto: false, 
+                        fecha: '{{ $filtroFecha }}',
+                        toggle() { this.abierto = !this.abierto; },
+                        seleccionar(dia) {
+                            const fecha = new Date(this.año, this.mes, dia);
+                            const fechaStr = fecha.getFullYear() + '-' + 
+                                             String(fecha.getMonth() + 1).padStart(2, '0') + '-' + 
+                                             String(fecha.getDate()).padStart(2, '0');
+                            this.fecha = fechaStr;
+                            @this.set('filtroFecha', fechaStr);
+                            this.abierto = false;
+                        },
+                        limpiar() {
+                            this.fecha = '';
+                            @this.set('filtroFecha', '');
+                        },
+                        mes: new Date().getMonth(),
+                        año: new Date().getFullYear(),
+                        dias: [],
+                        hoy: new Date().getDate(),
+                        mesActual: new Date().getMonth(),
+                        añoActual: new Date().getFullYear(),
+                        generarDias() {
+                            const fecha = new Date(this.año, this.mes, 1);
+                            const ultimoDia = new Date(this.año, this.mes + 1, 0).getDate();
+                            const primerDia = fecha.getDay();
+                            const dias = [];
+                            const offset = primerDia === 0 ? 6 : primerDia - 1;
+                            for (let i = 0; i < offset; i++) dias.push(null);
+                            for (let i = 1; i <= ultimoDia; i++) dias.push(i);
+                            this.dias = dias;
+                        },
+                        cambiarMes(dir) {
+                            const fecha = new Date(this.año, this.mes + dir, 1);
+                            this.mes = fecha.getMonth();
+                            this.año = fecha.getFullYear();
+                            this.generarDias();
+                        },
+                        get titulo() {
+                            const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                            return meses[this.mes] + ' ' + this.año;
+                        }
+                    }" x-init="generarDias()">
+                        <button type="button" @click="toggle()"
+                                class="w-full flex items-center justify-between border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface bg-surface-container-lowest focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
+                            <span class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[18px] text-on-surface-variant">event</span>
+                                <span x-text="fecha ? fecha.split('-').reverse().join('/') : 'Todas las fechas'"></span>
+                            </span>
+                            <div class="flex items-center gap-1">
+                                <span x-show="fecha" @click.stop="limpiar()" class="text-on-surface-variant hover:text-error cursor-pointer">
+                                    <span class="material-symbols-outlined text-[16px]">close</span>
+                                </span>
+                                <span class="material-symbols-outlined text-[18px] text-on-surface-variant" x-text="abierto ? 'expand_less' : 'expand_more'"></span>
+                            </div>
+                        </button>
+                        
+                        <div x-show="abierto" x-cloak
+                             class="absolute z-50 mt-1 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-lg p-4 w-72"
+                             @click.away="abierto = false">
+                            <div class="flex items-center justify-between mb-3">
+                                <button type="button" @click="cambiarMes(-1)" class="p-1 hover:bg-surface-container-high rounded">
+                                    <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                                </button>
+                                <span class="font-label-md text-label-md text-on-surface" x-text="titulo"></span>
+                                <button type="button" @click="cambiarMes(1)" class="p-1 hover:bg-surface-container-high rounded">
+                                    <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-7 gap-1 mb-2">
+                                <div class="text-center text-xs font-medium text-on-surface-variant">L</div>
+                                <div class="text-center text-xs font-medium text-on-surface-variant">M</div>
+                                <div class="text-center text-xs font-medium text-on-surface-variant">X</div>
+                                <div class="text-center text-xs font-medium text-on-surface-variant">J</div>
+                                <div class="text-center text-xs font-medium text-on-surface-variant">V</div>
+                                <div class="text-center text-xs font-medium text-on-surface-variant">S</div>
+                                <div class="text-center text-xs font-medium text-on-surface-variant">D</div>
+                            </div>
+                            <div class="grid grid-cols-7 gap-1">
+                                <template x-for="(dia, idx) in dias" :key="idx">
+                                    <div class="aspect-square flex items-center justify-center">
+                                        <template x-if="dia !== null">
+                                            <button type="button" @click="seleccionar(dia)"
+                                                    class="w-full h-full rounded-lg text-sm hover:bg-secondary-container hover:text-on-secondary-container transition"
+                                                    :class="{
+                                                        'bg-secondary text-on-secondary': dia === hoy && mes === mesActual && año === añoActual,
+                                                        'text-on-surface': !(dia === hoy && mes === mesActual && año === añoActual)
+                                                    }"
+                                                    x-text="dia">
+                                            </button>
+                                        </template>
+                                        <template x-if="dia === null">
+                                            <div class="w-full h-full"></div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                            <div class="mt-2 pt-2 border-t border-outline-variant text-center">
+                                <button type="button" @click="limpiar()" class="text-xs text-on-surface-variant hover:text-secondary">
+                                    Limpiar filtro
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
                 <div class="flex flex-col gap-xs">
                     <label class="font-label-sm text-label-sm text-on-surface-variant">Estado</label>
                     <select wire:model.live="filtroEstado"
@@ -95,6 +229,7 @@
                         <option value="no_asistio">No asistió</option>
                     </select>
                 </div>
+                @if(!$esColaborador)
                 <div class="flex flex-col gap-xs">
                     <label class="font-label-sm text-label-sm text-on-surface-variant">Colaborador</label>
                     <select wire:model.live="filtroColaborador"
@@ -105,6 +240,7 @@
                         @endforeach
                     </select>
                 </div>
+                @endif
                 <div class="flex flex-col gap-xs">
                     <label class="font-label-sm text-label-sm text-on-surface-variant">Buscar cliente</label>
                     <input type="text" wire:model.live.debounce.300ms="buscarCliente"
@@ -202,6 +338,32 @@
                         </td>
                         <td class="px-lg py-md text-right">
                             <div class="flex justify-end gap-sm items-center flex-wrap">
+                                {{-- COLABORADOR --}}
+                                @if($esColaborador)
+                                    @if(in_array($cita->estado, ['agendada', 'confirmada']))
+                                        <button wire:click="checkIn({{ $cita->id }})"
+                                                onclick="confirm('¿Marcar Check-in?') || event.stopImmediatePropagation()"
+                                                type="button"
+                                                class="px-sm py-1 font-label-sm text-label-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                                            Check In
+                                        </button>
+                                    @endif
+
+                                    @if($cita->estado === 'en_curso')
+                                        <button wire:click="checkOut({{ $cita->id }})"
+                                                onclick="confirm('¿Marcar Check-out?') || event.stopImmediatePropagation()"
+                                                type="button"
+                                                class="px-sm py-1 font-label-sm text-label-sm text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                                            Check Out
+                                        </button>
+                                    @endif
+
+                                    @if(!in_array($cita->estado, ['en_curso', 'atendida']))
+                                        <span class="text-xs text-on-surface-variant">Esperando...</span>
+                                    @endif
+                                @endif
+
+                                {{-- ADMIN / RECEPCIONISTA --}}
                                 @if($puedeGestionar ?? false)
                                     <button wire:click="editarCita({{ $cita->id }})"
                                             type="button"
@@ -238,6 +400,7 @@
                                         </button>
                                     @endif
 
+                                    {{-- BOTÓN COBRAR --}}
                                     @if(!$cita->pagado && in_array($cita->estado, ['agendada', 'confirmada', 'en_curso', 'atendida']))
                                         <button wire:click="abrirModalPago({{ $cita->id }})"
                                                 type="button"
@@ -247,6 +410,27 @@
                                         </button>
                                     @endif
 
+                                    {{-- BOTÓN CANCELAR --}}
+                                    @if(in_array($cita->estado, ['agendada', 'confirmada']))
+                                        @php
+                                            $puedeCancelar = $cita->puedeCancelar(Auth::guard('web')->user()->rol);
+                                        @endphp
+                                        @if($puedeCancelar)
+                                            <button wire:click="cancelarCita({{ $cita->id }})"
+                                                    onclick="confirm('¿Cancelar esta cita?') || event.stopImmediatePropagation()"
+                                                    type="button"
+                                                    class="p-2 text-on-surface-variant hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all"
+                                                    title="Cancelar cita">
+                                                <span class="material-symbols-outlined text-[20px]">cancel</span>
+                                            </button>
+                                        @else
+                                            <span class="text-xs text-on-surface-variant opacity-50" title="Solo 24 horas antes">
+                                                🔒 24h
+                                            </span>
+                                        @endif
+                                    @endif
+
+                                    {{-- DROPDOWN ESTADOS --}}
                                     <div class="relative group">
                                         <button type="button"
                                                 class="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all font-label-sm text-label-sm flex items-center gap-1">
@@ -261,6 +445,25 @@
                                                     {{ ucfirst($estado) }}
                                                 </button>
                                             @endforeach
+                                            @if(in_array($cita->estado, ['agendada', 'confirmada']))
+                                                @php
+                                                    $puedeCancelar = $cita->puedeCancelar(Auth::guard('web')->user()->rol);
+                                                @endphp
+                                                @if($puedeCancelar)
+                                                    <div class="border-t border-outline-variant my-1"></div>
+                                                    <button wire:click="cancelarCita({{ $cita->id }})"
+                                                            onclick="confirm('¿Cancelar esta cita?') || event.stopImmediatePropagation()"
+                                                            type="button"
+                                                            class="block w-full text-left px-3 py-1 font-body-sm text-body-sm text-orange-600 hover:bg-orange-50 rounded">
+                                                        ❌ Cancelar cita
+                                                    </button>
+                                                @else
+                                                    <div class="border-t border-outline-variant my-1"></div>
+                                                    <span class="block w-full text-left px-3 py-1 font-body-sm text-body-sm text-on-surface-variant opacity-50 cursor-not-allowed">
+                                                        🔒 Cancelar (24h antes)
+                                                    </span>
+                                                @endif
+                                            @endif
                                             @if(!$cita->pagado)
                                                 <div class="border-t border-outline-variant my-1"></div>
                                                 <button wire:click="abrirModalPago({{ $cita->id }})"
@@ -271,37 +474,6 @@
                                             @endif
                                         </div>
                                     </div>
-                                @endif
-
-                                @if($esColaborador ?? false)
-                                    @if(in_array($cita->estado, ['agendada', 'confirmada']))
-                                        <button wire:click="checkIn({{ $cita->id }})"
-                                                onclick="confirm('¿Marcar Check-in?') || event.stopImmediatePropagation()"
-                                                type="button"
-                                                class="px-sm py-1 font-label-sm text-label-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                                            Check In
-                                        </button>
-                                    @endif
-
-                                    @if($cita->estado === 'en_curso')
-                                        <button wire:click="checkOut({{ $cita->id }})"
-                                                onclick="confirm('¿Marcar Check-out?') || event.stopImmediatePropagation()"
-                                                type="button"
-                                                class="px-sm py-1 font-label-sm text-label-sm text-green-600 hover:bg-green-50 rounded-lg transition-colors">
-                                            Check Out
-                                        </button>
-                                    @endif
-
-                                    <button wire:click="cambiarEstado({{ $cita->id }}, 'en_curso')"
-                                            type="button"
-                                            class="px-sm py-1 font-label-sm text-label-sm text-primary hover:bg-primary-container rounded-lg transition-colors">
-                                        En curso
-                                    </button>
-                                    <button wire:click="cambiarEstado({{ $cita->id }}, 'atendida')"
-                                            type="button"
-                                            class="px-sm py-1 font-label-sm text-label-sm text-secondary hover:bg-secondary-container rounded-lg transition-colors">
-                                        Atendida
-                                    </button>
                                 @endif
                             </div>
                         </td>
@@ -381,8 +553,111 @@
                         <div class="grid grid-cols-2 gap-md">
                             <div class="flex flex-col gap-xs">
                                 <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Fecha *</label>
-                                <input type="date" wire:model="fecha" min="{{ date('Y-m-d') }}"
-                                       class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
+                                <div class="relative" x-data="{ 
+                                    abierto: false, 
+                                    fechaSeleccionada: '{{ $fecha }}',
+                                    mes: new Date().getMonth(),
+                                    año: new Date().getFullYear(),
+                                    dias: [],
+                                    hoy: new Date().getDate(),
+                                    mesActual: new Date().getMonth(),
+                                    añoActual: new Date().getFullYear(),
+                                    toggle() { this.abierto = !this.abierto; },
+                                    seleccionar(dia) {
+                                        const fecha = new Date(this.año, this.mes, dia);
+                                        const fechaStr = fecha.getFullYear() + '-' + 
+                                                         String(fecha.getMonth() + 1).padStart(2, '0') + '-' + 
+                                                         String(fecha.getDate()).padStart(2, '0');
+                                        this.fechaSeleccionada = fechaStr;
+                                        @this.set('fecha', fechaStr);
+                                        this.abierto = false;
+                                    },
+                                    limpiar() {
+                                        this.fechaSeleccionada = '';
+                                        @this.set('fecha', '');
+                                    },
+                                    generarDias() {
+                                        const fecha = new Date(this.año, this.mes, 1);
+                                        const ultimoDia = new Date(this.año, this.mes + 1, 0).getDate();
+                                        const primerDia = fecha.getDay();
+                                        const dias = [];
+                                        const offset = primerDia === 0 ? 6 : primerDia - 1;
+                                        for (let i = 0; i < offset; i++) dias.push(null);
+                                        for (let i = 1; i <= ultimoDia; i++) dias.push(i);
+                                        this.dias = dias;
+                                    },
+                                    cambiarMes(dir) {
+                                        const fecha = new Date(this.año, this.mes + dir, 1);
+                                        this.mes = fecha.getMonth();
+                                        this.año = fecha.getFullYear();
+                                        this.generarDias();
+                                    },
+                                    get titulo() {
+                                        const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                                        return meses[this.mes] + ' ' + this.año;
+                                    }
+                                }" x-init="generarDias()">
+                                    <button type="button" @click="toggle()"
+                                            class="w-full flex items-center justify-between border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface bg-surface-container-lowest focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
+                                        <span class="flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-[18px] text-on-surface-variant">event</span>
+                                            <span x-text="fechaSeleccionada ? fechaSeleccionada.split('-').reverse().join('/') : 'Seleccionar fecha'"></span>
+                                        </span>
+                                        <div class="flex items-center gap-1">
+                                            <span x-show="fechaSeleccionada" @click.stop="limpiar()" class="text-on-surface-variant hover:text-error cursor-pointer">
+                                                <span class="material-symbols-outlined text-[16px]">close</span>
+                                            </span>
+                                            <span class="material-symbols-outlined text-[18px] text-on-surface-variant" x-text="abierto ? 'expand_less' : 'expand_more'"></span>
+                                        </div>
+                                    </button>
+                                    
+                                    <div x-show="abierto" x-cloak
+                                         class="absolute z-50 mt-1 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-lg p-4 w-72"
+                                         @click.away="abierto = false">
+                                        <div class="flex items-center justify-between mb-3">
+                                            <button type="button" @click="cambiarMes(-1)" class="p-1 hover:bg-surface-container-high rounded">
+                                                <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                                            </button>
+                                            <span class="font-label-md text-label-md text-on-surface" x-text="titulo"></span>
+                                            <button type="button" @click="cambiarMes(1)" class="p-1 hover:bg-surface-container-high rounded">
+                                                <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                                            </button>
+                                        </div>
+                                        <div class="grid grid-cols-7 gap-1 mb-2">
+                                            <div class="text-center text-xs font-medium text-on-surface-variant">L</div>
+                                            <div class="text-center text-xs font-medium text-on-surface-variant">M</div>
+                                            <div class="text-center text-xs font-medium text-on-surface-variant">X</div>
+                                            <div class="text-center text-xs font-medium text-on-surface-variant">J</div>
+                                            <div class="text-center text-xs font-medium text-on-surface-variant">V</div>
+                                            <div class="text-center text-xs font-medium text-on-surface-variant">S</div>
+                                            <div class="text-center text-xs font-medium text-on-surface-variant">D</div>
+                                        </div>
+                                        <div class="grid grid-cols-7 gap-1">
+                                            <template x-for="(dia, idx) in dias" :key="idx">
+                                                <div class="aspect-square flex items-center justify-center">
+                                                    <template x-if="dia !== null">
+                                                        <button type="button" @click="seleccionar(dia)"
+                                                                class="w-full h-full rounded-lg text-sm hover:bg-secondary-container hover:text-on-secondary-container transition"
+                                                                :class="{
+                                                                    'bg-secondary text-on-secondary': dia === hoy && mes === mesActual && año === añoActual,
+                                                                    'text-on-surface': !(dia === hoy && mes === mesActual && año === añoActual)
+                                                                }"
+                                                                x-text="dia">
+                                                        </button>
+                                                    </template>
+                                                    <template x-if="dia === null">
+                                                        <div class="w-full h-full"></div>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                        </div>
+                                        <div class="mt-2 pt-2 border-t border-outline-variant text-center">
+                                            <button type="button" @click="limpiar()" class="text-xs text-on-surface-variant hover:text-secondary">
+                                                Limpiar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                                 @error('fecha') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                             </div>
                             <div class="flex flex-col gap-xs">
@@ -710,8 +985,8 @@
                         <div class="flex flex-col gap-xs">
                             <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Monto *</label>
                             <input type="number" step="0.01" min="0" wire:model="montoPago"
-                                class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none"
-                                placeholder="0.00">
+                                   class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none"
+                                   placeholder="0.00">
                             @error('montoPago') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                         </div>
 
@@ -746,8 +1021,8 @@
                         <div class="flex flex-col gap-xs">
                             <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Referencia (opcional)</label>
                             <input type="text" wire:model="referenciaPago"
-                                class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none"
-                                placeholder="N° de transacción, voucher, etc.">
+                                   class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none"
+                                   placeholder="N° de transacción, voucher, etc.">
                             @error('referenciaPago') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                         </div>
                     </div>

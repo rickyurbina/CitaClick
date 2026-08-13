@@ -13,6 +13,8 @@
             </div>
 
             <nav class="flex-grow space-y-1 overflow-y-auto">
+                {{-- 👈 DASHBOARD: SOLO PARA ADMIN Y RECEPCIONISTA --}}
+                @if(!$esColaborador)
                 <button wire:click="cambiarSeccion('dashboard')"
                         type="button"
                         class="w-full flex items-center gap-3 px-4 py-3 font-label-md text-label-md transition-all duration-200 ease-in-out rounded-lg
@@ -22,7 +24,9 @@
                     <span class="material-symbols-outlined">grid_view</span>
                     <span>Dashboard</span>
                 </button>
+                @endif
 
+                {{-- 👈 CITAS: PARA TODOS (admin, recepcionista, colaborador) --}}
                 @if($puedeGestionarCitas)
                 <button wire:click="cambiarSeccion('citas')"
                         type="button"
@@ -32,9 +36,13 @@
                                 : 'text-on-surface-variant hover:bg-surface-container-high' }}">
                     <span class="material-symbols-outlined">calendar_today</span>
                     <span>Gestión de Citas</span>
+                    @if($esColaborador)
+                        <span class="ml-auto text-xs bg-secondary-container/50 text-on-secondary-container px-2 py-0.5 rounded-full">Mi vista</span>
+                    @endif
                 </button>
                 @endif
 
+                {{-- 👈 OPCIONES SOLO PARA ADMIN --}}
                 @if($esAdmin)
                 <button wire:click="cambiarSeccion('colaboradores')"
                         type="button"
@@ -78,6 +86,7 @@
             </div>
         </aside>
 
+        {{-- Mobile nav --}}
         <div class="md:pl-64 flex flex-col min-h-screen">
             <header class="sticky top-0 z-30 bg-surface border-b border-outline-variant shadow-sm h-16 flex items-center md:hidden">
                 <div class="flex justify-between items-center w-full px-margin-mobile">
@@ -107,21 +116,32 @@
             </main>
         </div>
 
+        {{-- Mobile bottom nav --}}
         <nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-safe bg-surface h-16 md:hidden border-t border-outline-variant shadow-lg">
+            {{-- Dashboard - SOLO para admin y recepcionista --}}
+            @if(!$esColaborador)
             <button wire:click="cambiarSeccion('dashboard')" type="button"
                     class="flex flex-col items-center justify-center px-4 py-1 transition-all
                         {{ $seccionActiva === 'dashboard' ? 'bg-secondary-container text-on-secondary-container rounded-2xl' : 'text-on-surface-variant' }}">
                 <span class="material-symbols-outlined">grid_view</span>
                 <span class="font-label-sm text-[10px]">Dashboard</span>
             </button>
+            @endif
+
+            {{-- Citas - Para todos --}}
             @if($puedeGestionarCitas)
             <button wire:click="cambiarSeccion('citas')" type="button"
                     class="flex flex-col items-center justify-center px-4 py-1 transition-all
                         {{ $seccionActiva === 'citas' ? 'bg-secondary-container text-on-secondary-container rounded-2xl' : 'text-on-surface-variant' }}">
                 <span class="material-symbols-outlined">event</span>
                 <span class="font-label-sm text-[10px]">Citas</span>
+                @if($esColaborador)
+                    <span class="text-[8px] text-secondary">mi vista</span>
+                @endif
             </button>
             @endif
+
+            {{-- Solo admin --}}
             @if($esAdmin)
             <button wire:click="cambiarSeccion('colaboradores')" type="button"
                     class="flex flex-col items-center justify-center px-4 py-1 transition-all
@@ -138,6 +158,7 @@
             @endif
         </nav>
     @else
+        {{-- LOGIN --}}
         <div class="min-h-screen flex items-center justify-center p-margin-mobile relative overflow-hidden">
             <div class="absolute inset-0 bg-surface pointer-events-none">
                 <div class="absolute top-1/4 -left-20 w-72 h-72 bg-surface-container rounded-full blur-3xl opacity-60"></div>

@@ -1,5 +1,5 @@
-<div>
-    {{-- HEADER CLIENTE --}}
+<div class="space-y-lg">
+    {{-- Client header --}}
     <div class="glass-card rounded-xl p-md">
         <div class="flex items-center justify-between gap-md flex-wrap">
             <div class="flex items-center gap-md min-w-0">
@@ -36,7 +36,7 @@
         </div>
     </div>
 
-    {{-- NAVEGACIÓN --}}
+    {{-- Navigation toggles --}}
     <div class="flex gap-sm">
         <button type="button"
                 wire:click="mostrarFormularioCita"
@@ -65,20 +65,17 @@
     <div class="glass-card rounded-xl p-lg space-y-lg">
         <div>
             <h3 class="font-label-md text-label-md uppercase tracking-widest text-on-surface-variant">Nueva cita</h3>
-            <p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">
-                Selecciona servicio, colaborador y horario.
-            </p>
+            <p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">Selecciona servicio, colaborador y horario.</p>
         </div>
 
         <form wire:submit.prevent="agendarCita" class="space-y-lg">
-            {{-- SERVICIO --}}
             <div class="space-y-xs">
                 <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Servicio *</label>
                 <div class="focus-ring flex items-center bg-surface border border-outline-variant rounded-lg transition-all duration-200">
                     <div class="px-md flex items-center border-r border-outline-variant bg-surface-container-low rounded-l-lg h-12">
                         <span class="material-symbols-outlined text-on-surface-variant" style="font-size: 20px;">spa</span>
                     </div>
-                    <select wire:model.live="servicioId"
+                    <select wire:model="servicioId"
                             class="w-full h-12 px-md bg-transparent border-none focus:ring-0 font-body-md text-body-md text-on-surface appearance-none cursor-pointer">
                         <option value="">Seleccionar servicio</option>
                         @foreach($servicios as $servicio)
@@ -92,14 +89,13 @@
                 @error('servicioId') <span class="font-body-sm text-body-sm text-error block">{{ $message }}</span> @enderror
             </div>
 
-            {{-- COLABORADOR --}}
             <div class="space-y-xs">
                 <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Colaborador *</label>
                 <div class="focus-ring flex items-center bg-surface border border-outline-variant rounded-lg transition-all duration-200">
                     <div class="px-md flex items-center border-r border-outline-variant bg-surface-container-low rounded-l-lg h-12">
                         <span class="material-symbols-outlined text-on-surface-variant" style="font-size: 20px;">badge</span>
                     </div>
-                    <select wire:model.live="colaboradorId"
+                    <select wire:model="colaboradorId"
                             class="w-full h-12 px-md bg-transparent border-none focus:ring-0 font-body-md text-body-md text-on-surface appearance-none cursor-pointer">
                         <option value="">Seleccionar colaborador</option>
                         @foreach($colaboradores as $colaborador)
@@ -110,198 +106,137 @@
                 @error('colaboradorId') <span class="font-body-sm text-body-sm text-error block">{{ $message }}</span> @enderror
             </div>
 
-            {{-- CALENDARIO --}}
+            {{-- ==================== CALENDARIO CON ALPINE.JS ==================== --}}
             <div class="space-y-xs">
-                <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
-                    Selecciona un día disponible
-                    @if($servicioId && $colaboradorId)
-                        <span class="normal-case font-body-sm text-body-sm text-outline ml-sm">
-                            (Duración: {{ $duracionServicio }} min)
+                <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Fecha y hora *</label>
+                
+                <div class="relative" x-data="calendarioCita({
+                    diasDisponibles: {{ json_encode($diasDisponibles) }},
+                    fechaSeleccionada: '{{ $this->fecha }}',
+                    colaboradorId: '{{ $this->colaboradorId }}'
+                })" x-init="init()">
+                    
+                    <button type="button"
+                            @click="toggleCalendario()"
+                            class="w-full h-12 px-md bg-surface border border-outline-variant rounded-lg hover:bg-surface-container-low transition-all duration-200 flex items-center justify-between font-body-md text-body-md text-on-surface">
+                        <span class="flex items-center gap-sm">
+                            <span class="material-symbols-outlined text-on-surface-variant" style="font-size: 20px;">event</span>
+                            <span x-text="fechaMostrar"></span>
+                            <span x-show="horaSeleccionada" class="text-on-surface-variant text-sm" x-text="'- ' + horaSeleccionada"></span>
                         </span>
-                    @endif
-                </label>
+                        <span class="material-symbols-outlined text-on-surface-variant" style="font-size: 20px;" x-text="mostrarCalendario ? 'expand_less' : 'expand_more'"></span>
+                    </button>
 
-                @if(!$servicioId || !$colaboradorId)
-                    <div class="bg-surface-container-low rounded-lg p-4 text-center text-on-surface-variant font-body-sm text-body-sm">
-                        <span class="material-symbols-outlined inline-block mr-2" style="font-size: 18px;">info</span>
-                        Selecciona un servicio y un colaborador para ver los días disponibles
-                    </div>
-                @elseif(count($diasDisponibles) === 0)
-                    <div class="bg-surface-container-low rounded-lg p-4 text-center text-on-surface-variant font-body-sm text-body-sm">
-                        <span class="material-symbols-outlined inline-block mr-2" style="font-size: 18px;">event_busy</span>
-                        No hay días disponibles en los próximos 60 días.
-                    </div>
-                @else
-                    {{-- CALENDARIO HÍBRIDO: Blade para los días, Alpine para la navegación --}}
-                    <div x-data="{
-                        mes: new Date().getMonth(),
-                        año: new Date().getFullYear(),
-                        fechaSeleccionada: '{{ $this->fecha }}',
-                        diasDisponibles: {{ json_encode($diasDisponibles) }},
-                        hoy: new Date().getDate(),
-                        mesActual: new Date().getMonth(),
-                        añoActual: new Date().getFullYear(),
+                    <div x-show="mostrarCalendario"
+                         x-cloak
+                         x-transition:enter="transition ease-out duration-200"
+                         x-transition:enter-start="opacity-0 translate-y-2"
+                         x-transition:enter-end="opacity-100 translate-y-0"
+                         class="absolute z-50 mt-sm bg-surface-container-lowest border border-outline-variant rounded-xl shadow-xl p-md w-full min-w-[280px] max-w-sm"
+                         @click.away="mostrarCalendario = false">
 
-                        cambiarMes(dir) {
-                            const fecha = new Date(this.año, this.mes + dir, 1);
-                            this.mes = fecha.getMonth();
-                            this.año = fecha.getFullYear();
-                            @this.actualizarMes(this.mes, this.año);
-                        },
-
-                        get titulo() {
-                            const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-                            return meses[this.mes] + ' ' + this.año;
-                        }
-                    }" x-init="() => { mes = {{ $mesCalendario ?? date('n') - 1 }}; año = {{ $anoCalendario ?? date('Y') }}; }" 
-                    class="bg-white border border-outline-variant rounded-xl p-4">
-                        
-                        {{-- Navegación --}}
-                        <div class="flex items-center justify-between mb-3">
-                            <button type="button" 
-                                    @click="cambiarMes(-1)" 
-                                    class="p-2 hover:bg-gray-100 rounded-lg transition">
-                                <span class="material-symbols-outlined text-gray-600" style="font-size: 20px;">chevron_left</span>
+                        <div class="flex items-center justify-between mb-sm">
+                            <button type="button" @click="cambiarMes(-1)" class="p-sm rounded-lg hover:bg-surface-container transition-colors">
+                                <span class="material-symbols-outlined text-on-surface-variant" style="font-size: 20px;">chevron_left</span>
                             </button>
-                            <span class="font-semibold text-gray-800" x-text="titulo"></span>
-                            <button type="button" 
-                                    @click="cambiarMes(1)" 
-                                    class="p-2 hover:bg-gray-100 rounded-lg transition">
-                                <span class="material-symbols-outlined text-gray-600" style="font-size: 20px;">chevron_right</span>
+                            <span class="font-label-md text-label-md text-on-surface" x-text="titulo"></span>
+                            <button type="button" @click="cambiarMes(1)" class="p-sm rounded-lg hover:bg-surface-container transition-colors">
+                                <span class="material-symbols-outlined text-on-surface-variant" style="font-size: 20px;">chevron_right</span>
                             </button>
                         </div>
 
-                        {{-- Días de la semana --}}
-                        <div class="grid grid-cols-7 gap-1 mb-3">
-                            <div class="text-center text-xs font-medium text-gray-400 uppercase">L</div>
-                            <div class="text-center text-xs font-medium text-gray-400 uppercase">M</div>
-                            <div class="text-center text-xs font-medium text-gray-400 uppercase">X</div>
-                            <div class="text-center text-xs font-medium text-gray-400 uppercase">J</div>
-                            <div class="text-center text-xs font-medium text-gray-400 uppercase">V</div>
-                            <div class="text-center text-xs font-medium text-gray-400 uppercase">S</div>
-                            <div class="text-center text-xs font-medium text-gray-400 uppercase">D</div>
+                        <div class="grid grid-cols-7 gap-xs mb-sm">
+                            <div class="text-center font-label-sm text-label-sm text-outline uppercase text-xs">L</div>
+                            <div class="text-center font-label-sm text-label-sm text-outline uppercase text-xs">M</div>
+                            <div class="text-center font-label-sm text-label-sm text-outline uppercase text-xs">X</div>
+                            <div class="text-center font-label-sm text-label-sm text-outline uppercase text-xs">J</div>
+                            <div class="text-center font-label-sm text-label-sm text-outline uppercase text-xs">V</div>
+                            <div class="text-center font-label-sm text-label-sm text-outline uppercase text-xs">S</div>
+                            <div class="text-center font-label-sm text-label-sm text-outline uppercase text-xs">D</div>
                         </div>
 
-                        {{-- Días del mes --}}
-                        <div class="grid grid-cols-7 gap-1">
-                            @php
-                                $mesActual = $mesCalendario ?? date('n');
-                                $añoActual = $anoCalendario ?? date('Y');
-                                $primerDia = date('w', mktime(0,0,0, $mesActual, 1, $añoActual));
-                                $diasEnMes = date('t', mktime(0,0,0, $mesActual, 1, $añoActual));
-                                $offset = $primerDia == 0 ? 6 : $primerDia - 1;
-                                $fechaHoy = date('Y-m-d');
-                            @endphp
-                            
-                            @for($i = 0; $i < 42; $i++)
-                                @php
-                                    $diaNumero = $i - $offset + 1;
-                                    $esValido = $diaNumero >= 1 && $diaNumero <= $diasEnMes;
-                                    $fechaStr = date('Y-m-d', strtotime($añoActual . '-' . $mesActual . '-' . $diaNumero));
-                                    $diaDisponible = collect($diasDisponibles)->firstWhere('fecha', $fechaStr);
-                                    $esHoy = $fechaStr == $fechaHoy;
-                                    $esPasado = strtotime($fechaStr) < strtotime($fechaHoy);
-                                    $esSeleccionado = $fechaStr == $this->fecha;
-                                    $tieneEspacios = $diaDisponible && $diaDisponible['espacios'] > 0;
-                                @endphp
-                                
-                                <div class="aspect-square flex items-center justify-center w-full">
-                                    @if($esValido)
-                                        <button type="button"
-                                                @if($tieneEspacios && !$esPasado)
-                                                    wire:click="seleccionarFecha('{{ $fechaStr }}')"
-                                                @else
-                                                    disabled
-                                                @endif
-                                                class="w-full h-full rounded-lg text-sm transition flex items-center justify-center relative
-                                                    @if($esSeleccionado && $tieneEspacios) 
-                                                        bg-secondary text-on-secondary shadow-md scale-95
-                                                    @elseif($esHoy && $tieneEspacios && !$esPasado) 
-                                                        border-2 border-secondary text-secondary hover:bg-secondary-container
-                                                    @elseif($tieneEspacios && !$esPasado) 
-                                                        border border-outline-variant hover:bg-secondary-container hover:border-secondary cursor-pointer text-on-surface
-                                                    @else
-                                                        text-gray-300 cursor-not-allowed opacity-40 line-through
-                                                    @endif
-                                                ">
-                                            {{ $diaNumero }}
-                                            
-                                            @if($tieneEspacios && !$esPasado && !$esSeleccionado)
-                                                <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full"></span>
-                                            @endif
-                                            @if($esSeleccionado && $tieneEspacios)
-                                                <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-white rounded-full border border-secondary"></span>
-                                            @endif
-                                        </button>
-                                    @else
+                        <div class="grid grid-cols-7 gap-xs">
+                            <template x-for="(dia, idx) in dias" :key="idx">
+                                <div class="aspect-square flex items-center justify-center">
+                                    <template x-if="dia === null">
                                         <div class="w-full h-full"></div>
-                                    @endif
+                                    </template>
+                                    <template x-if="dia !== null">
+                                        <button type="button"
+                                                @click="seleccionarFecha(dia)"
+                                                :disabled="dia.esPasado || !dia.disponible"
+                                                class="w-full h-full rounded-lg text-sm transition-all duration-200 flex items-center justify-center"
+                                                :class="{
+                                                    'bg-secondary text-on-secondary shadow-md scale-95': dia.esSeleccionado,
+                                                    'border-2 border-secondary text-secondary hover:bg-secondary-container': dia.esHoy && !dia.esSeleccionado && dia.disponible,
+                                                    'border border-outline-variant hover:bg-secondary-container hover:border-secondary cursor-pointer text-on-surface': dia.disponible && !dia.esSeleccionado && !dia.esHoy,
+                                                    'text-gray-300 cursor-not-allowed opacity-40 line-through': !dia.disponible || dia.esPasado
+                                                }"
+                                                x-text="dia.dia">
+                                            
+                                            <span x-show="dia.disponible && !dia.esPasado && !dia.esSeleccionado" 
+                                                  class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full"></span>
+                                            <span x-show="dia.esSeleccionado" 
+                                                  class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-white rounded-full border border-secondary"></span>
+                                        </button>
+                                    </template>
                                 </div>
-                            @endfor
+                            </template>
                         </div>
 
-                        {{-- Leyenda --}}
-                        <div class="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100">
-                            <span class="flex items-center gap-1 text-xs text-gray-600">
+                        {{-- Horas disponibles --}}
+                        @if($fecha && $colaboradorId)
+                            <div class="mt-md pt-md border-t border-outline-variant/40">
+                                <p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider text-xs mb-sm">
+                                    Horas disponibles
+                                </p>
+                                @if(count($horasDisponibles) > 0)
+                                    <div class="grid grid-cols-3 gap-xs">
+                                        @foreach($horasDisponibles as $hora)
+                                            <button type="button"
+                                                    wire:click="seleccionarHora('{{ $hora['hora'] }}')"
+                                                    @disabled(!$hora['disponible'])
+                                                    class="py-sm px-xs rounded-lg font-body-sm text-body-sm transition-all duration-200 text-center
+                                                        @if($hora['hora'] === $horaInicio && $hora['disponible'])
+                                                            bg-secondary text-on-secondary shadow-md scale-95
+                                                        @elseif($hora['disponible'])
+                                                            border border-outline-variant hover:bg-secondary-container hover:border-secondary text-on-surface
+                                                        @else
+                                                            bg-surface-container-low text-outline cursor-not-allowed opacity-50 line-through
+                                                        @endif">
+                                                {{ $hora['hora'] }}
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <p class="font-body-sm text-body-sm text-outline text-center py-sm">
+                                        No hay horas disponibles para esta fecha
+                                    </p>
+                                @endif
+                            </div>
+                        @endif
+
+                        <div class="flex items-center gap-md mt-sm flex-wrap">
+                            <span class="flex items-center gap-xs font-body-sm text-body-sm text-on-surface-variant text-xs">
                                 <span class="w-3 h-3 rounded-full bg-secondary inline-block"></span>
                                 Seleccionado
                             </span>
-                            <span class="flex items-center gap-1 text-xs text-gray-600">
-                                <span class="w-3 h-3 rounded-full bg-green-500 inline-block"></span>
+                            <span class="flex items-center gap-xs font-body-sm text-body-sm text-on-surface-variant text-xs">
+                                <span class="w-3 h-3 rounded-full border border-outline-variant inline-block"></span>
                                 Disponible
                             </span>
-                            <span class="flex items-center gap-1 text-xs text-gray-400">
-                                <span class="w-3 h-3 rounded-full border border-gray-300 inline-block"></span>
-                                Sin espacios
-                            </span>
-                            <span class="flex items-center gap-1 text-xs text-gray-400">
-                                <span class="w-3 h-3 rounded-full bg-gray-200 inline-block"></span>
-                                No disponible
+                            <span class="flex items-center gap-xs font-body-sm text-body-sm text-outline text-xs">
+                                <span class="w-3 h-3 rounded-full bg-surface-container-low border border-outline-variant inline-block"></span>
+                                Ocupado
                             </span>
                         </div>
                     </div>
-                @endif
-
-                @error('fecha') 
-                    <span class="font-body-sm text-body-sm text-error block mt-xs">{{ $message }}</span> 
-                @enderror
-            </div>
-
-            {{-- HORAS DISPONIBLES --}}
-            @if($fecha && count($horasDisponibles) > 0)
-            <div class="space-y-xs">
-                <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
-                    Horas disponibles para {{ Carbon\Carbon::parse($fecha)->format('d/m/Y') }}
-                </label>
-                <div class="grid grid-cols-3 gap-1">
-                    @foreach($horasDisponibles as $hora)
-                        <button type="button"
-                                @if($hora['disponible'])
-                                    wire:click="seleccionarHora('{{ $hora['inicio'] }}')"
-                                @else
-                                    disabled
-                                @endif
-                                class="py-2 rounded-lg text-sm transition text-center
-                                    @if($hora['inicio'] === $horaInicio && $hora['disponible'])
-                                        bg-secondary text-on-secondary shadow-md scale-95
-                                    @elseif($hora['disponible'])
-                                        border border-outline-variant hover:bg-secondary-container hover:border-secondary text-on-surface cursor-pointer
-                                    @else
-                                        bg-surface-container-low text-outline cursor-not-allowed opacity-50 line-through
-                                    @endif
-                                ">
-                            {{ $hora['inicio'] }}
-                            @if(!$hora['disponible'])
-                                <span class="block text-[10px]">ocupado</span>
-                            @endif
-                        </button>
-                    @endforeach
                 </div>
+
+                @error('fecha') <span class="font-body-sm text-body-sm text-error block mt-xs">{{ $message }}</span> @enderror
                 @error('horaInicio') <span class="font-body-sm text-body-sm text-error block mt-xs">{{ $message }}</span> @enderror
             </div>
-            @endif
 
-            {{-- ACOMPAÑANTE --}}
             <div class="space-y-xs">
                 <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Nombre del acompañante</label>
                 <div class="focus-ring flex items-center bg-surface border border-outline-variant rounded-lg transition-all duration-200">
@@ -316,7 +251,6 @@
                 @error('nombreAcompanante') <span class="font-body-sm text-body-sm text-error block">{{ $message }}</span> @enderror
             </div>
 
-            {{-- OBSERVACIONES --}}
             <div class="space-y-xs">
                 <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Observaciones</label>
                 <textarea wire:model="observaciones"
@@ -326,7 +260,6 @@
                 @error('observaciones') <span class="font-body-sm text-body-sm text-error block">{{ $message }}</span> @enderror
             </div>
 
-            {{-- BOTÓN AGENDAR --}}
             <button type="submit"
                     class="w-full h-14 bg-secondary text-on-secondary font-label-md text-label-md rounded-lg shadow-md hover:bg-[#005a3d] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-sm disabled:opacity-60"
                     wire:loading.attr="disabled"
@@ -347,7 +280,7 @@
     </div>
     @endif
 
-    {{-- HISTORIAL --}}
+    {{-- HISTORIAL DE CITAS --}}
     @if($mostrarHistorial ?? false)
     <div class="glass-card rounded-xl p-lg">
         <div class="mb-md">
@@ -400,14 +333,24 @@
                                     </div>
                                 @endif
                             </div>
+
                             @if(in_array($cita->estado ?? '', ['agendada', 'confirmada']))
-                                <button type="button"
-                                        wire:click="cancelarCita({{ $cita->id }})"
-                                        onclick="confirm('¿Cancelar esta cita?') || event.stopImmediatePropagation()"
-                                        class="font-label-sm text-label-sm text-error hover:bg-error-container px-sm py-xs rounded-lg transition-colors shrink-0 flex items-center gap-xs">
-                                    <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
-                                    Cancelar
-                                </button>
+                                @php
+                                    $puedeCancelar = $cita->puedeCancelar('cliente');
+                                @endphp
+                                @if($puedeCancelar)
+                                    <button type="button"
+                                            wire:click="cancelarCita({{ $cita->id }})"
+                                            onclick="confirm('¿Cancelar esta cita?') || event.stopImmediatePropagation()"
+                                            class="font-label-sm text-label-sm text-error hover:bg-error-container px-sm py-xs rounded-lg transition-colors shrink-0 flex items-center gap-xs">
+                                        <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
+                                        Cancelar
+                                    </button>
+                                @else
+                                    <span class="text-xs text-on-surface-variant opacity-50" title="Solo 24 horas antes">
+                                        🔒 No disponible
+                                    </span>
+                                @endif
                             @endif
                         </div>
                     </div>
@@ -430,6 +373,120 @@
     </div>
     @endif
 </div>
+
+@push('scripts')
+<script>
+    document.addEventListener('alpine:init', function() {
+        Alpine.data('calendarioCita', function(props) {
+            return {
+                mostrarCalendario: false,
+                mes: new Date().getMonth(),
+                año: new Date().getFullYear(),
+                diaSeleccionado: null,
+                fechaSeleccionada: props.fechaSeleccionada || '',
+                fechaMostrar: 'Seleccionar fecha',
+                dias: [],
+                diasDisponibles: props.diasDisponibles || [],
+                colaboradorId: props.colaboradorId || '',
+                horaSeleccionada: null,
+
+                init() {
+                    this.generarDias();
+                    if (this.fechaSeleccionada) {
+                        const f = new Date(this.fechaSeleccionada + 'T00:00:00');
+                        if (!isNaN(f.getTime())) {
+                            this.diaSeleccionado = f.getDate();
+                            this.mes = f.getMonth();
+                            this.año = f.getFullYear();
+                            this.fechaMostrar = f.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                            this.generarDias();
+                            // Enviar a Livewire
+                            @this.set('fecha', this.fechaSeleccionada);
+                            @this.cargarHorasDisponibles();
+                        }
+                    }
+                },
+
+                toggleCalendario() {
+                    this.mostrarCalendario = !this.mostrarCalendario;
+                    if (this.mostrarCalendario) {
+                        this.generarDias();
+                    }
+                },
+
+                cambiarMes(dir) {
+                    const fecha = new Date(this.año, this.mes + dir, 1);
+                    this.mes = fecha.getMonth();
+                    this.año = fecha.getFullYear();
+                    this.generarDias();
+                },
+
+                generarDias() {
+                    const fecha = new Date(this.año, this.mes, 1);
+                    const ultimoDia = new Date(this.año, this.mes + 1, 0).getDate();
+                    const primerDia = fecha.getDay();
+                    const dias = [];
+                    const offset = primerDia === 0 ? 6 : primerDia - 1;
+                    
+                    const hoy = new Date();
+                    hoy.setHours(0, 0, 0, 0);
+                    
+                    for (let i = 0; i < offset; i++) {
+                        dias.push(null);
+                    }
+                    
+                    for (let i = 1; i <= ultimoDia; i++) {
+                        const fechaDia = new Date(this.año, this.mes, i);
+                        const fechaStr = fechaDia.getFullYear() + '-' + 
+                                         String(fechaDia.getMonth() + 1).padStart(2, '0') + '-' + 
+                                         String(fechaDia.getDate()).padStart(2, '0');
+                        const diaDisponible = this.diasDisponibles.find(d => d.fecha === fechaStr);
+                        const esHoy = fechaDia.getTime() === hoy.getTime();
+                        const esPasado = fechaDia < hoy;
+                        const esSeleccionado = fechaStr === this.fechaSeleccionada;
+
+                        dias.push({
+                            dia: i,
+                            fecha: fechaStr,
+                            disponible: !!diaDisponible && diaDisponible.espacios > 0,
+                            esHoy: esHoy,
+                            esPasado: esPasado,
+                            esSeleccionado: esSeleccionado,
+                            espacios: diaDisponible ? diaDisponible.espacios : 0,
+                        });
+                    }
+                    
+                    this.dias = dias;
+                },
+
+                seleccionarFecha(dia) {
+                    if (dia.esPasado) return;
+                    if (!dia.disponible) return;
+                    
+                    this.fechaSeleccionada = dia.fecha;
+                    this.diaSeleccionado = dia.dia;
+                    this.fechaMostrar = new Date(this.año, this.mes, dia.dia).toLocaleDateString('es-ES', { 
+                        day: '2-digit', 
+                        month: '2-digit', 
+                        year: 'numeric' 
+                    });
+                    
+                    @this.set('fecha', this.fechaSeleccionada);
+                    @this.cargarHorasDisponibles();
+                    
+                    this.mostrarCalendario = false;
+                    this.generarDias();
+                },
+
+                get titulo() {
+                    const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                    return meses[this.mes] + ' ' + this.año;
+                }
+            };
+        });
+    });
+</script>
+@endpush
 
 <style>
     [x-cloak] { display: none !important; }
