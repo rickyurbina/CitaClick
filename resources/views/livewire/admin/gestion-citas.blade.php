@@ -77,116 +77,11 @@
         </div>
         <div class="p-lg">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-md">
-                {{-- FECHA CON CALENDARIO INTERACTIVO --}}
                 <div class="flex flex-col gap-xs">
                     <label class="font-label-sm text-label-sm text-on-surface-variant">Fecha</label>
-                    <div class="relative" x-data="{ 
-                        abierto: false, 
-                        fecha: '{{ $filtroFecha }}',
-                        toggle() { this.abierto = !this.abierto; },
-                        seleccionar(dia) {
-                            const fecha = new Date(this.año, this.mes, dia);
-                            const fechaStr = fecha.getFullYear() + '-' + 
-                                             String(fecha.getMonth() + 1).padStart(2, '0') + '-' + 
-                                             String(fecha.getDate()).padStart(2, '0');
-                            this.fecha = fechaStr;
-                            @this.set('filtroFecha', fechaStr);
-                            this.abierto = false;
-                        },
-                        limpiar() {
-                            this.fecha = '';
-                            @this.set('filtroFecha', '');
-                        },
-                        mes: new Date().getMonth(),
-                        año: new Date().getFullYear(),
-                        dias: [],
-                        hoy: new Date().getDate(),
-                        mesActual: new Date().getMonth(),
-                        añoActual: new Date().getFullYear(),
-                        generarDias() {
-                            const fecha = new Date(this.año, this.mes, 1);
-                            const ultimoDia = new Date(this.año, this.mes + 1, 0).getDate();
-                            const primerDia = fecha.getDay();
-                            const dias = [];
-                            const offset = primerDia === 0 ? 6 : primerDia - 1;
-                            for (let i = 0; i < offset; i++) dias.push(null);
-                            for (let i = 1; i <= ultimoDia; i++) dias.push(i);
-                            this.dias = dias;
-                        },
-                        cambiarMes(dir) {
-                            const fecha = new Date(this.año, this.mes + dir, 1);
-                            this.mes = fecha.getMonth();
-                            this.año = fecha.getFullYear();
-                            this.generarDias();
-                        },
-                        get titulo() {
-                            const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-                            return meses[this.mes] + ' ' + this.año;
-                        }
-                    }" x-init="generarDias()">
-                        <button type="button" @click="toggle()"
-                                class="w-full flex items-center justify-between border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface bg-surface-container-lowest focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
-                            <span class="flex items-center gap-2">
-                                <span class="material-symbols-outlined text-[18px] text-on-surface-variant">event</span>
-                                <span x-text="fecha ? fecha.split('-').reverse().join('/') : 'Todas las fechas'"></span>
-                            </span>
-                            <div class="flex items-center gap-1">
-                                <span x-show="fecha" @click.stop="limpiar()" class="text-on-surface-variant hover:text-error cursor-pointer">
-                                    <span class="material-symbols-outlined text-[16px]">close</span>
-                                </span>
-                                <span class="material-symbols-outlined text-[18px] text-on-surface-variant" x-text="abierto ? 'expand_less' : 'expand_more'"></span>
-                            </div>
-                        </button>
-                        
-                        <div x-show="abierto" x-cloak
-                             class="absolute z-50 mt-1 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-lg p-4 w-72"
-                             @click.away="abierto = false">
-                            <div class="flex items-center justify-between mb-3">
-                                <button type="button" @click="cambiarMes(-1)" class="p-1 hover:bg-surface-container-high rounded">
-                                    <span class="material-symbols-outlined text-[18px]">chevron_left</span>
-                                </button>
-                                <span class="font-label-md text-label-md text-on-surface" x-text="titulo"></span>
-                                <button type="button" @click="cambiarMes(1)" class="p-1 hover:bg-surface-container-high rounded">
-                                    <span class="material-symbols-outlined text-[18px]">chevron_right</span>
-                                </button>
-                            </div>
-                            <div class="grid grid-cols-7 gap-1 mb-2">
-                                <div class="text-center text-xs font-medium text-on-surface-variant">L</div>
-                                <div class="text-center text-xs font-medium text-on-surface-variant">M</div>
-                                <div class="text-center text-xs font-medium text-on-surface-variant">X</div>
-                                <div class="text-center text-xs font-medium text-on-surface-variant">J</div>
-                                <div class="text-center text-xs font-medium text-on-surface-variant">V</div>
-                                <div class="text-center text-xs font-medium text-on-surface-variant">S</div>
-                                <div class="text-center text-xs font-medium text-on-surface-variant">D</div>
-                            </div>
-                            <div class="grid grid-cols-7 gap-1">
-                                <template x-for="(dia, idx) in dias" :key="idx">
-                                    <div class="aspect-square flex items-center justify-center">
-                                        <template x-if="dia !== null">
-                                            <button type="button" @click="seleccionar(dia)"
-                                                    class="w-full h-full rounded-lg text-sm hover:bg-secondary-container hover:text-on-secondary-container transition"
-                                                    :class="{
-                                                        'bg-secondary text-on-secondary': dia === hoy && mes === mesActual && año === añoActual,
-                                                        'text-on-surface': !(dia === hoy && mes === mesActual && año === añoActual)
-                                                    }"
-                                                    x-text="dia">
-                                            </button>
-                                        </template>
-                                        <template x-if="dia === null">
-                                            <div class="w-full h-full"></div>
-                                        </template>
-                                    </div>
-                                </template>
-                            </div>
-                            <div class="mt-2 pt-2 border-t border-outline-variant text-center">
-                                <button type="button" @click="limpiar()" class="text-xs text-on-surface-variant hover:text-secondary">
-                                    Limpiar filtro
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    <input type="date" wire:model.live="filtroFecha"
+                           class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface bg-surface-container-lowest focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none">
                 </div>
-
                 <div class="flex flex-col gap-xs">
                     <label class="font-label-sm text-label-sm text-on-surface-variant">Estado</label>
                     <select wire:model.live="filtroEstado"
@@ -307,9 +202,7 @@
                         </td>
                         <td class="px-lg py-md text-right">
                             <div class="flex justify-end gap-sm items-center flex-wrap">
-                                {{-- ==================== ADMIN / RECEPCIONISTA ==================== --}}
                                 @if($puedeGestionar ?? false)
-                                    {{-- Editar --}}
                                     <button wire:click="editarCita({{ $cita->id }})"
                                             type="button"
                                             class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-all"
@@ -317,7 +210,6 @@
                                         <span class="material-symbols-outlined text-[20px]">edit</span>
                                     </button>
 
-                                    {{-- Eliminar --}}
                                     <button wire:click="eliminarCita({{ $cita->id }})"
                                             onclick="confirm('¿Eliminar esta cita?') || event.stopImmediatePropagation()"
                                             type="button"
@@ -326,7 +218,6 @@
                                         <span class="material-symbols-outlined text-[20px]">delete</span>
                                     </button>
 
-                                    {{-- Check In --}}
                                     @if(in_array($cita->estado, ['agendada', 'confirmada']))
                                         <button wire:click="checkIn({{ $cita->id }})"
                                                 onclick="confirm('¿Marcar Check-in de este cliente?') || event.stopImmediatePropagation()"
@@ -337,7 +228,6 @@
                                         </button>
                                     @endif
 
-                                    {{-- Check Out --}}
                                     @if($cita->estado === 'en_curso')
                                         <button wire:click="checkOut({{ $cita->id }})"
                                                 onclick="confirm('¿Marcar Check-out?') || event.stopImmediatePropagation()"
@@ -348,7 +238,6 @@
                                         </button>
                                     @endif
 
-                                    {{-- Cobrar --}}
                                     @if(!$cita->pagado && in_array($cita->estado, ['agendada', 'confirmada', 'en_curso', 'atendida']))
                                         <button wire:click="abrirModalPago({{ $cita->id }})"
                                                 type="button"
@@ -358,7 +247,6 @@
                                         </button>
                                     @endif
 
-                                    {{-- Dropdown Estados --}}
                                     <div class="relative group">
                                         <button type="button"
                                                 class="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all font-label-sm text-label-sm flex items-center gap-1">
@@ -385,9 +273,7 @@
                                     </div>
                                 @endif
 
-                                {{-- ==================== COLABORADOR ==================== --}}
                                 @if($esColaborador ?? false)
-                                    {{-- Check In (solo si es su cita) --}}
                                     @if(in_array($cita->estado, ['agendada', 'confirmada']))
                                         <button wire:click="checkIn({{ $cita->id }})"
                                                 onclick="confirm('¿Marcar Check-in?') || event.stopImmediatePropagation()"
@@ -397,7 +283,6 @@
                                         </button>
                                     @endif
 
-                                    {{-- Check Out (solo si está en curso) --}}
                                     @if($cita->estado === 'en_curso')
                                         <button wire:click="checkOut({{ $cita->id }})"
                                                 onclick="confirm('¿Marcar Check-out?') || event.stopImmediatePropagation()"
@@ -407,7 +292,6 @@
                                         </button>
                                     @endif
 
-                                    {{-- Cambiar estado (solo en_curso o atendida) --}}
                                     <button wire:click="cambiarEstado({{ $cita->id }}, 'en_curso')"
                                             type="button"
                                             class="px-sm py-1 font-label-sm text-label-sm text-primary hover:bg-primary-container rounded-lg transition-colors">
@@ -634,7 +518,6 @@
                             </div>
                         </div>
 
-                        <!-- Servicios del colaborador -->
                         <div class="flex flex-col gap-xs">
                             <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
                                 Servicios que puede realizar *
@@ -796,15 +679,15 @@
                 <div class="bg-surface-container-low rounded-lg p-md mb-lg">
                     <div class="flex justify-between py-1 border-b border-outline-variant/40">
                         <span class="text-on-surface-variant font-body-sm">Cliente</span>
-                        <span class="font-body-md text-body-md text-on-surface font-semibold">{{ $citaPago?->cliente->nombre ?? '' }}</span>
+                        <span class="font-body-md text-body-md text-on-surface font-semibold">{{ $citaPago?->cliente->nombre ?? 'Cargando...' }}</span>
                     </div>
                     <div class="flex justify-between py-1 border-b border-outline-variant/40">
                         <span class="text-on-surface-variant font-body-sm">Servicio</span>
-                        <span class="font-body-md text-body-md text-on-surface">{{ $citaPago?->servicio->nombre ?? '' }}</span>
+                        <span class="font-body-md text-body-md text-on-surface">{{ $citaPago?->servicio->nombre ?? 'Cargando...' }}</span>
                     </div>
                     <div class="flex justify-between py-1 border-b border-outline-variant/40">
                         <span class="text-on-surface-variant font-body-sm">Estado</span>
-                        <span class="font-body-md text-body-md text-on-surface">{{ ucfirst($citaPago?->estado ?? '') }}</span>
+                        <span class="font-body-md text-body-md text-on-surface">{{ ucfirst($citaPago?->estado ?? 'Cargando...') }}</span>
                     </div>
                     <div class="flex justify-between py-1">
                         <span class="text-on-surface-variant font-body-sm">Total a cobrar</span>
@@ -812,13 +695,23 @@
                     </div>
                 </div>
 
+                @if($errors->any())
+                    <div class="bg-error-container text-error p-3 rounded-lg mb-4">
+                        <ul class="font-body-sm text-body-sm">
+                            @foreach($errors->all() as $error)
+                                <li>❌ {{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
                 <form wire:submit.prevent="procesarPago">
                     <div class="space-y-md">
                         <div class="flex flex-col gap-xs">
                             <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Monto *</label>
                             <input type="number" step="0.01" min="0" wire:model="montoPago"
-                                   class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none"
-                                   placeholder="0.00">
+                                class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none"
+                                placeholder="0.00">
                             @error('montoPago') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                         </div>
 
@@ -853,8 +746,8 @@
                         <div class="flex flex-col gap-xs">
                             <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Referencia (opcional)</label>
                             <input type="text" wire:model="referenciaPago"
-                                   class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none"
-                                   placeholder="N° de transacción, voucher, etc.">
+                                class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none"
+                                placeholder="N° de transacción, voucher, etc.">
                             @error('referenciaPago') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                         </div>
                     </div>

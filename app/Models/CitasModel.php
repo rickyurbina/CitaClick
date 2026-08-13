@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Support\Facades\Auth;  // 👈 Importar Auth
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class CitasModel extends Model
@@ -168,7 +168,7 @@ class CitasModel extends Model
         return $query->where('estado', 'en_curso');
     }
 
-    // ==================== MÉTODOS CHECK IN/OUT ====================
+    // ==================== MÉTODOS ====================
 
     public function marcarCheckin(): void
     {
@@ -183,8 +183,6 @@ class CitasModel extends Model
         $this->checkout_time = now();
         $this->save();
     }
-
-    // ==================== MÉTODOS ====================
 
     public function estaPagada(): bool
     {
@@ -230,7 +228,6 @@ class CitasModel extends Model
         
         $this->fecha_pago = now();
         
-        // 👈 CORREGIDO: Usar Auth:: en lugar de auth()
         if (Auth::check()) {
             $this->cobrado_por = Auth::id();
         }
@@ -243,7 +240,6 @@ class CitasModel extends Model
         $this->estado = 'cancelada';
         $this->motivo_cancelacion = $motivo;
         
-        // 👈 CORREGIDO: Usar Auth:: en lugar de auth()
         if (Auth::check() && Auth::user()) {
             $this->cancelada_por = Auth::user()->rol ?? 'cliente';
         } else {

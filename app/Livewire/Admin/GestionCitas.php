@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -782,67 +783,95 @@ class GestionCitas extends Component
     }
 
     public function procesarPago()
-    {
+{
+    // 👈 VERIFICAR QUE LLEGA
+    Log::info('🚀 INICIO procesarPago');
+
+    // 👈 MOSTRAR LO QUE LLEGA
+    Log::info('📝 montoPago: ' . $this->montoPago);
+    Log::info('📝 metodoPagoSeleccionado: ' . $this->metodoPagoSeleccionado);
+    Log::info('📝 citaPagoId: ' . $this->citaPagoId);
+
+    // 👈 VALIDAR
+    try {
         $this->validate([
             'montoPago' => 'required|numeric|min:0.01',
             'metodoPagoSeleccionado' => 'required|in:efectivo,transferencia,tarjeta',
-            'referenciaPago' => 'nullable|string|max:100',
         ]);
-
-        try {
-            DB::beginTransaction();
-
-            $cita = CitasModel::where('empresa_id', $this->empresa->id)->find($this->citaPagoId);
-
-            if (!$cita) {
-                $this->dispatch('error', 'Cita no encontrada.');
-                DB::rollBack();
-                return;
-            }
-
-            if ($cita->pagado) {
-                $this->dispatch('error', 'Esta cita ya está pagada.');
-                DB::rollBack();
-                $this->cerrarModalPago();
-                return;
-            }
-
-            if (in_array($cita->estado, ['cancelada', 'no_asistio'])) {
-                $this->dispatch('error', 'Esta cita no se puede cobrar porque está ' . $cita->estado);
-                DB::rollBack();
-                return;
-            }
-
-            $cita->pagado = 1;
-            $cita->monto_pagado = $this->montoPago;
-            $cita->metodo_pago = $this->metodoPagoSeleccionado;
-            $cita->fecha_pago = now();
-            $cita->cobrado_por = Auth::id();
-
-            if ($this->referenciaPago) {
-                $cita->observaciones = ($cita->observaciones ? $cita->observaciones . "\n" : '') 
-                    . 'Pago ' . $this->metodoPagoSeleccionado . ' - Ref: ' . $this->referenciaPago;
-            }
-
-            $cita->save();
-
-            if ($cita->colaborador_id) {
-                $this->generarComision($cita);
-            }
-
-            DB::commit();
-
-            $this->cerrarModalPago();
-            $this->resetPage();
-
-            $this->dispatch('success', 'Cita cobrada correctamente. Método: ' . ucfirst($this->metodoPagoSeleccionado) . ' - $' . number_format($this->montoPago, 2));
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            $this->dispatch('error', 'Error al procesar el pago: ' . $e->getMessage());
-        }
+        Log::info('✅ Validación pasada');
+    } catch (\Exception $e) {
+        Log::error('❌ Error en validación: ' . $e->getMessage());
+        $this->dispatch('error', 'Error en validación: ' . $e->getMessage());
+        return;
     }
 
+    // 👈 BUSCAR LA CITA
+    try {
+        $cita = CitasModel::where('empresa_id', $this->empresa->id)
+            ->where('id', $this->citaPagoId)
+            ->first();
+
+        if (!$cita) {
+            Log::error('❌ Cita no encontrada con ID: ' . $this->citaPagoId);
+            $this->dispatch('error', 'Cita no encontrada.');
+            return;
+        }
+
+        Log::info('✅ Cita encontrada: ID ' . $cita->id . ', Estado: ' . $cita->estado . ', Pagado: ' . ($cita->pagado ? 'SI' : 'NO'));
+
+    } catch (\Exception $e) {
+        Log::error('❌ Error al buscar cita: ' . $e->getMessage());
+        $this->dispatch('error', 'Error al buscar cita: ' . $e->getMessage());
+        return;
+    }
+
+    // 👈 ACTUALIZAR LA CITA
+    try {
+        $cita->pagado = 1;
+        $cita->monto_pagado = $this->montoPago;
+        $cita->metodo_pago = $this->metodoPagoSeleccionado;
+        $cita->fecha_pago = now();
+        $cita->cobrado_por = Auth::id();
+
+        Log::info('📝 Datos a guardar:');
+        Log::info('  pagado: ' . $cita->pagado);
+        Log::info('  monto_pagado: ' . $cita->monto_pagado);
+        Log::info('  metodo_pago: ' . $cita->metodo_pago);
+        Log::info('  cobrado_por: ' . $cita->cobrado_por);
+
+        $resultado = $cita->save();
+        Log::info('✅ Resultado del save: ' . ($resultado ? 'TRUE' : 'FALSE'));
+
+    } catch (\Exception $e) {
+        Log::error('❌ Error al guardar: ' . $e->getMessage());
+        $this->dispatch('error', 'Error al guardar: ' . $e->getMessage());
+        return;
+    }
+
+    // 👈 VERIFICAR QUE SE GUARDÓ
+    try {
+        $citaVerificada = CitasModel::where('empresa_id', $this->empresa->id)
+            ->where('id', $this->citaPagoId)
+            ->first();
+
+        Log::info('📝 VERIFICACIÓN EN BD:');
+        Log::info('  pagado: ' . $citaVerificada->pagado);
+        Log::info('  monto_pagado: ' . $citaVerificada->monto_pagado);
+        Log::info('  metodo_pago: ' . $citaVerificada->metodo_pago);
+        Log::info('  fecha_pago: ' . $citaVerificada->fecha_pago);
+
+    } catch (\Exception $e) {
+        Log::error('❌ Error al verificar: ' . $e->getMessage());
+    }
+
+    // 👈 CERRAR MODAL Y RECARGAR
+    $this->cerrarModalPago();
+    $this->resetPage();
+
+    $this->dispatch('success', '✅ Pago completado: $' . number_format((float) $this->montoPago, 2));
+
+    Log::info('🏁 FIN procesarPago - EXITO');
+}
     // ==================== CHECK IN / CHECK OUT ====================
 
     public function checkIn($id)
