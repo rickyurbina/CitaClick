@@ -4,7 +4,6 @@ namespace App\Livewire\Admin;
 
 use App\Models\EmpresasModel;
 use App\Models\ServiciosModel;
-use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -105,7 +104,6 @@ class GestionServicios extends Component
             $this->dispatch('mostrar-mensaje', mensaje: 'No tienes permiso.', tipo: 'error');
             return;
         }
-
         $this->resetFormulario();
         $this->servicioIdEditar = null;
         $this->mostrarModal = true;
@@ -117,28 +115,23 @@ class GestionServicios extends Component
             $this->dispatch('mostrar-mensaje', mensaje: 'No tienes permiso.', tipo: 'error');
             return;
         }
-
         $servicio = ServiciosModel::where('empresa_id', $this->empresa->id)->findOrFail($id);
-
         $this->servicioIdEditar = $servicio->id;
         $this->nombre = $servicio->nombre;
         $this->duracion = $servicio->duracion_minutos;
         $this->precio = $servicio->precio;
         $this->puntos = $servicio->puntos_genera;
         $this->activo = (bool) $servicio->activo;
-
         $this->mostrarModal = true;
     }
 
     public function guardar()
     {
         $this->validate();
-
         $this->cargando = true;
 
         try {
             DB::beginTransaction();
-
             $datos = [
                 'empresa_id' => $this->empresa->id,
                 'nombre' => $this->nombre,
@@ -157,21 +150,14 @@ class GestionServicios extends Component
                 ServiciosModel::create($datos);
                 $mensaje = 'Servicio creado correctamente.';
             }
-
             DB::commit();
-
             $this->dispatch('mostrar-mensaje', mensaje: $mensaje, tipo: 'success');
             $this->cerrarModal();
             $this->resetPage();
-
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('mostrar-mensaje', 
-                mensaje: 'Ocurrió un error: ' . $e->getMessage(),
-                tipo: 'error'
-            );
+            $this->dispatch('mostrar-mensaje', mensaje: 'Ocurrió un error: ' . $e->getMessage(), tipo: 'error');
         }
-
         $this->cargando = false;
     }
 
@@ -181,40 +167,24 @@ class GestionServicios extends Component
             $this->dispatch('mostrar-mensaje', mensaje: 'No tienes permiso.', tipo: 'error');
             return;
         }
-
         try {
             $tieneCitas = \App\Models\CitasModel::where('empresa_id', $this->empresa->id)
                 ->where('servicio_id', $id)
                 ->exists();
-
             if ($tieneCitas) {
-                $this->dispatch('mostrar-mensaje', 
-                    mensaje: 'No se puede eliminar. El servicio tiene citas asociadas.',
-                    tipo: 'error'
-                );
+                $this->dispatch('mostrar-mensaje', mensaje: 'No se puede eliminar. El servicio tiene citas asociadas.', tipo: 'error');
                 return;
             }
-
             DB::beginTransaction();
-
             ServiciosModel::where('id', $id)
                 ->where('empresa_id', $this->empresa->id)
                 ->delete();
-
             DB::commit();
-
-            $this->dispatch('mostrar-mensaje', 
-                mensaje: 'Servicio eliminado correctamente.',
-                tipo: 'success'
-            );
+            $this->dispatch('mostrar-mensaje', mensaje: 'Servicio eliminado correctamente.', tipo: 'success');
             $this->resetPage();
-
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('mostrar-mensaje', 
-                mensaje: 'Ocurrió un error al eliminar el servicio.',
-                tipo: 'error'
-            );
+            $this->dispatch('mostrar-mensaje', mensaje: 'Ocurrió un error al eliminar el servicio.', tipo: 'error');
         }
     }
 
@@ -224,22 +194,13 @@ class GestionServicios extends Component
             $this->dispatch('mostrar-mensaje', mensaje: 'No tienes permiso.', tipo: 'error');
             return;
         }
-
         try {
             $servicio = ServiciosModel::where('empresa_id', $this->empresa->id)->findOrFail($id);
             $servicio->activo = !$servicio->activo;
             $servicio->save();
-
-            $this->dispatch('mostrar-mensaje', 
-                mensaje: 'Estado actualizado correctamente.',
-                tipo: 'success'
-            );
-
+            $this->dispatch('mostrar-mensaje', mensaje: 'Estado actualizado correctamente.', tipo: 'success');
         } catch (\Exception $e) {
-            $this->dispatch('mostrar-mensaje', 
-                mensaje: 'Ocurrió un error al cambiar el estado.',
-                tipo: 'error'
-            );
+            $this->dispatch('mostrar-mensaje', mensaje: 'Ocurrió un error al cambiar el estado.', tipo: 'error');
         }
     }
 

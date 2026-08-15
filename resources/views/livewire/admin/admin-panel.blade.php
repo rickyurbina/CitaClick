@@ -13,8 +13,8 @@
             </div>
 
             <nav class="flex-grow space-y-1 overflow-y-auto">
-                {{-- 👈 DASHBOARD: SOLO PARA ADMIN Y RECEPCIONISTA --}}
-                @if(!$esColaborador)
+                {{-- Dashboard: SOLO admin (dueño) --}}
+                @if($esAdmin)
                 <button wire:click="cambiarSeccion('dashboard')"
                         type="button"
                         class="w-full flex items-center gap-3 px-4 py-3 font-label-md text-label-md transition-all duration-200 ease-in-out rounded-lg
@@ -26,7 +26,7 @@
                 </button>
                 @endif
 
-                {{-- 👈 CITAS: PARA TODOS (admin, recepcionista, colaborador) --}}
+                {{-- Citas: todos los roles --}}
                 @if($puedeGestionarCitas)
                 <button wire:click="cambiarSeccion('citas')"
                         type="button"
@@ -39,10 +39,13 @@
                     @if($esColaborador)
                         <span class="ml-auto text-xs bg-secondary-container/50 text-on-secondary-container px-2 py-0.5 rounded-full">Mi vista</span>
                     @endif
+                    @if($esRecepcionista)
+                        <span class="ml-auto text-xs bg-secondary-container/50 text-on-secondary-container px-2 py-0.5 rounded-full">Recepción</span>
+                    @endif
                 </button>
                 @endif
 
-                {{-- 👈 OPCIONES SOLO PARA ADMIN --}}
+                {{-- Colaboradores y Servicios: solo admin (dueño) --}}
                 @if($esAdmin)
                 <button wire:click="cambiarSeccion('colaboradores')"
                         type="button"
@@ -62,16 +65,6 @@
                                 : 'text-on-surface-variant hover:bg-surface-container-high' }}">
                     <span class="material-symbols-outlined">content_cut</span>
                     <span>Servicios</span>
-                </button>
-
-                <button wire:click="cambiarSeccion('comisiones')"
-                        type="button"
-                        class="w-full flex items-center gap-3 px-4 py-3 font-label-md text-label-md transition-all duration-200 ease-in-out rounded-lg
-                            {{ $seccionActiva === 'comisiones'
-                                ? 'bg-secondary-container text-on-secondary-container'
-                                : 'text-on-surface-variant hover:bg-surface-container-high' }}">
-                    <span class="material-symbols-outlined">payments</span>
-                    <span>Comisiones</span>
                 </button>
                 @endif
             </nav>
@@ -106,8 +99,6 @@
                     <livewire:admin.gestion-colaboradores :empresa="$empresa" wire:key="colaboradores-{{ $empresa->id }}" />
                 @elseif($seccionActiva === 'servicios')
                     <livewire:admin.gestion-servicios :empresa="$empresa" wire:key="servicios-{{ $empresa->id }}" />
-                @elseif($seccionActiva === 'comisiones')
-                    <livewire:admin.gestion-comisiones :empresa="$empresa" wire:key="comisiones-{{ $empresa->id }}" />
                 @else
                     <div class="text-center py-2xl">
                         <p class="font-body-md text-body-md text-on-surface-variant">Sección en construcción...</p>
@@ -118,8 +109,8 @@
 
         {{-- Mobile bottom nav --}}
         <nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-safe bg-surface h-16 md:hidden border-t border-outline-variant shadow-lg">
-            {{-- Dashboard - SOLO para admin y recepcionista --}}
-            @if(!$esColaborador)
+            {{-- Dashboard - solo admin --}}
+            @if($esAdmin)
             <button wire:click="cambiarSeccion('dashboard')" type="button"
                     class="flex flex-col items-center justify-center px-4 py-1 transition-all
                         {{ $seccionActiva === 'dashboard' ? 'bg-secondary-container text-on-secondary-container rounded-2xl' : 'text-on-surface-variant' }}">
@@ -128,7 +119,7 @@
             </button>
             @endif
 
-            {{-- Citas - Para todos --}}
+            {{-- Citas - para todos --}}
             @if($puedeGestionarCitas)
             <button wire:click="cambiarSeccion('citas')" type="button"
                     class="flex flex-col items-center justify-center px-4 py-1 transition-all
@@ -137,6 +128,9 @@
                 <span class="font-label-sm text-[10px]">Citas</span>
                 @if($esColaborador)
                     <span class="text-[8px] text-secondary">mi vista</span>
+                @endif
+                @if($esRecepcionista)
+                    <span class="text-[8px] text-secondary">recepción</span>
                 @endif
             </button>
             @endif
@@ -158,7 +152,7 @@
             @endif
         </nav>
     @else
-        {{-- LOGIN --}}
+        {{-- LOGIN (sin cambios) --}}
         <div class="min-h-screen flex items-center justify-center p-margin-mobile relative overflow-hidden">
             <div class="absolute inset-0 bg-surface pointer-events-none">
                 <div class="absolute top-1/4 -left-20 w-72 h-72 bg-surface-container rounded-full blur-3xl opacity-60"></div>

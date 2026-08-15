@@ -13,6 +13,9 @@ class ComisionesModel extends Model
 
     protected $table = 'comisiones';
 
+    // 🔹 Desactivar timestamps (la tabla no tiene updated_at)
+    public $timestamps = false;
+
     protected $fillable = [
         'empresa_id',
         'colaborador_id',
@@ -26,7 +29,6 @@ class ComisionesModel extends Model
         'monto' => 'decimal:2',
         'fecha_pago' => 'date',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime',
     ];
 
     protected $attributes = [

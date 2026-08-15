@@ -49,8 +49,6 @@ class GestionColaboradores extends Component
         $this->resetPage();
     }
 
-    // ==================== PROPIEDADES COMPUTADAS ====================
-
     public function getEsAdminProperty()
     {
         return in_array(Auth::guard('web')->user()->rol, ['empresa_admin', 'super_admin']);
@@ -99,8 +97,6 @@ class GestionColaboradores extends Component
             ->count();
     }
 
-    // ==================== VALIDACIONES ====================
-
     protected function rules()
     {
         $uniqueRule = $this->colaboradorIdEditar 
@@ -138,15 +134,12 @@ class GestionColaboradores extends Component
         ];
     }
 
-    // ==================== MÉTODOS ====================
-
     public function abrirCrear()
     {
         if (!$this->esAdmin) {
             $this->dispatch('mostrar-mensaje', mensaje: 'No tienes permiso.', tipo: 'error');
             return;
         }
-
         $this->resetFormulario();
         $this->colaboradorIdEditar = null;
         $this->mostrarModal = true;
@@ -158,7 +151,6 @@ class GestionColaboradores extends Component
             $this->dispatch('mostrar-mensaje', mensaje: 'No tienes permiso.', tipo: 'error');
             return;
         }
-
         $colaborador = User::where('empresa_id', $this->empresa->id)
             ->where('rol', 'colaborador')
             ->with('servicios')
@@ -174,19 +166,16 @@ class GestionColaboradores extends Component
         $this->activo = (bool) $colaborador->activo;
         $this->password = '';
         $this->serviciosSeleccionados = $colaborador->servicios->pluck('id')->toArray();
-
         $this->mostrarModal = true;
     }
 
     public function guardar()
     {
         $this->validate();
-
         $this->cargando = true;
 
         try {
             DB::beginTransaction();
-
             $datos = [
                 'empresa_id' => $this->empresa->id,
                 'nombre' => $this->nombre,
@@ -207,7 +196,6 @@ class GestionColaboradores extends Component
                 $colaborador = User::where('id', $this->colaboradorIdEditar)
                     ->where('empresa_id', $this->empresa->id)
                     ->first();
-
                 if ($colaborador) {
                     $colaborador->update($datos);
                     $colaborador->servicios()->sync($this->serviciosSeleccionados);
@@ -223,19 +211,13 @@ class GestionColaboradores extends Component
             }
 
             DB::commit();
-
             $this->dispatch('mostrar-mensaje', mensaje: $mensaje, tipo: 'success');
             $this->cerrarModal();
             $this->resetPage();
-
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('mostrar-mensaje', 
-                mensaje: 'Ocurrió un error: ' . $e->getMessage(),
-                tipo: 'error'
-            );
+            $this->dispatch('mostrar-mensaje', mensaje: 'Ocurrió un error: ' . $e->getMessage(), tipo: 'error');
         }
-
         $this->cargando = false;
     }
 
@@ -245,48 +227,30 @@ class GestionColaboradores extends Component
             $this->dispatch('mostrar-mensaje', mensaje: 'No tienes permiso.', tipo: 'error');
             return;
         }
-
         try {
-            // Verificar si tiene citas pendientes
             $citasPendientes = \App\Models\CitasModel::where('empresa_id', $this->empresa->id)
                 ->where('colaborador_id', $id)
                 ->whereIn('estado', ['agendada', 'confirmada', 'en_curso'])
                 ->count();
-
             if ($citasPendientes > 0) {
-                $this->dispatch('mostrar-mensaje', 
-                    mensaje: 'No se puede eliminar. El colaborador tiene citas pendientes.',
-                    tipo: 'error'
-                );
+                $this->dispatch('mostrar-mensaje', mensaje: 'No se puede eliminar. El colaborador tiene citas pendientes.', tipo: 'error');
                 return;
             }
-
             DB::beginTransaction();
-
             $colaborador = User::where('id', $id)
                 ->where('empresa_id', $this->empresa->id)
                 ->where('rol', 'colaborador')
                 ->first();
-
             if ($colaborador) {
                 $colaborador->servicios()->detach();
                 $colaborador->delete();
             }
-
             DB::commit();
-
-            $this->dispatch('mostrar-mensaje', 
-                mensaje: 'Colaborador eliminado correctamente.',
-                tipo: 'success'
-            );
+            $this->dispatch('mostrar-mensaje', mensaje: 'Colaborador eliminado correctamente.', tipo: 'success');
             $this->resetPage();
-
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('mostrar-mensaje', 
-                mensaje: 'Ocurrió un error al eliminar el colaborador.',
-                tipo: 'error'
-            );
+            $this->dispatch('mostrar-mensaje', mensaje: 'Ocurrió un error al eliminar el colaborador.', tipo: 'error');
         }
     }
 
@@ -296,28 +260,18 @@ class GestionColaboradores extends Component
             $this->dispatch('mostrar-mensaje', mensaje: 'No tienes permiso.', tipo: 'error');
             return;
         }
-
         try {
             $colaborador = User::where('id', $id)
                 ->where('empresa_id', $this->empresa->id)
                 ->where('rol', 'colaborador')
                 ->first();
-
             if ($colaborador) {
                 $colaborador->activo = !$colaborador->activo;
                 $colaborador->save();
-
-                $this->dispatch('mostrar-mensaje', 
-                    mensaje: 'Estado actualizado correctamente.',
-                    tipo: 'success'
-                );
+                $this->dispatch('mostrar-mensaje', mensaje: 'Estado actualizado correctamente.', tipo: 'success');
             }
-
         } catch (\Exception $e) {
-            $this->dispatch('mostrar-mensaje', 
-                mensaje: 'Ocurrió un error al cambiar el estado.',
-                tipo: 'error'
-            );
+            $this->dispatch('mostrar-mensaje', mensaje: 'Ocurrió un error al cambiar el estado.', tipo: 'error');
         }
     }
 

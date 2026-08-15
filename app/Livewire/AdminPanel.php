@@ -4,7 +4,6 @@ namespace App\Livewire;
 
 use App\Models\EmpresasModel;
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\Layout;
@@ -27,10 +26,10 @@ class AdminPanel extends Component
     public function mount(EmpresasModel $empresa)
     {
         $this->empresa = $empresa;
-        
+
         if ($this->isAuthenticated) {
-            // 👈 Si es colaborador, forzar a que solo vea citas
-            if ($this->esColaborador) {
+            // 👈 Recepcionista y colaborador van directamente a citas
+            if ($this->esRecepcionista || $this->esColaborador) {
                 $this->seccionActiva = 'citas';
             } else {
                 $this->seccionActiva = 'dashboard';
@@ -105,7 +104,7 @@ class AdminPanel extends Component
         $this->validate();
 
         $key = 'login_attempts_' . $this->email . '_' . $this->empresa->id;
-        
+
         if (RateLimiter::tooManyAttempts($key, 5)) {
             $seconds = RateLimiter::availableIn($key);
             $this->error = "Demasiados intentos. Espera {$seconds} segundos.";
@@ -139,14 +138,13 @@ class AdminPanel extends Component
             session()->regenerate();
             RateLimiter::clear($key);
             $this->reset(['password', 'error', 'info']);
-            
-            // 👈 Después de login, redirigir según rol
-            if ($this->esColaborador) {
+
+            if ($this->esRecepcionista || $this->esColaborador) {
                 $this->seccionActiva = 'citas';
             } else {
                 $this->seccionActiva = 'dashboard';
             }
-            
+
             $this->dispatch('login-success');
             return;
         }
@@ -162,7 +160,7 @@ class AdminPanel extends Component
         Auth::guard('web')->logout();
         session()->invalidate();
         session()->regenerateToken();
-        
+
         $this->reset(['email', 'password', 'error', 'info']);
         $this->seccionActiva = 'login';
         $this->dispatch('logout-success');
@@ -170,8 +168,8 @@ class AdminPanel extends Component
 
     public function cambiarSeccion($seccion)
     {
-        // 👈 Si es colaborador, SOLO puede ir a citas
-        if ($this->esColaborador) {
+        // Colaborador y recepcionista solo pueden ir a citas
+        if ($this->esColaborador || $this->esRecepcionista) {
             if ($seccion !== 'citas') {
                 $this->dispatch('error', 'No tienes permiso para acceder a esta sección.');
                 return;
@@ -180,18 +178,13 @@ class AdminPanel extends Component
             return;
         }
 
-        // 👈 Para admin y recepcionista
-        $seccionesPermitidas = ['dashboard', 'citas'];
-        
+        // Admin (dueño) puede ir a dashboard, citas, colaboradores, servicios
         if ($this->esAdmin) {
-            $seccionesPermitidas = array_merge($seccionesPermitidas, [
-                'colaboradores', 'servicios', 'comisiones'
-            ]);
-        }
-
-        if (in_array($seccion, $seccionesPermitidas)) {
-            $this->seccionActiva = $seccion;
-            $this->dispatch('cambiar-seccion', seccion: $seccion);
+            $seccionesPermitidas = ['dashboard', 'citas', 'colaboradores', 'servicios'];
+            if (in_array($seccion, $seccionesPermitidas)) {
+                $this->seccionActiva = $seccion;
+                $this->dispatch('cambiar-seccion', seccion: $seccion);
+            }
         }
     }
 
