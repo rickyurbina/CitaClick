@@ -184,8 +184,14 @@ class CitasModel extends Model
         $this->save();
     }
 
-    // ==================== MÉTODOS CANCELACIÓN ====================
+    // ==================== MÉTODO CANCELACIÓN (CORREGIDO FINAL) ====================
 
+    /**
+     * Verifica si la cita puede ser cancelada según el rol y el tiempo restante.
+     *
+     * @param string|null $rol
+     * @return bool
+     */
     public function puedeCancelar($rol = null): bool
     {
         // Admin, super_admin y recepcionista pueden cancelar siempre
@@ -195,7 +201,25 @@ class CitasModel extends Model
 
         // Cliente y colaborador solo 24 horas antes
         if (in_array($rol, ['cliente', 'colaborador'])) {
-            $horaCita = Carbon::parse($this->fecha . ' ' . $this->hora_inicio);
+            // Obtener fecha como string Y-m-d
+            $fechaStr = $this->fecha instanceof Carbon
+                ? $this->fecha->format('Y-m-d')
+                : $this->fecha;
+
+            // Obtener hora como string H:i
+            $horaStr = $this->hora_inicio instanceof Carbon
+                ? $this->hora_inicio->format('H:i')
+                : $this->hora_inicio;
+
+            // Si la fecha o hora son inválidas, devolver false
+            if (!$fechaStr || !strtotime($fechaStr) || !$horaStr) {
+                return false;
+            }
+
+            // Parsear fecha y hora para obtener el momento de la cita
+            $horaCita = Carbon::parse($fechaStr . ' ' . $horaStr);
+
+            // Calcular diferencia en horas (negativo si ya pasó)
             return now()->diffInHours($horaCita, false) >= 24;
         }
 

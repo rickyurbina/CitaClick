@@ -31,11 +31,16 @@ class AgendarCita extends Component
     public $observaciones = '';
 
     public bool $cargando = false;
+    public bool $cargandoCalendario = false;
 
-    // Datos para el calendario (se pasan a Alpine.js)
-    public $diasDisponibles = [];
-    public $horasDisponibles = [];
-    public $duracionServicio = 0;
+    // Propiedades para el calendario
+    public array $diasDisponibles = [];
+    public array $horasDisponibles = [];
+    public int $duracionServicio = 0;
+
+    public array $diasCalendario = [];
+    public int $mesActual;
+    public int $añoActual;
 
     protected $rules = [
         'servicioId' => 'required|exists:servicios,id',
@@ -62,11 +67,11 @@ class AgendarCita extends Component
     public function mount($clienteId)
     {
         $this->clienteId = $clienteId;
-        
-        $this->cliente = ClientesModel::with(['citas' => function($query) {
+
+        $this->cliente = ClientesModel::with(['citas' => function ($query) {
             $query->orderBy('fecha', 'desc')
-                  ->orderBy('hora_inicio', 'desc')
-                  ->limit(10);
+                ->orderBy('hora_inicio', 'desc')
+                ->limit(10);
         }])->findOrFail($clienteId);
 
         $this->totalCitas = CitasModel::where('cliente_id', $clienteId)->count();
@@ -76,6 +81,11 @@ class AgendarCita extends Component
             $this->mostrarFormulario = true;
             $this->mostrarHistorial = false;
         }
+
+        $this->mesActual = now()->month;
+        $this->añoActual = now()->year;
+        $this->fecha = '';
+        $this->generarDiasCalendario();
     }
 
     public function getServiciosProperty()
@@ -101,70 +111,141 @@ class AgendarCita extends Component
         return $query->orderBy('nombre')->get(['id', 'nombre']);
     }
 
-    public function getHorarioEmpresaProperty()
+    // ==================== GENERAR CALENDARIO ====================
+
+    public function generarDiasCalendario()
     {
-        return [
-            'inicio' => $this->empresa->config['horario_inicio'] ?? '09:00',
-            'fin' => $this->empresa->config['horario_fin'] ?? '20:00',
-        ];
+        $diasDisponibles = $this->diasDisponibles;
+
+        $fecha = Carbon::create($this->añoActual, $this->mesActual, 1);
+        $ultimoDia = $fecha->copy()->endOfMonth()->day;
+        $primerDiaSemana = $fecha->dayOfWeek;
+        $offset = $primerDiaSemana === 0 ? 6 : $primerDiaSemana - 1;
+
+        $dias = [];
+        for ($i = 0; $i < $offset; $i++) {
+            $dias[] = null;
+        }
+
+        $hoy = Carbon::today();
+        for ($i = 1; $i <= $ultimoDia; $i++) {
+            $fechaDia = Carbon::create($this->añoActual, $this->mesActual, $i);
+            $fechaStr = $fechaDia->format('Y-m-d');
+
+            $disponible = false;
+            foreach ($diasDisponibles as $d) {
+                if ($d['fecha'] === $fechaStr) {
+                    $disponible = true;
+                    break;
+                }
+            }
+
+            $dias[] = [
+                'dia' => $i,
+                'fecha' => $fechaStr,
+                'disponible' => $disponible,
+                'esHoy' => $fechaDia->isToday(),
+                'esPasado' => $fechaDia->isPast() && !$fechaDia->isToday(),
+                'esSeleccionado' => $this->fecha === $fechaStr,
+            ];
+        }
+
+        while (count($dias) < 42) {
+            $dias[] = null;
+        }
+
+        $this->diasCalendario = $dias;
     }
 
     // ==================== CALCULAR DÍAS DISPONIBLES ====================
 
     public function calcularDiasDisponibles()
     {
-        if (!$this->colaboradorId || !$this->servicioId) {
-            $this->diasDisponibles = [];
-            return;
-        }
+        $this->cargandoCalendario = true;
 
-        $servicio = ServiciosModel::find($this->servicioId);
-        if (!$servicio) {
-            $this->diasDisponibles = [];
-            return;
-        }
-
-        $this->duracionServicio = $servicio->duracion_minutos;
-
-        $colaborador = User::find($this->colaboradorId);
-        $horarioInicio = $colaborador->horario_inicio ?? '09:00';
-        $horarioFin = $colaborador->horario_fin ?? '20:00';
-
-        $citasOcupadas = CitasModel::where('empresa_id', $this->empresa->id)
-            ->where('colaborador_id', $this->colaboradorId)
-            ->where('fecha', '>=', Carbon::today())
-            ->where('fecha', '<=', Carbon::today()->addDays(60))
-            ->where('estado', '!=', 'cancelada')
-            ->where('estado', '!=', 'no_asistio')
-            ->get()
-            ->groupBy('fecha');
-
-        $diasDisponibles = [];
-
-        for ($i = 0; $i <= 60; $i++) {
-            $fecha = Carbon::today()->addDays($i);
-            $fechaStr = $fecha->format('Y-m-d');
-
-            if ($fecha->isPast() && !$fecha->isToday()) {
-                continue;
+        try {
+            if (!$this->colaboradorId || !$this->servicioId) {
+                $this->diasDisponibles = [];
+                $this->duracionServicio = 0;
+                $this->generarDiasCalendario();
+                $this->cargandoCalendario = false;
+                return;
             }
 
-            $citasDelDia = $citasOcupadas->get($fechaStr) ?? collect();
-            $espacios = $this->calcularEspacios($horarioInicio, $horarioFin, $this->duracionServicio, $citasDelDia);
-
-            if ($espacios > 0) {
-                $diasDisponibles[] = [
-                    'fecha' => $fechaStr,
-                    'dia' => $fecha->day,
-                    'mes' => $fecha->month,
-                    'año' => $fecha->year,
-                    'espacios' => $espacios,
-                    'esHoy' => $fecha->isToday(),
-                ];
+            $servicio = ServiciosModel::find($this->servicioId);
+            if (!$servicio) {
+                $this->diasDisponibles = [];
+                $this->duracionServicio = 0;
+                $this->generarDiasCalendario();
+                $this->cargandoCalendario = false;
+                return;
             }
+
+            $this->duracionServicio = $servicio->duracion_minutos;
+
+            $colaborador = User::find($this->colaboradorId);
+            if (!$colaborador) {
+                $this->diasDisponibles = [];
+                $this->generarDiasCalendario();
+                $this->cargandoCalendario = false;
+                return;
+            }
+
+            if ($this->duracionServicio <= 0) {
+                $this->diasDisponibles = [];
+                $this->generarDiasCalendario();
+                $this->cargandoCalendario = false;
+                return;
+            }
+
+            $horarioInicio = $colaborador->horario_inicio ?? '09:00';
+            $horarioFin = $colaborador->horario_fin ?? '20:00';
+
+            $diasRango = 30;
+            $citasOcupadas = CitasModel::where('empresa_id', $this->empresa->id)
+                ->where('colaborador_id', $this->colaboradorId)
+                ->where('fecha', '>=', Carbon::today())
+                ->where('fecha', '<=', Carbon::today()->addDays($diasRango))
+                ->where('estado', '!=', 'cancelada')
+                ->where('estado', '!=', 'no_asistio')
+                ->get()
+                ->groupBy('fecha');
+
+            $diasDisponibles = [];
+
+            for ($i = 0; $i <= $diasRango; $i++) {
+                $fecha = Carbon::today()->addDays($i);
+                $fechaStr = $fecha->format('Y-m-d');
+
+                if ($fecha->isPast() && !$fecha->isToday()) {
+                    continue;
+                }
+
+                $citasDelDia = $citasOcupadas->get($fechaStr) ?? collect();
+                $espacios = $this->calcularEspacios($horarioInicio, $horarioFin, $this->duracionServicio, $citasDelDia);
+
+                if ($espacios > 0) {
+                    $diasDisponibles[] = [
+                        'fecha' => $fechaStr,
+                        'dia' => $fecha->day,
+                        'mes' => $fecha->month,
+                        'año' => $fecha->year,
+                        'espacios' => $espacios,
+                        'esHoy' => $fecha->isToday(),
+                    ];
+                }
+            }
+
+            $this->diasDisponibles = $diasDisponibles;
+            $this->generarDiasCalendario();
+
+        } catch (\Exception $e) {
+            // En caso de error, resetear para no bloquear la UI
+            $this->diasDisponibles = [];
+            $this->generarDiasCalendario();
         }
 
-        $this->diasDisponibles = $diasDisponibles;
+        $this->cargandoCalendario = false;
     }
 
     private function calcularEspacios($inicio, $fin, $duracion, $citasDelDia)
@@ -178,7 +259,6 @@ class AgendarCita extends Component
         while ($horaActual->addMinutes($duracion) <= $fin) {
             $inicioBloque = $horaActual->copy()->subMinutes($duracion);
             $finBloque = $horaActual->copy();
-            
             $bloques[] = [
                 'inicio' => $inicioBloque->format('H:i'),
                 'fin' => $finBloque->format('H:i'),
@@ -186,35 +266,35 @@ class AgendarCita extends Component
         }
 
         $disponibles = 0;
-
         foreach ($bloques as $bloque) {
             $ocupado = false;
             $bloqueInicio = Carbon::parse($bloque['inicio']);
             $bloqueFin = Carbon::parse($bloque['fin']);
-
             foreach ($citasDelDia as $cita) {
                 $citaInicio = Carbon::parse($cita->hora_inicio);
                 $citaFin = Carbon::parse($cita->hora_fin);
-
                 if ($bloqueInicio < $citaFin && $bloqueFin > $citaInicio) {
                     $ocupado = true;
                     break;
                 }
             }
-
             if (!$ocupado) {
                 $disponibles++;
             }
         }
-
         return $disponibles;
     }
 
-    // ==================== CARGAR HORAS DISPONIBLES ====================
+    // ==================== CARGAR HORAS ====================
 
     public function cargarHorasDisponibles()
     {
-        if (!$this->fecha || !$this->colaboradorId || !$this->servicioId) {
+        if (!$this->fecha || !strtotime($this->fecha)) {
+            $this->horasDisponibles = [];
+            return;
+        }
+
+        if (!$this->colaboradorId || !$this->servicioId) {
             $this->horasDisponibles = [];
             return;
         }
@@ -226,8 +306,14 @@ class AgendarCita extends Component
         }
 
         $colaborador = User::find($this->colaboradorId);
+        if (!$colaborador) {
+            $this->horasDisponibles = [];
+            return;
+        }
+
         $horarioInicio = $colaborador->horario_inicio ?? '09:00';
         $horarioFin = $colaborador->horario_fin ?? '20:00';
+        $duracion = $servicio->duracion_minutos;
 
         $citasDelDia = CitasModel::where('empresa_id', $this->empresa->id)
             ->where('colaborador_id', $this->colaboradorId)
@@ -238,15 +324,12 @@ class AgendarCita extends Component
 
         $inicio = Carbon::parse($horarioInicio);
         $fin = Carbon::parse($horarioFin);
-        $duracion = $servicio->duracion_minutos;
-
         $horas = [];
         $horaActual = clone $inicio;
 
         while ($horaActual->addMinutes($duracion) <= $fin) {
             $inicioBloque = $horaActual->copy()->subMinutes($duracion);
             $finBloque = $horaActual->copy();
-
             $ocupado = false;
 
             if ($this->fecha === Carbon::today()->format('Y-m-d')) {
@@ -259,7 +342,6 @@ class AgendarCita extends Component
                 foreach ($citasDelDia as $cita) {
                     $citaInicio = Carbon::parse($cita->hora_inicio);
                     $citaFin = Carbon::parse($cita->hora_fin);
-
                     if ($inicioBloque < $citaFin && $finBloque > $citaInicio) {
                         $ocupado = true;
                         break;
@@ -277,32 +359,18 @@ class AgendarCita extends Component
         $this->horasDisponibles = $horas;
     }
 
-    // ==================== EVENTOS ====================
-
-    public function updatedServicioId()
-    {
-        $this->colaboradorId = '';
-        $this->fecha = '';
-        $this->horaInicio = '';
-        $this->horasDisponibles = [];
-        $this->diasDisponibles = [];
-        $this->dispatch('limpiar-mensaje');
-    }
-
-    public function updatedColaboradorId()
-    {
-        $this->fecha = '';
-        $this->horaInicio = '';
-        $this->horasDisponibles = [];
-        $this->calcularDiasDisponibles();
-        $this->dispatch('limpiar-mensaje');
-    }
+    // ==================== MÉTODOS DE SELECCIÓN ====================
 
     public function seleccionarFecha($fecha)
     {
+        if (!strtotime($fecha)) {
+            return;
+        }
+
         $this->fecha = $fecha;
-        $this->horaInicio = '';
         $this->cargarHorasDisponibles();
+        $this->horaInicio = '';
+        $this->generarDiasCalendario();
         $this->dispatch('limpiar-mensaje');
     }
 
@@ -312,18 +380,40 @@ class AgendarCita extends Component
         $this->dispatch('limpiar-mensaje');
     }
 
-    // ==================== VALIDACIÓN ====================
-
-    public function validarClienteActivo(): bool
+    public function cambiarMes($direccion)
     {
-        if ($this->cliente->estaBloqueado()) {
-            $this->dispatch('mostrar-mensaje', 
-                mensaje: 'No puedes agendar citas. Estás bloqueado hasta el ' . $this->cliente->bloqueado_hasta->format('d/m/Y'),
-                tipo: 'error'
-            );
-            return false;
+        $fecha = Carbon::create($this->añoActual, $this->mesActual, 1)->addMonths($direccion);
+        $this->mesActual = $fecha->month;
+        $this->añoActual = $fecha->year;
+        $this->generarDiasCalendario();
+    }
+
+    // ==================== WATCHERS ====================
+
+    public function updatedServicioId()
+    {
+        // Resetear colaborador solo si ya había uno seleccionado
+        if ($this->colaboradorId) {
+            $this->colaboradorId = '';
+            $this->fecha = '';
+            $this->horaInicio = '';
+            $this->horasDisponibles = [];
+            $this->diasDisponibles = [];
+            $this->duracionServicio = 0;
+            $this->generarDiasCalendario();
         }
-        return true;
+        $this->dispatch('limpiar-mensaje');
+    }
+
+    public function updatedColaboradorId()
+    {
+        if ($this->colaboradorId) {
+            $this->fecha = '';
+            $this->horaInicio = '';
+            $this->horasDisponibles = [];
+            $this->calcularDiasDisponibles();
+            $this->dispatch('limpiar-mensaje');
+        }
     }
 
     // ==================== NAVEGACIÓN ====================
@@ -347,13 +437,12 @@ class AgendarCita extends Component
         $this->dispatch('volver-a-verificar');
     }
 
-    // ==================== CANCELAR CITA ====================
+    // ==================== CANCELAR Y AGENDAR ====================
 
     public function cancelarCita($citaId)
     {
         try {
             DB::beginTransaction();
-
             $cita = CitasModel::where('empresa_id', $this->empresa->id)
                 ->where('id', $citaId)
                 ->where('cliente_id', $this->clienteId)
@@ -361,28 +450,19 @@ class AgendarCita extends Component
                 ->first();
 
             if (!$cita) {
-                $this->dispatch('mostrar-mensaje', 
-                    mensaje: 'No se puede cancelar esta cita.',
-                    tipo: 'error'
-                );
+                $this->dispatch('mostrar-mensaje', mensaje: 'No se puede cancelar esta cita.', tipo: 'error');
                 DB::rollBack();
                 return;
             }
 
-            // ✅ VERIFICAR 24 HORAS ANTES
             if (!$cita->puedeCancelar('cliente')) {
-                $this->dispatch('mostrar-mensaje', 
-                    mensaje: 'Solo puedes cancelar 24 horas antes de la cita.',
-                    tipo: 'error'
-                );
+                $this->dispatch('mostrar-mensaje', mensaje: 'Solo puedes cancelar 24 horas antes de la cita.', tipo: 'error');
                 DB::rollBack();
                 return;
             }
 
             $cita->cancelar('Cancelado por el cliente', 'cliente');
-
             $this->cliente = ClientesModel::find($this->clienteId);
-
             DB::commit();
 
             $this->citasAnteriores = CitasModel::where('cliente_id', $this->clienteId)
@@ -391,21 +471,12 @@ class AgendarCita extends Component
                 ->limit(10)
                 ->get();
 
-            $this->dispatch('mostrar-mensaje', 
-                mensaje: 'Cita cancelada correctamente.',
-                tipo: 'warning'
-            );
-
+            $this->dispatch('mostrar-mensaje', mensaje: 'Cita cancelada correctamente.', tipo: 'warning');
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('mostrar-mensaje', 
-                mensaje: 'Ocurrió un error al cancelar la cita. Intenta nuevamente.',
-                tipo: 'error'
-            );
+            $this->dispatch('mostrar-mensaje', mensaje: 'Ocurrió un error al cancelar la cita. Intenta nuevamente.', tipo: 'error');
         }
     }
-
-    // ==================== AGENDAR CITA ====================
 
     public function agendarCita()
     {
@@ -415,7 +486,6 @@ class AgendarCita extends Component
             return;
         }
 
-        // Verificar disponibilidad
         $horaDisponible = false;
         foreach ($this->horasDisponibles as $hora) {
             if ($hora['inicio'] === $this->horaInicio && $hora['disponible']) {
@@ -433,7 +503,6 @@ class AgendarCita extends Component
 
         try {
             DB::beginTransaction();
-
             $servicio = ServiciosModel::find($this->servicioId);
             $horaFin = Carbon::parse($this->horaInicio)->addMinutes($servicio->duracion_minutos)->format('H:i');
 
@@ -453,15 +522,14 @@ class AgendarCita extends Component
 
             DB::commit();
 
-            $this->dispatch('mostrar-mensaje', 
-                mensaje: '¡Cita agendada correctamente! Te esperamos el ' . Carbon::parse($this->fecha)->format('d/m/Y') . ' a las ' . $this->horaInicio,
-                tipo: 'success'
-            );
+            $this->dispatch('mostrar-mensaje', mensaje: '¡Cita agendada correctamente! Te esperamos el ' . Carbon::parse($this->fecha)->format('d/m/Y') . ' a las ' . $this->horaInicio, tipo: 'success');
 
             $this->reset(['servicioId', 'colaboradorId', 'horaInicio', 'nombreAcompanante', 'observaciones', 'fecha']);
             $this->diasDisponibles = [];
             $this->horasDisponibles = [];
-            
+            $this->duracionServicio = 0;
+            $this->generarDiasCalendario();
+
             $this->totalCitas = CitasModel::where('cliente_id', $this->clienteId)->count();
             $this->citasAnteriores = CitasModel::where('cliente_id', $this->clienteId)
                 ->orderBy('fecha', 'desc')
@@ -474,13 +542,19 @@ class AgendarCita extends Component
 
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('mostrar-mensaje', 
-                mensaje: 'Ocurrió un error al agendar la cita. Intenta nuevamente.',
-                tipo: 'error'
-            );
+            $this->dispatch('mostrar-mensaje', mensaje: 'Ocurrió un error al agendar la cita. Intenta nuevamente.', tipo: 'error');
         }
 
         $this->cargando = false;
+    }
+
+    public function validarClienteActivo(): bool
+    {
+        if ($this->cliente->estaBloqueado()) {
+            $this->dispatch('mostrar-mensaje', mensaje: 'No puedes agendar citas. Estás bloqueado hasta el ' . $this->cliente->bloqueado_hasta->format('d/m/Y'), tipo: 'error');
+            return false;
+        }
+        return true;
     }
 
     public function render()
@@ -498,6 +572,10 @@ class AgendarCita extends Component
             'diasDisponibles' => $this->diasDisponibles,
             'horasDisponibles' => $this->horasDisponibles,
             'duracionServicio' => $this->duracionServicio,
+            'diasCalendario' => $this->diasCalendario,
+            'mesActual' => $this->mesActual,
+            'añoActual' => $this->añoActual,
+            'cargandoCalendario' => $this->cargandoCalendario,
         ]);
     }
 }
