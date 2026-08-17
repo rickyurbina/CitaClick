@@ -176,9 +176,9 @@
                     <tr class="hover:bg-surface-container/50 transition-colors group">
                         <td class="px-lg py-md">
                             <div class="flex items-center gap-md">
-                                @if($empresa->logo_url)
+                                @if($empresa->logo_src)
                                     <div class="w-10 h-10 rounded-full overflow-hidden border border-outline-variant flex-shrink-0 bg-white">
-                                        <img src="{{ Storage::url($empresa->logo_url) }}" alt="{{ $empresa->nombre }}"
+                                        <img src="{{ $empresa->logo_src }}" alt="{{ $empresa->nombre }}"
                                              class="w-full h-full object-cover">
                                     </div>
                                 @else

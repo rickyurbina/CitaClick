@@ -57,8 +57,8 @@ class FormularioEmpresa extends Component
         $this->telefono = $empresa->telefono;
         $this->plan = $empresa->plan;
         $this->estatus = $empresa->estatus;
-        $this->logoUrl = $empresa->logo_url;
-        $this->logoExistente = $empresa->logo_url;
+        $this->logoUrl = $empresa->getRawOriginal('logo_url');
+        $this->logoExistente = $empresa->getRawOriginal('logo_url');
         $this->fechaVencimiento = $empresa->fecha_vencimiento ? $empresa->fecha_vencimiento->format('Y-m-d') : '';
         $this->logoFile = null;
 
@@ -119,13 +119,13 @@ class FormularioEmpresa extends Component
             if ($this->logoFile) {
                 // Si existe un logo anterior, eliminarlo
                 if ($this->logoExistente && $this->modo === 'editar') {
-                    $this->eliminarLogoAnterior($this->logoExistente);
+                    $this->eliminarLogoAnterior($this->normalizarRutaStorage($this->logoExistente));
                 }
                 $logoPath = $this->guardarLogo($this->logoFile);
             } 
             // 2. Si no se subió archivo, mantener el logo existente
             else {
-                $logoPath = $this->logoExistente;
+                $logoPath = $this->normalizarRutaStorage($this->logoExistente);
             }
 
             $datos = [
@@ -188,8 +188,30 @@ class FormularioEmpresa extends Component
         return $path;
     }
 
+    protected function normalizarRutaStorage(?string $path): ?string
+    {
+        if (!$path) {
+            return null;
+        }
+
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            $path = parse_url($path, PHP_URL_PATH) ?: $path;
+        }
+
+        $path = str_replace('\\', '/', $path);
+
+        if (str_starts_with($path, '/storage/')) {
+            $path = substr($path, 9);
+        } elseif (str_starts_with($path, 'storage/')) {
+            $path = substr($path, 8);
+        }
+
+        return ltrim($path, '/') ?: null;
+    }
+
     protected function eliminarLogoAnterior($path)
     {
+        $path = $this->normalizarRutaStorage($path);
         if ($path && Storage::disk('public')->exists($path)) {
             Storage::disk('public')->delete($path);
         }

@@ -28,7 +28,7 @@
                             @if($logoExistente && $modo === 'editar' && !$logoFile)
                                 <div class="relative mb-md">
                                     <div class="w-32 h-32 rounded-xl bg-surface-container flex items-center justify-center border-2 border-outline-variant overflow-hidden">
-                                        <img src="{{ Storage::url($logoExistente) }}"
+                                        <img src="{{ asset('storage/' . ltrim(str_replace('\\', '/', $logoExistente), '/')) }}"
                                              alt="Logo actual"
                                              class="w-full h-full object-contain">
                                     </div>

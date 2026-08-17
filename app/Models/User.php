@@ -19,6 +19,7 @@ class User extends Authenticatable
         'email',
         'password',
         'telefono',
+        'foto_url',
         'rol',
         'comision_porcentaje',
         'horario_inicio',
@@ -154,6 +155,25 @@ class User extends Authenticatable
     public function puedeVerFinanzas(): bool
     {
         return $this->esAdmin() || $this->esRecepcionista();
+    }
+
+    public function getFotoSrcAttribute(): ?string
+    {
+        $value = $this->attributes['foto_url'] ?? null;
+
+        if (!$value) {
+            return null;
+        }
+
+        if (filter_var($value, FILTER_VALIDATE_URL)) {
+            return $value;
+        }
+
+        $path = str_starts_with($value, 'storage/')
+            ? substr($value, 8)
+            : ltrim($value, '/');
+
+        return asset('storage/' . $path);
     }
 
     public function getNombreCompletoAttribute(): string

@@ -161,10 +161,10 @@
 
             <div class="w-full max-w-md z-10">
                 <div class="flex flex-col items-center mb-xl">
-                    @if($empresa->logo_url)
+                    @if($empresa->logo_src)
                         <img alt="{{ $empresa->nombre }}"
                              class="w-[160px] h-[160px] object-contain mb-md drop-shadow-sm"
-                             src="{{ Storage::url($empresa->logo_url) }}">
+                             src="{{ $empresa->logo_src }}">
                     @endif
                     <h1 class="font-headline-md text-headline-md text-primary tracking-tight">{{ $empresa->nombre }}</h1>
                     <p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">Acceso administrativo</p>

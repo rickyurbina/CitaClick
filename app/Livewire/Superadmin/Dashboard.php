@@ -174,8 +174,9 @@ class Dashboard extends Component
                 return;
             }
 
-            if ($empresa->logo_url && Storage::disk('public')->exists($empresa->logo_url)) {
-                Storage::disk('public')->delete($empresa->logo_url);
+            $logoPath = $empresa->getRawOriginal('logo_url');
+            if ($logoPath && Storage::disk('public')->exists($logoPath)) {
+                Storage::disk('public')->delete($logoPath);
             }
 
             $empresa->delete();

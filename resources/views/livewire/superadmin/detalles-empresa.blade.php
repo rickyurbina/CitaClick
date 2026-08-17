@@ -19,9 +19,9 @@
 
             <div class="p-xl space-y-lg">
                 <div class="flex items-center gap-lg">
-                    @if($empresa->logo_url)
+                    @if($empresa->logo_src)
                         <div class="w-20 h-20 rounded-xl overflow-hidden border border-outline-variant flex-shrink-0 bg-white">
-                            <img src="{{ Storage::url($empresa->logo_url) }}" alt="{{ $empresa->nombre }}"
+                            <img src="{{ $empresa->logo_src }}" alt="{{ $empresa->nombre }}"
                                  class="w-full h-full object-cover">
                         </div>
                     @else

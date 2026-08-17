@@ -129,8 +129,10 @@ class EmpresasModel extends Model
         $this->slug = Str::slug($this->nombre) . '-' . Str::random(4);
     }
 
-    public function getLogoUrlAttribute($value): ?string
+    public function getLogoSrcAttribute(): ?string
     {
+        $value = $this->attributes['logo_url'] ?? null;
+
         if (!$value) {
             return null;
         }
@@ -139,7 +141,17 @@ class EmpresasModel extends Model
             return $value;
         }
 
-        return asset('storage/' . $value);
+        // Normalizar por si quedó guardado con prefijo storage/
+        $path = str_starts_with($value, 'storage/')
+            ? substr($value, 8)
+            : ltrim($value, '/');
+
+        return asset('storage/' . $path);
+    }
+
+    public function getLogoPathAttribute(): ?string
+    {
+        return $this->attributes['logo_url'] ?? null;
     }
 
     // ==================== BOOT ====================

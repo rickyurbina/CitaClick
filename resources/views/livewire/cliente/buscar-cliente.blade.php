@@ -4,9 +4,9 @@
     <div class="w-full {{ $step === 'agendar' ? 'max-w-4xl' : 'max-w-[420px]' }} animate-in fade-in slide-in-from-bottom-4 duration-700">
         {{-- Logo / Header --}}
         <div class="flex flex-col items-center mb-xl">
-            @if($empresa->logo_url)
+            @if($empresa->logo_src)
                 <div class="w-[160px] h-[160px] md:w-[200px] md:h-[200px] flex items-center justify-center bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30 p-md mb-lg">
-                    <img src="{{ $empresa->logo_url }}"
+                    <img src="{{ $empresa->logo_src }}"
                          alt="{{ $empresa->nombre }}"
                          class="w-full h-full object-contain">
                 </div>

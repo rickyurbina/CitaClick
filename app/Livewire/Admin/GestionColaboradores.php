@@ -8,12 +8,16 @@ use App\Models\ServiciosModel;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 class GestionColaboradores extends Component
 {
     use WithPagination;
+    use WithFileUploads;
 
     protected $paginationTheme = 'tailwind';
 
@@ -33,6 +37,8 @@ class GestionColaboradores extends Component
     public $horarioFin = '18:00';
     public $activo = true;
     public $serviciosSeleccionados = [];
+    public $fotoFile = null;
+    public $fotoExistente = null;
 
     public $cargando = false;
 
@@ -113,6 +119,7 @@ class GestionColaboradores extends Component
             'horarioFin' => 'required|after:horarioInicio',
             'activo' => 'boolean',
             'serviciosSeleccionados' => 'required|array|min:1',
+            'fotoFile' => 'nullable|image|max:2048|mimes:jpeg,png,jpg,gif,svg,webp',
         ];
     }
 
@@ -131,6 +138,9 @@ class GestionColaboradores extends Component
             'horarioFin.after' => 'La hora de fin debe ser después de la hora de inicio.',
             'serviciosSeleccionados.required' => 'Debes seleccionar al menos un servicio.',
             'serviciosSeleccionados.min' => 'Debes seleccionar al menos un servicio.',
+            'fotoFile.image' => 'El archivo debe ser una imagen.',
+            'fotoFile.max' => 'La imagen no puede pesar más de 2MB.',
+            'fotoFile.mimes' => 'La imagen debe ser jpeg, png, jpg, gif, svg o webp.',
         ];
     }
 
@@ -166,6 +176,8 @@ class GestionColaboradores extends Component
         $this->activo = (bool) $colaborador->activo;
         $this->password = '';
         $this->serviciosSeleccionados = $colaborador->servicios->pluck('id')->toArray();
+        $this->fotoExistente = $colaborador->getRawOriginal('foto_url');
+        $this->fotoFile = null;
         $this->mostrarModal = true;
     }
 
@@ -190,6 +202,15 @@ class GestionColaboradores extends Component
 
             if ($this->password) {
                 $datos['password'] = Hash::make($this->password);
+            }
+
+            if ($this->fotoFile) {
+                if ($this->fotoExistente) {
+                    $this->eliminarFoto($this->fotoExistente);
+                }
+                $datos['foto_url'] = $this->guardarFoto($this->fotoFile);
+            } elseif ($this->colaboradorIdEditar) {
+                $datos['foto_url'] = $this->fotoExistente;
             }
 
             if ($this->colaboradorIdEditar) {
@@ -242,6 +263,7 @@ class GestionColaboradores extends Component
                 ->where('rol', 'colaborador')
                 ->first();
             if ($colaborador) {
+                $this->eliminarFoto($colaborador->getRawOriginal('foto_url'));
                 $colaborador->servicios()->detach();
                 $colaborador->delete();
             }
@@ -287,7 +309,23 @@ class GestionColaboradores extends Component
         $this->horarioFin = '18:00';
         $this->activo = true;
         $this->serviciosSeleccionados = [];
+        $this->fotoFile = null;
+        $this->fotoExistente = null;
         $this->resetErrorBag();
+    }
+
+    protected function guardarFoto($file): string
+    {
+        $nombre = Str::slug($this->nombre) . '-' . time() . '.' . $file->getClientOriginalExtension();
+
+        return $file->storeAs('colaboradores', $nombre, 'public');
+    }
+
+    protected function eliminarFoto(?string $path): void
+    {
+        if ($path && Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
     }
 
     public function cerrarModal()

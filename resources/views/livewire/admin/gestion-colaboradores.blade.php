@@ -77,9 +77,15 @@
                     <tr class="hover:bg-surface-container-low transition-colors group">
                         <td class="px-lg py-4">
                             <div class="flex items-center gap-md">
-                                <div class="w-8 h-8 rounded bg-primary-container text-on-primary-container flex items-center justify-center">
-                                    <span class="material-symbols-outlined text-sm">person</span>
-                                </div>
+                                @if($colaborador->foto_src)
+                                    <div class="w-10 h-10 rounded-full overflow-hidden border border-outline-variant flex-shrink-0 bg-white">
+                                        <img src="{{ $colaborador->foto_src }}" alt="{{ $colaborador->nombre }}" class="w-full h-full object-cover">
+                                    </div>
+                                @else
+                                    <div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center flex-shrink-0">
+                                        <span class="material-symbols-outlined text-sm">person</span>
+                                    </div>
+                                @endif
                                 <div>
                                     <span class="font-body-md font-semibold text-on-surface">{{ $colaborador->nombre }}</span>
                                     <div class="font-body-sm text-body-sm text-on-surface-variant">ID: #{{ $colaborador->id }}</div>
@@ -131,7 +137,32 @@
                 </h3>
                 <button type="button" wire:click="cerrarModal" class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors"><span class="material-symbols-outlined">close</span></button>
             </div>
-            <form wire:submit.prevent="guardar" class="p-lg space-y-md">
+            <form wire:submit.prevent="guardar" class="p-lg space-y-md" enctype="multipart/form-data">
+                <div class="flex flex-col items-center gap-sm pb-md border-b border-outline-variant">
+                    <div class="relative group">
+                        <div class="w-28 h-28 rounded-xl overflow-hidden border-2 border-dashed border-outline-variant bg-surface-container-low flex items-center justify-center">
+                            @if($fotoFile)
+                                <img src="{{ $fotoFile->temporaryUrl() }}" alt="Vista previa" class="w-full h-full object-cover">
+                            @elseif($fotoExistente)
+                                <img src="{{ asset('storage/' . ltrim(str_replace('\\', '/', $fotoExistente), '/')) }}" alt="Foto actual" class="w-full h-full object-cover">
+                            @else
+                                <span class="material-symbols-outlined text-outline text-[40px]">add_a_photo</span>
+                            @endif
+                        </div>
+                        <label class="absolute -bottom-2 -right-2 bg-primary text-on-primary p-2 rounded-full shadow-lg hover:scale-105 transition-transform cursor-pointer">
+                            <span class="material-symbols-outlined text-[18px]">edit</span>
+                            <input type="file" wire:model="fotoFile" accept="image/*" class="hidden">
+                        </label>
+                    </div>
+                    <p class="font-label-sm text-label-sm text-on-surface-variant">Foto del colaborador</p>
+                    @error('fotoFile') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
+                    @if($fotoExistente && !$fotoFile)
+                        <button type="button" wire:click="$set('fotoExistente', null)" class="font-label-sm text-label-sm text-error hover:underline">Quitar foto</button>
+                    @endif
+                    @if($fotoFile)
+                        <button type="button" wire:click="$set('fotoFile', null)" class="font-label-sm text-label-sm text-error hover:underline">Cancelar nueva foto</button>
+                    @endif
+                </div>
                 <div class="flex flex-col gap-xs">
                     <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Nombre *</label>
                     <input type="text" wire:model="nombre" class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md text-body-md text-on-surface">
