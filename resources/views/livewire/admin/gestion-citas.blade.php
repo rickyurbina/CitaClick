@@ -518,26 +518,20 @@
                                                 <button type="button"
                                                     wire:click="seleccionarFecha('{{ $dia['fecha'] }}')"
                                                     wire:loading.attr="disabled"
-                                                    @if($dia['esPasado'] || !$dia['disponible']) disabled @endif
                                                     class="aspect-square rounded-lg text-sm md:text-base transition-all duration-200 flex items-center justify-center relative
                                                         w-full h-full min-h-[44px] md:min-h-[40px]
                                                         {{ $dia['esSeleccionado'] ? 'bg-secondary text-on-secondary shadow-md scale-95' : '' }}
-                                                        {{ $dia['esHoy'] && !$dia['esSeleccionado'] && $dia['disponible'] ? 'border-2 border-secondary text-secondary font-bold hover:bg-secondary-container' : '' }}
-                                                        {{ $dia['disponible'] && !$dia['esSeleccionado'] && !$dia['esHoy'] ? 'border border-outline-variant hover:bg-secondary-container hover:border-secondary cursor-pointer text-on-surface active:scale-95' : '' }}
-                                                        {{ !$dia['disponible'] && !$dia['esPasado'] && !$dia['esSeleccionado'] ? 'bg-surface-container-low text-on-surface-variant cursor-not-allowed opacity-60' : '' }}
-                                                        {{ $dia['esPasado'] ? 'text-gray-300 cursor-not-allowed opacity-40 line-through' : '' }}
+                                                        {{ $dia['esHoy'] && !$dia['esSeleccionado'] ? 'border-2 border-secondary text-secondary font-bold hover:bg-secondary-container' : '' }}
+                                                        {{ !$dia['esSeleccionado'] && !$dia['esHoy'] ? 'border border-outline-variant hover:bg-secondary-container hover:border-secondary cursor-pointer text-on-surface active:scale-95' : '' }}
                                                         touch-manipulation
                                                         disabled:opacity-50
                                                     ">
                                                     {{ $dia['dia'] }}
-                                                    @if($dia['disponible'] && !$dia['esPasado'] && !$dia['esSeleccionado'])
+                                                    @if(!$dia['esSeleccionado'])
                                                         <span class="absolute -top-0.5 -right-0.5 w-3 h-3 md:w-2.5 md:h-2.5 bg-green-500 rounded-full border border-white shadow-sm"></span>
                                                     @endif
                                                     @if($dia['esSeleccionado'])
                                                         <span class="absolute -top-0.5 -right-0.5 w-3 h-3 md:w-2.5 md:h-2.5 bg-white rounded-full border-2 border-secondary"></span>
-                                                    @endif
-                                                    @if(!$dia['disponible'] && !$dia['esPasado'] && !$dia['esSeleccionado'])
-                                                        <span class="absolute -top-0.5 -right-0.5 w-3 h-3 md:w-2.5 md:h-2.5 bg-red-400 rounded-full border border-white shadow-sm"></span>
                                                     @endif
                                                 </button>
                                             @endif
@@ -551,16 +545,12 @@
                                             Seleccionado
                                         </span>
                                         <span class="flex items-center gap-1.5 font-body-sm text-body-sm text-on-surface-variant text-xs">
-                                            <span class="w-3 h-3 rounded-full border-2 border-outline-variant inline-block"></span>
+                                            <span class="w-3 h-3 rounded-full border-2 border-secondary inline-block"></span>
+                                            Hoy
+                                        </span>
+                                        <span class="flex items-center gap-1.5 font-body-sm text-body-sm text-on-surface-variant text-xs">
+                                            <span class="w-3 h-3 rounded-full border border-outline-variant inline-block"></span>
                                             Disponible
-                                        </span>
-                                        <span class="flex items-center gap-1.5 font-body-sm text-body-sm text-outline text-xs">
-                                            <span class="w-3 h-3 rounded-full bg-surface-container-low border border-outline-variant inline-block"></span>
-                                            Ocupado
-                                        </span>
-                                        <span class="flex items-center gap-1.5 font-body-sm text-body-sm text-gray-400 text-xs">
-                                            <span class="w-3 h-3 rounded-full border border-gray-300 bg-gray-100 inline-block"></span>
-                                            Pasado
                                         </span>
                                     </div>
                                 </div>

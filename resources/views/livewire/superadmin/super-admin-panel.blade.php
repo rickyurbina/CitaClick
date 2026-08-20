@@ -12,10 +12,24 @@
             </div>
 
             <nav class="flex-1 space-y-1">
-                <div class="flex items-center gap-md px-md py-sm font-label-md bg-secondary-container text-on-secondary-container border-l-4 border-primary">
+                <button type="button"
+                        wire:click="cambiarSeccion('dashboard')"
+                        class="w-full flex items-center gap-md px-md py-sm font-label-md transition-colors
+                            {{ $seccionActiva === 'dashboard'
+                                ? 'bg-secondary-container text-on-secondary-container border-l-4 border-primary'
+                                : 'text-on-surface-variant hover:bg-surface-container-high border-l-4 border-transparent' }}">
                     <span class="material-symbols-outlined">dashboard</span>
                     <span>Dashboard</span>
-                </div>
+                </button>
+                <button type="button"
+                        wire:click="cambiarSeccion('pagos')"
+                        class="w-full flex items-center gap-md px-md py-sm font-label-md transition-colors
+                            {{ $seccionActiva === 'pagos'
+                                ? 'bg-secondary-container text-on-secondary-container border-l-4 border-primary'
+                                : 'text-on-surface-variant hover:bg-surface-container-high border-l-4 border-transparent' }}">
+                    <span class="material-symbols-outlined">payments</span>
+                    <span>Pagos</span>
+                </button>
             </nav>
 
             <div class="mt-auto px-md py-lg border-t border-outline-variant">
@@ -39,7 +53,9 @@
 
         <header class="ml-64 flex justify-between items-center h-16 px-lg bg-surface-container-lowest sticky top-0 z-40 shadow-sm border-b border-outline-variant">
             <div class="flex items-center gap-xl flex-1">
-                <h2 class="font-headline-md text-headline-md text-primary font-bold">Panel Admin</h2>
+                <h2 class="font-headline-md text-headline-md text-primary font-bold">
+                    {{ $seccionActiva === 'pagos' ? 'Gestión de Pagos' : 'Panel Admin' }}
+                </h2>
             </div>
             <div class="flex items-center gap-md">
                 <div class="text-right hidden sm:block">
@@ -53,7 +69,11 @@
         </header>
 
         <main class="ml-64 p-lg">
-            <livewire:superadmin.dashboard wire:key="dashboard" />
+            @if($seccionActiva === 'dashboard')
+                <livewire:superadmin.dashboard wire:key="dashboard" />
+            @elseif($seccionActiva === 'pagos')
+                <livewire:superadmin.gestion-pagos wire:key="pagos" />
+            @endif
         </main>
     @else
         <div class="min-h-screen flex items-center justify-center p-md bg-surface"

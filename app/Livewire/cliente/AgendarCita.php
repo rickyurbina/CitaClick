@@ -115,8 +115,6 @@ class AgendarCita extends Component
 
     public function generarDiasCalendario()
     {
-        $diasDisponibles = $this->diasDisponibles;
-
         $fecha = Carbon::create($this->añoActual, $this->mesActual, 1);
         $ultimoDia = $fecha->copy()->endOfMonth()->day;
         $primerDiaSemana = $fecha->dayOfWeek;
@@ -127,25 +125,16 @@ class AgendarCita extends Component
             $dias[] = null;
         }
 
-        $hoy = Carbon::today();
         for ($i = 1; $i <= $ultimoDia; $i++) {
-            $fechaDia = Carbon::create($this->añoActual, $this->mesActual, $i);
+            $fechaDia = Carbon::create($this->añoActual, $this->mesActual, $i)->startOfDay();
             $fechaStr = $fechaDia->format('Y-m-d');
-
-            $disponible = false;
-            foreach ($diasDisponibles as $d) {
-                if ($d['fecha'] === $fechaStr) {
-                    $disponible = true;
-                    break;
-                }
-            }
 
             $dias[] = [
                 'dia' => $i,
                 'fecha' => $fechaStr,
-                'disponible' => $disponible,
+                'disponible' => true,
                 'esHoy' => $fechaDia->isToday(),
-                'esPasado' => $fechaDia->isPast() && !$fechaDia->isToday(),
+                'esPasado' => false,
                 'esSeleccionado' => $this->fecha === $fechaStr,
             ];
         }

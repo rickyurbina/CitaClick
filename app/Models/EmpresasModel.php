@@ -79,6 +79,11 @@ class EmpresasModel extends Model
         return $this->hasMany(NotificacionesModel::class, 'empresa_id');
     }
 
+    public function pagos(): HasMany
+    {
+        return $this->hasMany(PagoEmpresaModel::class, 'empresa_id');
+    }
+
     public function redenciones(): HasMany
     {
         return $this->hasMany(RedencionesPromocionModel::class, 'empresa_id');

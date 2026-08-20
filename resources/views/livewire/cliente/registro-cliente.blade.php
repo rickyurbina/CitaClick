@@ -113,8 +113,8 @@
                      
                      for (let i = 1; i <= ultimoDia; i++) {
                          const fechaDia = new Date(this.año, this.mes, i);
+                         fechaDia.setHours(0, 0, 0, 0);
                          const esHoy = fechaDia.getTime() === hoy.getTime();
-                         const esFuturo = fechaDia > hoy;
                          const esSeleccionado = fechaDia.getDate() === this.diaSeleccionado && 
                                                fechaDia.getMonth() === this.mes && 
                                                fechaDia.getFullYear() === this.año;
@@ -122,7 +122,7 @@
                          dias.push({
                              dia: i,
                              esHoy: esHoy,
-                             esFuturo: esFuturo,
+                             esFuturo: false,
                              esSeleccionado: esSeleccionado,
                              fecha: fechaDia,
                          });
@@ -132,10 +132,11 @@
                  },
 
                  seleccionarFecha(dia) {
-                     if (dia.esFuturo) return;
-                     
                      this.diaSeleccionado = dia.dia;
-                     this.fechaSeleccionada = dia.fecha.toISOString().split('T')[0];
+                     const y = dia.fecha.getFullYear();
+                     const m = String(dia.fecha.getMonth() + 1).padStart(2, '0');
+                     const d = String(dia.fecha.getDate()).padStart(2, '0');
+                     this.fechaSeleccionada = `${y}-${m}-${d}`;
                      this.fechaMostrar = dia.fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
                      
                      @this.set('fechaNacimiento', this.fechaSeleccionada);
@@ -215,13 +216,11 @@
                                 <template x-if="dia !== null">
                                     <button type="button"
                                             @click="seleccionarFecha(dia)"
-                                            :disabled="dia.esFuturo"
                                             class="w-full h-full rounded-lg text-sm transition-all duration-200 flex items-center justify-center"
                                             :class="{
                                                 'bg-green-600 text-white hover:bg-green-700 shadow-md scale-95': dia.esSeleccionado,
                                                 'border-2 border-green-600 text-green-600 hover:bg-green-50': dia.esHoy && !dia.esSeleccionado,
-                                                'text-gray-300 cursor-not-allowed opacity-40': dia.esFuturo,
-                                                'hover:bg-gray-100 hover:scale-105 text-gray-800': !dia.esFuturo && !dia.esSeleccionado && !dia.esHoy
+                                                'hover:bg-gray-100 hover:scale-105 text-gray-800': !dia.esSeleccionado && !dia.esHoy
                                             }"
                                             x-text="dia.dia">
                                     </button>
@@ -238,10 +237,6 @@
                         <span class="flex items-center gap-1 text-xs text-gray-600">
                             <span class="w-3 h-3 rounded-full border-2 border-green-600 inline-block"></span>
                             Hoy
-                        </span>
-                        <span class="flex items-center gap-1 text-xs text-gray-400">
-                            <span class="w-3 h-3 rounded-full bg-gray-100 border border-gray-200 inline-block"></span>
-                            No disponible
                         </span>
                     </div>
                 </div>

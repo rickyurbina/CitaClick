@@ -128,6 +128,19 @@ class SuperAdminPanel extends Component
         $this->dispatch('logout-success');
     }
 
+    public function cambiarSeccion(string $seccion)
+    {
+        if (! $this->isAuthenticated) {
+            return;
+        }
+
+        $seccionesPermitidas = ['dashboard', 'pagos'];
+        if (in_array($seccion, $seccionesPermitidas, true)) {
+            $this->seccionActiva = $seccion;
+            $this->dispatch('cambiar-seccion', seccion: $seccion);
+        }
+    }
+
     public function render()
     {
         return view('livewire.superadmin.super-admin-panel', [
