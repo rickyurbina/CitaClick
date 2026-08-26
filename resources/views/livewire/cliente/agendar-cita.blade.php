@@ -85,21 +85,33 @@
             {{-- SERVICIO --}}
             <div class="space-y-xs">
                 <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Servicio *</label>
-                <div class="focus-ring flex items-center bg-surface border border-outline-variant rounded-lg transition-all duration-200">
-                    <div class="px-md flex items-center border-r border-outline-variant bg-surface-container-low rounded-l-lg h-12">
-                        <span class="material-symbols-outlined text-on-surface-variant" style="font-size: 20px;">spa</span>
-                    </div>
-                    {{-- CAMBIADO: wire:model.live con debounce de 300ms --}}
-                    <select wire:model.live.debounce.300ms="servicioId"
-                            class="w-full h-12 px-md bg-transparent border-none focus:ring-0 font-body-md text-body-md text-on-surface appearance-none cursor-pointer">
-                        <option value="">Seleccionar servicio</option>
-                        @foreach($servicios as $servicio)
-                            <option value="{{ $servicio->id }}">
-                                {{ $servicio->nombre }} - ${{ number_format($servicio->precio, 2) }}
-                                ({{ $servicio->duracion_minutos }} min)
-                            </option>
-                        @endforeach
-                    </select>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    @forelse($servicios as $servicio)
+                        <button type="button"
+                            wire:click="$set('servicioId', {{ $servicio->id }})"
+                            class="rounded-lg font-body-sm text-sm transition-all duration-200 text-center touch-manipulation overflow-hidden flex flex-col
+                                {{ (string) $servicioId === (string) $servicio->id
+                                    ? 'bg-secondary text-on-secondary shadow-md scale-[0.98] font-semibold ring-2 ring-secondary'
+                                    : 'border border-outline-variant hover:bg-secondary-container hover:border-secondary text-on-surface active:scale-95' }}">
+                            @if($servicio->imagen_src)
+                                <div class="w-full aspect-[4/3] bg-surface-container-low overflow-hidden">
+                                    <img src="{{ $servicio->imagen_src }}"
+                                         alt="{{ $servicio->nombre }}"
+                                         class="w-full h-full object-cover {{ (string) $servicioId === (string) $servicio->id ? 'opacity-95' : '' }}">
+                                </div>
+                            @endif
+                            <div class="p-2.5 md:p-2 flex flex-col gap-0.5 min-h-[72px] justify-center">
+                                <span class="leading-tight">{{ $servicio->nombre }}</span>
+                                <span class="text-xs opacity-80 font-normal">
+                                    ${{ number_format($servicio->precio, 2) }} · {{ $servicio->duracion_minutos }} min
+                                </span>
+                            </div>
+                        </button>
+                    @empty
+                        <div class="col-span-full bg-surface-container-low border border-outline-variant rounded-lg p-md text-center text-on-surface-variant">
+                            <p class="font-body-sm text-body-sm">No hay servicios disponibles.</p>
+                        </div>
+                    @endforelse
                 </div>
                 @error('servicioId') <span class="font-body-sm text-body-sm text-error block">{{ $message }}</span> @enderror
             </div>
@@ -107,19 +119,43 @@
             {{-- COLABORADOR --}}
             <div class="space-y-xs">
                 <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Colaborador *</label>
-                <div class="focus-ring flex items-center bg-surface border border-outline-variant rounded-lg transition-all duration-200">
-                    <div class="px-md flex items-center border-r border-outline-variant bg-surface-container-low rounded-l-lg h-12">
-                        <span class="material-symbols-outlined text-on-surface-variant" style="font-size: 20px;">badge</span>
+                @if(!$servicioId)
+                    <div class="bg-surface-container-low border border-outline-variant rounded-lg p-md text-center text-on-surface-variant">
+                        <span class="material-symbols-outlined text-[24px] block mx-auto mb-xs">badge</span>
+                        <p class="font-body-sm text-body-sm">Selecciona un servicio para ver los colaboradores.</p>
                     </div>
-                    {{-- CAMBIADO: wire:model.live con debounce de 300ms --}}
-                    <select wire:model.live.debounce.300ms="colaboradorId"
-                            class="w-full h-12 px-md bg-transparent border-none focus:ring-0 font-body-md text-body-md text-on-surface appearance-none cursor-pointer">
-                        <option value="">Seleccionar colaborador</option>
-                        @foreach($colaboradores as $colaborador)
-                            <option value="{{ $colaborador->id }}">{{ $colaborador->nombre }}</option>
-                        @endforeach
-                    </select>
-                </div>
+                @else
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        @forelse($colaboradores as $colaborador)
+                            <button type="button"
+                                wire:click="$set('colaboradorId', {{ $colaborador->id }})"
+                                class="rounded-lg font-body-sm text-sm transition-all duration-200 text-center touch-manipulation overflow-hidden flex flex-col items-center
+                                    {{ (string) $colaboradorId === (string) $colaborador->id
+                                        ? 'bg-secondary text-on-secondary shadow-md scale-[0.98] font-semibold ring-2 ring-secondary'
+                                        : 'border border-outline-variant hover:bg-secondary-container hover:border-secondary text-on-surface active:scale-95' }}">
+                                <div class="pt-3 px-3">
+                                    <div class="w-16 h-16 rounded-full overflow-hidden bg-surface-container-high border border-outline-variant/60 flex items-center justify-center mx-auto
+                                        {{ (string) $colaboradorId === (string) $colaborador->id ? 'border-on-secondary/40' : '' }}">
+                                        @if($colaborador->foto_src)
+                                            <img src="{{ $colaborador->foto_src }}"
+                                                 alt="{{ $colaborador->nombre }}"
+                                                 class="w-full h-full object-cover">
+                                        @else
+                                            <span class="material-symbols-outlined text-[32px] {{ (string) $colaboradorId === (string) $colaborador->id ? 'text-on-secondary/80' : 'text-on-surface-variant' }}">person</span>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="p-2.5 md:p-2 w-full">
+                                    <span class="leading-tight block">{{ $colaborador->nombre }}</span>
+                                </div>
+                            </button>
+                        @empty
+                            <div class="col-span-full bg-surface-container-low border border-outline-variant rounded-lg p-md text-center text-on-surface-variant">
+                                <p class="font-body-sm text-body-sm">No hay colaboradores para este servicio.</p>
+                            </div>
+                        @endforelse
+                    </div>
+                @endif
                 @error('colaboradorId') <span class="font-body-sm text-body-sm text-error block">{{ $message }}</span> @enderror
             </div>
 

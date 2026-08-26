@@ -93,7 +93,7 @@ class AgendarCita extends Component
         return ServiciosModel::where('empresa_id', $this->empresa->id)
             ->where('activo', 1)
             ->orderBy('nombre')
-            ->get(['id', 'nombre', 'precio', 'duracion_minutos']);
+            ->get();
     }
 
     public function getColaboradoresProperty()
@@ -108,7 +108,7 @@ class AgendarCita extends Component
             });
         }
 
-        return $query->orderBy('nombre')->get(['id', 'nombre']);
+        return $query->orderBy('nombre')->get();
     }
 
     // ==================== GENERAR CALENDARIO ====================

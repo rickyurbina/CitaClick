@@ -6,12 +6,16 @@ use App\Models\EmpresasModel;
 use App\Models\ServiciosModel;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 class GestionServicios extends Component
 {
     use WithPagination;
+    use WithFileUploads;
 
     protected $paginationTheme = 'tailwind';
 
@@ -27,6 +31,8 @@ class GestionServicios extends Component
     public $precio = '';
     public $puntos = 10;
     public $activo = true;
+    public $imagenFile = null;
+    public $imagenExistente = null;
 
     public $cargando = false;
 
@@ -83,6 +89,7 @@ class GestionServicios extends Component
             'precio' => 'required|numeric|min:0',
             'puntos' => 'nullable|integer|min:0',
             'activo' => 'boolean',
+            'imagenFile' => 'nullable|image|max:2048|mimes:jpeg,png,jpg,gif,svg,webp',
         ];
     }
 
@@ -95,6 +102,9 @@ class GestionServicios extends Component
             'precio.required' => 'El precio es obligatorio.',
             'precio.min' => 'El precio no puede ser negativo.',
             'puntos.min' => 'Los puntos no pueden ser negativos.',
+            'imagenFile.image' => 'El archivo debe ser una imagen.',
+            'imagenFile.max' => 'La imagen no puede pesar más de 2MB.',
+            'imagenFile.mimes' => 'La imagen debe ser jpeg, png, jpg, gif, svg o webp.',
         ];
     }
 
@@ -122,6 +132,8 @@ class GestionServicios extends Component
         $this->precio = $servicio->precio;
         $this->puntos = $servicio->puntos_genera;
         $this->activo = (bool) $servicio->activo;
+        $this->imagenExistente = $servicio->getRawOriginal('imagen_url');
+        $this->imagenFile = null;
         $this->mostrarModal = true;
     }
 
@@ -140,6 +152,15 @@ class GestionServicios extends Component
                 'puntos_genera' => $this->puntos ?: 0,
                 'activo' => $this->activo,
             ];
+
+            if ($this->imagenFile) {
+                if ($this->imagenExistente) {
+                    $this->eliminarImagen($this->imagenExistente);
+                }
+                $datos['imagen_url'] = $this->guardarImagen($this->imagenFile);
+            } else {
+                $datos['imagen_url'] = $this->imagenExistente;
+            }
 
             if ($this->servicioIdEditar) {
                 ServiciosModel::where('id', $this->servicioIdEditar)
@@ -176,9 +197,13 @@ class GestionServicios extends Component
                 return;
             }
             DB::beginTransaction();
-            ServiciosModel::where('id', $id)
+            $servicio = ServiciosModel::where('id', $id)
                 ->where('empresa_id', $this->empresa->id)
-                ->delete();
+                ->first();
+            if ($servicio) {
+                $this->eliminarImagen($servicio->getRawOriginal('imagen_url'));
+                $servicio->delete();
+            }
             DB::commit();
             $this->dispatch('mostrar-mensaje', mensaje: 'Servicio eliminado correctamente.', tipo: 'success');
             $this->resetPage();
@@ -212,7 +237,23 @@ class GestionServicios extends Component
         $this->precio = '';
         $this->puntos = 10;
         $this->activo = true;
+        $this->imagenFile = null;
+        $this->imagenExistente = null;
         $this->resetErrorBag();
+    }
+
+    protected function guardarImagen($file): string
+    {
+        $nombre = Str::slug($this->nombre) . '-' . time() . '.' . $file->getClientOriginalExtension();
+
+        return $file->storeAs('servicios', $nombre, 'public');
+    }
+
+    protected function eliminarImagen(?string $path): void
+    {
+        if ($path && Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
     }
 
     public function cerrarModal()

@@ -17,6 +17,7 @@ class ServiciosModel extends Model
     protected $fillable = [
         'empresa_id',
         'nombre',
+        'imagen_url',
         'duracion_minutos',
         'precio',
         'puntos_genera',
@@ -122,6 +123,25 @@ class ServiciosModel extends Model
     public function getPrecioFormateadoAttribute(): string
     {
         return '$' . number_format($this->precio, 2, ',', '.');
+    }
+
+    public function getImagenSrcAttribute(): ?string
+    {
+        $value = $this->attributes['imagen_url'] ?? null;
+
+        if (!$value) {
+            return null;
+        }
+
+        if (filter_var($value, FILTER_VALIDATE_URL)) {
+            return $value;
+        }
+
+        $path = str_starts_with($value, 'storage/')
+            ? substr($value, 8)
+            : ltrim($value, '/');
+
+        return asset('storage/' . $path);
     }
 
     public function getDuracionLabelAttribute(): string
