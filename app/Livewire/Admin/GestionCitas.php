@@ -250,18 +250,66 @@ class GestionCitas extends Component
 
     public function getIngresoColaboradorProperty()
     {
+        return $this->calcularIngresoColaborador(
+            Carbon::today()->startOfDay(),
+            Carbon::today()->endOfDay()
+        );
+    }
+
+    public function getIngresoColaboradorDiaProperty()
+    {
+        return $this->calcularIngresoColaborador(
+            Carbon::today()->startOfDay(),
+            Carbon::today()->endOfDay()
+        );
+    }
+
+    public function getIngresoColaboradorSemanaProperty()
+    {
+        return $this->calcularIngresoColaborador(
+            Carbon::today()->startOfWeek(),
+            Carbon::today()->endOfWeek()
+        );
+    }
+
+    public function getIngresoColaboradorMesProperty()
+    {
+        return $this->calcularIngresoColaborador(
+            Carbon::today()->startOfMonth(),
+            Carbon::today()->endOfMonth()
+        );
+    }
+
+    private function calcularIngresoColaborador(Carbon $desde, Carbon $hasta): float
+    {
         if (!$this->esColaborador) {
             return 0;
         }
+
+        $desde = $desde->copy()->startOfDay();
+        $hasta = $hasta->copy()->endOfDay();
+
+        $ingresoComisiones = (float) ComisionesModel::where('empresa_id', $this->empresa->id)
+            ->where('colaborador_id', $this->usuarioId)
+            ->whereBetween('created_at', [$desde, $hasta])
+            ->sum('monto');
+
+        if ($ingresoComisiones > 0) {
+            return $ingresoComisiones;
+        }
+
         $colaborador = User::find($this->usuarioId);
         if (!$colaborador || !$colaborador->comision_porcentaje) {
             return 0;
         }
+
         $totalVentas = CitasModel::where('empresa_id', $this->empresa->id)
             ->where('colaborador_id', $this->usuarioId)
             ->where('pagado', 1)
+            ->whereBetween('fecha_pago', [$desde->toDateString(), $hasta->toDateString()])
             ->sum('monto_pagado');
-        return $totalVentas * ($colaborador->comision_porcentaje / 100);
+
+        return (float) $totalVentas * ($colaborador->comision_porcentaje / 100);
     }
 
     public function getCitasListProperty()
@@ -1327,6 +1375,9 @@ class GestionCitas extends Component
             'totalCitasColaborador' => $this->totalCitasColaborador,
             'citasPendientesColaborador' => $this->citasPendientesColaborador,
             'ingresoColaborador' => $this->ingresoColaborador,
+            'ingresoColaboradorDia' => $this->ingresoColaboradorDia,
+            'ingresoColaboradorSemana' => $this->ingresoColaboradorSemana,
+            'ingresoColaboradorMes' => $this->ingresoColaboradorMes,
             'citasHoyAgendadas' => $this->citasHoyAgendadas,
             'citasAtendidasHoy' => $this->citasAtendidasHoy,
             'citasManana' => $this->citasManana,

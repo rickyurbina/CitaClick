@@ -39,28 +39,44 @@
     @endif
 
     @if($esColaborador)
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-lg mb-2xl">
-            <div class="bg-surface p-lg rounded-xl border border-outline-variant col-span-1 shadow-sm">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-lg mb-lg">
+            <div class="bg-surface p-lg rounded-xl border border-outline-variant shadow-sm">
                 <div class="flex items-center justify-between mb-sm">
                     <span class="text-on-surface-variant font-label-sm text-label-sm">Mis Citas de Hoy</span>
                     <span class="material-symbols-outlined text-secondary">event_note</span>
                 </div>
                 <div class="font-headline-lg text-headline-lg text-primary">{{ $totalCitasColaborador }}</div>
             </div>
-            <div class="bg-surface p-lg rounded-xl border border-outline-variant col-span-1 shadow-sm">
+            <div class="bg-surface p-lg rounded-xl border border-outline-variant shadow-sm">
                 <div class="flex items-center justify-between mb-sm">
                     <span class="text-on-surface-variant font-label-sm text-label-sm">Pendientes</span>
                     <span class="material-symbols-outlined text-secondary">hourglass_top</span>
                 </div>
                 <div class="font-headline-lg text-headline-lg text-primary">{{ $citasPendientesColaborador }}</div>
             </div>
-            <div class="bg-surface p-lg rounded-xl border-2 border-secondary col-span-1 shadow-sm relative overflow-hidden">
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-lg mb-2xl">
+            <div class="bg-surface p-lg rounded-xl border border-outline-variant shadow-sm">
+                <div class="flex items-center justify-between mb-sm">
+                    <span class="text-on-surface-variant font-label-sm text-label-sm">Ingreso diario</span>
+                    <span class="material-symbols-outlined text-secondary">today</span>
+                </div>
+                <div class="font-headline-md text-headline-md text-secondary font-extrabold">${{ number_format($ingresoColaboradorDia, 2) }}</div>
+            </div>
+            <div class="bg-surface p-lg rounded-xl border border-outline-variant shadow-sm">
+                <div class="flex items-center justify-between mb-sm">
+                    <span class="text-on-surface-variant font-label-sm text-label-sm">Ingreso semanal</span>
+                    <span class="material-symbols-outlined text-secondary">date_range</span>
+                </div>
+                <div class="font-headline-md text-headline-md text-secondary font-extrabold">${{ number_format($ingresoColaboradorSemana, 2) }}</div>
+            </div>
+            <div class="bg-surface p-lg rounded-xl border-2 border-secondary shadow-sm relative overflow-hidden">
                 <div class="absolute top-0 right-0 w-32 h-32 -mr-16 -mt-16 bg-secondary opacity-5 rounded-full"></div>
                 <div class="flex items-center justify-between mb-sm">
-                    <span class="text-on-surface-variant font-label-sm text-label-sm">Mi Ingreso</span>
+                    <span class="text-on-surface-variant font-label-sm text-label-sm">Ingreso mensual</span>
                     <span class="material-symbols-outlined text-secondary">payments</span>
                 </div>
-                <div class="font-headline-md text-headline-md text-secondary font-extrabold">${{ number_format($ingresoColaborador, 2) }}</div>
+                <div class="font-headline-md text-headline-md text-secondary font-extrabold">${{ number_format($ingresoColaboradorMes, 2) }}</div>
             </div>
         </div>
     @endif

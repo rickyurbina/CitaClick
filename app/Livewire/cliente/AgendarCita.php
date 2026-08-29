@@ -677,16 +677,25 @@ class AgendarCita extends Component
 
             $this->cargarHistorial();
 
-            $this->dispatch('mostrar-mensaje', mensaje: '¡Cita agendada correctamente! Te esperamos el ' . date('d/m/Y', strtotime($this->fecha)) . ' a las ' . $this->horaInicio, tipo: 'success');
-
-            // Recargar horas disponibles para la misma fecha (bloquea la hora recién ocupada)
-            $this->cargarHorasDisponibles();
+            $this->reset([
+                'servicioId',
+                'colaboradorId',
+                'horaInicio',
+                'nombreAcompanante',
+                'observaciones',
+                'fecha',
+            ]);
+            $this->horasDisponibles = [];
+            $this->diasDisponibles = [];
+            $this->duracionServicio = 0;
+            $this->mesActual = now()->month;
+            $this->añoActual = now()->year;
             $this->generarCalendario();
 
-            // Limpiar solo la hora seleccionada
-            $this->horaInicio = '';
-            $this->nombreAcompanante = '';
-            $this->observaciones = '';
+            $this->mostrarHistorial = true;
+            $this->mostrarFormulario = false;
+
+            $this->dispatch('mostrar-mensaje', mensaje: '¡Cita agendada correctamente! Te esperamos el ' . date('d/m/Y', strtotime($cita->fecha instanceof \Carbon\Carbon ? $cita->fecha->format('Y-m-d') : $cita->fecha)) . ' a las ' . substr($cita->hora_inicio, 0, 5), tipo: 'success');
 
         } catch (\Exception $e) {
             DB::rollBack();
