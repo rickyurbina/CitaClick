@@ -96,7 +96,27 @@
                             <div class="font-body-md text-body-md text-on-surface">{{ $colaborador->email }}</div>
                             <div class="font-body-sm text-body-sm text-on-surface-variant">{{ $colaborador->telefono ?? 'Sin teléfono' }}</div>
                         </td>
-                        <td class="px-lg py-4 font-body-md text-body-md text-on-surface-variant">{{ $colaborador->horario_inicio }} - {{ $colaborador->horario_fin }}</td>
+                        <td class="px-lg py-4 font-body-md text-body-md text-on-surface-variant">
+                            @php
+                                $horario = $colaborador->horario;
+                                $diasActivos = [];
+                                if ($horario) {
+                                    foreach ($horario->configuracion as $dia => $data) {
+                                        if ($data['activo']) {
+                                            $diasActivos[] = ucfirst($dia) . ' ' . $data['inicio'] . '-' . $data['fin'];
+                                        }
+                                    }
+                                }
+                            @endphp
+                            @if(count($diasActivos) > 0)
+                                <span class="block text-xs">{{ implode(', ', array_slice($diasActivos, 0, 2)) }}</span>
+                                @if(count($diasActivos) > 2)
+                                    <span class="text-xs text-on-surface-variant">+{{ count($diasActivos)-2 }} más</span>
+                                @endif
+                            @else
+                                <span class="text-on-surface-variant">No definido</span>
+                            @endif
+                        </td>
                         <td class="px-lg py-4 font-body-md text-body-md text-on-surface">{{ $colaborador->comision_porcentaje ? $colaborador->comision_porcentaje . '%' : 'N/A' }}</td>
                         <td class="px-lg py-4">
                             <span class="px-3 py-1 rounded-full text-xs font-medium @if($colaborador->activo) bg-secondary-container text-on-secondary-container @else bg-error-container text-on-error-container @endif">
@@ -129,7 +149,7 @@
          x-data="{ open: true }"
          x-init="$watch('open', value => { if (!value) @this.cerrarModal(); })"
          @click.away="open = false">
-        <div class="bg-surface-container-lowest rounded-xl border border-outline-variant max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-lg">
+        <div class="bg-surface-container-lowest rounded-xl border border-outline-variant max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-lg">
             <div class="sticky top-0 bg-surface-container-lowest z-10 px-lg py-md border-b border-outline-variant flex justify-between items-center">
                 <h3 class="font-headline-md text-headline-md text-on-surface flex items-center gap-2">
                     <span class="material-symbols-outlined text-secondary">{{ $colaboradorIdEditar ? 'edit' : 'person_add' }}</span>
@@ -163,44 +183,80 @@
                         <button type="button" wire:click="$set('fotoFile', null)" class="font-label-sm text-label-sm text-error hover:underline">Cancelar nueva foto</button>
                     @endif
                 </div>
-                <div class="flex flex-col gap-xs">
-                    <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Nombre *</label>
-                    <input type="text" wire:model="nombre" class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md text-body-md text-on-surface">
-                    @error('nombre') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
-                </div>
-                <div class="flex flex-col gap-xs">
-                    <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Email *</label>
-                    <input type="email" wire:model="email" class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md text-body-md text-on-surface">
-                    @error('email') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
-                </div>
-                <div class="flex flex-col gap-xs">
-                    <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Teléfono</label>
-                    <input type="tel" wire:model="telefono" class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md text-body-md text-on-surface">
-                    @error('telefono') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
-                </div>
-                <div class="flex flex-col gap-xs">
-                    <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">{{ $colaboradorIdEditar ? 'Nueva Contraseña (opcional)' : 'Contraseña *' }}</label>
-                    <input type="password" wire:model="password" class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md text-body-md text-on-surface">
-                    @error('password') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
-                    @if($colaboradorIdEditar)<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Dejar en blanco para mantener la actual</p>@endif
-                </div>
-                <div class="flex flex-col gap-xs">
-                    <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Comisión (%)</label>
-                    <input type="number" step="0.01" min="0" max="100" wire:model="comision" class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md text-body-md text-on-surface" placeholder="Ej: 10">
-                    @error('comision') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
-                </div>
-                <div class="grid grid-cols-2 gap-md">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
                     <div class="flex flex-col gap-xs">
-                        <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Hora inicio</label>
-                        <input type="time" wire:model="horarioInicio" class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md text-body-md text-on-surface">
-                        @error('horarioInicio') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
+                        <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Nombre *</label>
+                        <input type="text" wire:model="nombre" class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md text-body-md text-on-surface">
+                        @error('nombre') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                     </div>
                     <div class="flex flex-col gap-xs">
-                        <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Hora fin</label>
-                        <input type="time" wire:model="horarioFin" class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md text-body-md text-on-surface">
-                        @error('horarioFin') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
+                        <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Email *</label>
+                        <input type="email" wire:model="email" class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md text-body-md text-on-surface">
+                        @error('email') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                     </div>
                 </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+                    <div class="flex flex-col gap-xs">
+                        <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Teléfono</label>
+                        <input type="tel" wire:model="telefono" class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md text-body-md text-on-surface">
+                        @error('telefono') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="flex flex-col gap-xs">
+                        <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">{{ $colaboradorIdEditar ? 'Nueva Contraseña (opcional)' : 'Contraseña *' }}</label>
+                        <input type="password" wire:model="password" class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md text-body-md text-on-surface">
+                        @error('password') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
+                        @if($colaboradorIdEditar)<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Dejar en blanco para mantener la actual</p>@endif
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+                    <div class="flex flex-col gap-xs">
+                        <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Comisión (%)</label>
+                        <input type="number" step="0.01" min="0" max="100" wire:model="comision" class="w-full h-12 px-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md text-body-md text-on-surface" placeholder="Ej: 10">
+                        @error('comision') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="flex items-center gap-2 mt-6">
+                        <input type="checkbox" wire:model="activo" id="activo" class="w-4 h-4 text-secondary border-outline-variant rounded focus:ring-secondary">
+                        <label for="activo" class="font-body-sm text-body-sm text-on-surface">Activo</label>
+                    </div>
+                </div>
+
+                {{-- NUEVO: Horario semanal --}}
+                <div class="border-t border-outline-variant pt-md">
+                    <h4 class="font-label-md text-label-md text-on-surface mb-sm">Horario semanal</h4>
+                    <p class="font-body-sm text-body-sm text-on-surface-variant mb-md">Selecciona los días que trabaja y sus horarios.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        @php
+                            $diasEspañol = [
+                                'lunes' => 'Lunes',
+                                'martes' => 'Martes',
+                                'miercoles' => 'Miércoles',
+                                'jueves' => 'Jueves',
+                                'viernes' => 'Viernes',
+                                'sabado' => 'Sábado',
+                                'domingo' => 'Domingo',
+                            ];
+                        @endphp
+                        @foreach($diasEspañol as $key => $label)
+                        <div class="p-2 border border-outline-variant rounded-lg bg-surface-container-low">
+                            <div class="flex items-center gap-2 mb-1">
+                                <input type="checkbox" wire:model="diasHorario.{{ $key }}.activo" id="dia_{{ $key }}" class="rounded border-outline-variant text-secondary focus:ring-secondary">
+                                <label for="dia_{{ $key }}" class="font-label-sm text-label-sm text-on-surface">{{ $label }}</label>
+                            </div>
+                            <div class="flex items-center gap-1 text-xs">
+                                <input type="time" wire:model="diasHorario.{{ $key }}.inicio" class="w-full border border-outline-variant rounded px-1 py-1 bg-white" {{ $diasHorario[$key]['activo'] ? '' : 'disabled' }}>
+                                <span class="text-on-surface-variant">-</span>
+                                <input type="time" wire:model="diasHorario.{{ $key }}.fin" class="w-full border border-outline-variant rounded px-1 py-1 bg-white" {{ $diasHorario[$key]['activo'] ? '' : 'disabled' }}>
+                            </div>
+                            @error("diasHorario.$key.inicio") <span class="text-error text-xs">{{ $message }}</span> @enderror
+                            @error("diasHorario.$key.fin") <span class="text-error text-xs">{{ $message }}</span> @enderror
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+
                 <div class="flex flex-col gap-xs">
                     <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Servicios que realiza *</label>
                     <p class="font-body-sm text-body-sm text-on-surface-variant mb-2">Selecciona al menos un servicio</p>
@@ -215,10 +271,7 @@
                     </div>
                     @error('serviciosSeleccionados') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                 </div>
-                <div class="flex items-center gap-2">
-                    <input type="checkbox" wire:model="activo" id="activo" class="w-4 h-4 text-secondary border-outline-variant rounded focus:ring-secondary">
-                    <label for="activo" class="font-body-sm text-body-sm text-on-surface">Activo</label>
-                </div>
+
                 <div class="flex justify-end gap-sm pt-md border-t border-outline-variant">
                     <button type="button" wire:click="cerrarModal" class="px-lg py-sm rounded-lg border border-outline-variant text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high transition-colors">Cancelar</button>
                     <button type="submit" class="px-lg py-sm rounded-lg bg-secondary text-on-secondary font-label-md text-label-md hover:opacity-90 transition-opacity" wire:loading.attr="disabled">

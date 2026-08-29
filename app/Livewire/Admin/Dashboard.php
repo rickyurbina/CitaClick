@@ -8,173 +8,186 @@ use App\Models\ComisionesModel;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class Dashboard extends Component
 {
     public EmpresasModel $empresa;
-    public string $periodo = 'semana';
+    public string $periodo = 'dia';
 
-    public function getStatsProperty()
+    public $citasHoy = 0;
+    public $ingresosHoy = 0;
+    public $efectivoHoy = 0;
+    public $gananciaNeta = 0;
+    public $citasPorDia = [];
+    public $ingresosPorDia = [];
+    public $labels = [];
+    public $topColaboradores = [];
+    public $ultimasCitas = [];
+
+    public function mount()
     {
-        $today = Carbon::today();
-        $userId = Auth::guard('web')->user()->id;
-        $rol = Auth::guard('web')->user()->rol;
-
-        $query = CitasModel::where('empresa_id', $this->empresa->id);
-
-        if ($rol === 'colaborador') {
-            $query->where('colaborador_id', $userId);
-        }
-
-        // ============================================================
-        // 👈 CORREGIDO: Usar fecha_pago para ingresos
-        // ============================================================
-
-        // Citas de hoy (seguimos usando fecha porque es la fecha de la cita)
-        $citasHoy = (clone $query)->whereDate('fecha', $today)->count();
-
-        // 👈 INGRESOS DE HOY: Usar fecha_pago
-        $ingresosHoy = 0;
-        $efectivoHoy = 0;
-        if (in_array($rol, ['empresa_admin', 'recepcionista', 'super_admin'])) {
-            $ingresosHoy = (clone $query)
-                ->whereDate('fecha_pago', $today)  // 👈 CAMBIADO: fecha_pago
-                ->where('pagado', 1)
-                ->sum('monto_pagado');
-
-            $efectivoHoy = (clone $query)
-                ->whereDate('fecha_pago', $today)  // 👈 CAMBIADO: fecha_pago
-                ->where('pagado', 1)
-                ->where('metodo_pago', 'efectivo')
-                ->sum('monto_pagado');
-        }
-
-        // Comisiones (solo admin)
-        $comisionesHoy = 0;
-        if (in_array($rol, ['empresa_admin', 'super_admin'])) {
-            $comisionesHoy = ComisionesModel::where('empresa_id', $this->empresa->id)
-                ->whereDate('created_at', $today)
-                ->where('estatus', 'pagada')
-                ->sum('monto');
-        }
-
-        // Mi comisión (colaborador)
-        $miComisionHoy = 0;
-        if ($rol === 'colaborador') {
-            $miComisionHoy = ComisionesModel::where('empresa_id', $this->empresa->id)
-                ->where('colaborador_id', $userId)
-                ->whereDate('created_at', $today)
-                ->sum('monto');
-        }
-
-        // Citas por estado (solo admin/recepcionista)
-        $citasPorEstado = [];
-        if (in_array($rol, ['empresa_admin', 'recepcionista', 'super_admin'])) {
-            $citasPorEstado = (clone $query)
-                ->whereDate('fecha', $today)
-                ->select('estado', DB::raw('count(*) as total'))
-                ->groupBy('estado')
-                ->pluck('total', 'estado')
-                ->toArray();
-        }
-
-        // Top colaboradores (solo admin)
-        $topColaboradores = [];
-        if (in_array($rol, ['empresa_admin', 'super_admin'])) {
-            $topColaboradores = User::where('empresa_id', $this->empresa->id)
-                ->where('rol', 'colaborador')
-                ->where('activo', 1)
-                ->withSum(['citas' => function($q) {
-                    $q->where('pagado', 1)
-                      ->whereDate('fecha_pago', '>=', Carbon::now()->subDays(30));  // 👈 CAMBIADO: fecha_pago
-                }], 'monto_pagado')
-                ->orderBy('citas_sum_monto_pagado', 'desc')
-                ->limit(5)
-                ->get(['id', 'nombre', 'comision_porcentaje']);
-        }
-
-        // Últimas citas
-        $ultimasCitas = (clone $query)
-            ->with(['cliente:id,nombre,telefono', 
-                    'servicio:id,nombre,precio',
-                    'colaborador:id,nombre'])
-            ->orderBy('created_at', 'desc')
-            ->limit(10)
-            ->get();
-
-        // Datos para gráfica
-        if ($this->periodo === 'semana') {
-            $fechas = collect(range(6, 0))->map(fn($d) => Carbon::today()->subDays($d));
-        } elseif ($this->periodo === 'mes') {
-            $fechas = collect(range(29, 0))->map(fn($d) => Carbon::today()->subDays($d));
-        } else {
-            $fechas = collect(range(11, 0))->map(fn($m) => Carbon::today()->subMonths($m));
-        }
-
-        $citasPorDia = [];
-        $ingresosPorDia = [];
-
-        foreach ($fechas as $fecha) {
-            $dia = $fecha->format('Y-m-d');
-            
-            // Citas del día (por fecha de cita)
-            $citasPorDia[$dia] = (clone $query)
-                ->whereDate('fecha', $fecha)
-                ->count();
-            
-            // 👈 Ingresos del día (por fecha de pago)
-            $ingresosPorDia[$dia] = (clone $query)
-                ->whereDate('fecha_pago', $fecha)  // 👈 CAMBIADO: fecha_pago
-                ->where('pagado', 1)
-                ->sum('monto_pagado');
-        }
-
-        // Mis citas (colaborador)
-        $misCitasHoy = 0;
-        $misCitasPendientes = 0;
-        if ($rol === 'colaborador') {
-            $misCitasHoy = CitasModel::where('empresa_id', $this->empresa->id)
-                ->where('colaborador_id', $userId)
-                ->whereDate('fecha', $today)
-                ->count();
-
-            $misCitasPendientes = CitasModel::where('empresa_id', $this->empresa->id)
-                ->where('colaborador_id', $userId)
-                ->whereDate('fecha', $today)
-                ->whereIn('estado', ['agendada', 'confirmada'])
-                ->count();
-        }
-
-        return [
-            'rol' => $rol,
-            'citasHoy' => $citasHoy,
-            'ingresosHoy' => $ingresosHoy,
-            'efectivoHoy' => $efectivoHoy,
-            'comisionesHoy' => $comisionesHoy,
-            'gananciaNeta' => $ingresosHoy - $comisionesHoy,
-            'miComisionHoy' => $miComisionHoy,
-            'misCitasHoy' => $misCitasHoy,
-            'misCitasPendientes' => $misCitasPendientes,
-            'citasPorEstado' => $citasPorEstado,
-            'topColaboradores' => $topColaboradores,
-            'ultimasCitas' => $ultimasCitas,
-            'citasPorDia' => array_values($citasPorDia),
-            'ingresosPorDia' => array_values($ingresosPorDia),
-            'labels' => $fechas->map(fn($f) => $f->format('d/m'))->toArray(),
-        ];
+        $this->actualizarDatos();
     }
 
     public function cambiarPeriodo($periodo)
     {
         $this->periodo = $periodo;
+        $this->actualizarDatos();
+    }
+
+    public function actualizarDatos()
+    {
+        $hoy = Carbon::today();
+        $rol = Auth::guard('web')->user()->rol;
+
+        if (!in_array($rol, ['empresa_admin', 'super_admin'])) {
+            return;
+        }
+
+        // Definir rango de fechas según período
+        $fechaInicio = clone $hoy;
+        $fechaFin = clone $hoy;
+
+        switch ($this->periodo) {
+            case 'dia':
+                $fechaInicio = $hoy->copy();
+                $fechaFin = $hoy->copy();
+                break;
+            case 'semana':
+                $fechaInicio = $hoy->copy()->startOfWeek();
+                $fechaFin = $hoy->copy()->endOfWeek();
+                break;
+            case 'mes':
+                $fechaInicio = $hoy->copy()->startOfMonth();
+                $fechaFin = $hoy->copy()->endOfMonth();
+                break;
+            default:
+                $fechaInicio = $hoy->copy();
+                $fechaFin = $hoy->copy();
+                break;
+        }
+
+        // Citas de hoy (siempre hoy)
+        $this->citasHoy = CitasModel::where('empresa_id', $this->empresa->id)
+            ->whereDate('fecha', $hoy)
+            ->count();
+
+        // Ingresos del período
+        $ingresosTotales = CitasModel::where('empresa_id', $this->empresa->id)
+            ->whereBetween('fecha_pago', [$fechaInicio, $fechaFin])
+            ->where('pagado', 1)
+            ->sum('monto_pagado');
+
+        $this->ingresosHoy = $ingresosTotales;
+
+        // Efectivo del período
+        $this->efectivoHoy = CitasModel::where('empresa_id', $this->empresa->id)
+            ->whereBetween('fecha_pago', [$fechaInicio, $fechaFin])
+            ->where('pagado', 1)
+            ->where('metodo_pago', 'efectivo')
+            ->sum('monto_pagado');
+
+        // Comisiones usando fecha_pago de la cita asociada
+        $comisiones = ComisionesModel::where('empresa_id', $this->empresa->id)
+            ->whereHas('cita', function ($query) use ($fechaInicio, $fechaFin) {
+                $query->whereBetween('fecha_pago', [$fechaInicio, $fechaFin])
+                      ->where('pagado', 1);
+            })
+            ->sum('monto');
+
+        $this->gananciaNeta = $ingresosTotales - $comisiones;
+
+        // Generar datos para gráficas según período
+        $labels = [];
+        $citasData = [];
+        $ingresosData = [];
+
+        if ($this->periodo === 'dia') {
+            for ($h = 8; $h <= 20; $h++) {
+                $horaInicio = Carbon::today()->setHour($h)->setMinute(0);
+                $horaFin = Carbon::today()->setHour($h)->setMinute(59);
+                $labels[] = $h . ':00';
+                $citasData[] = CitasModel::where('empresa_id', $this->empresa->id)
+                    ->whereBetween('fecha', [$horaInicio, $horaFin])
+                    ->count();
+                $ingresosData[] = CitasModel::where('empresa_id', $this->empresa->id)
+                    ->whereBetween('fecha_pago', [$horaInicio, $horaFin])
+                    ->where('pagado', 1)
+                    ->sum('monto_pagado');
+            }
+        } elseif ($this->periodo === 'semana') {
+            for ($i = 6; $i >= 0; $i--) {
+                $fecha = Carbon::today()->subDays($i);
+                $labels[] = $fecha->format('D d');
+                $citasData[] = CitasModel::where('empresa_id', $this->empresa->id)
+                    ->whereDate('fecha', $fecha)
+                    ->count();
+                $ingresosData[] = CitasModel::where('empresa_id', $this->empresa->id)
+                    ->whereDate('fecha_pago', $fecha)
+                    ->where('pagado', 1)
+                    ->sum('monto_pagado');
+            }
+        } elseif ($this->periodo === 'mes') {
+            $diasDelMes = Carbon::today()->daysInMonth;
+            for ($d = 1; $d <= $diasDelMes; $d++) {
+                $fecha = Carbon::create(Carbon::today()->year, Carbon::today()->month, $d);
+                $labels[] = $d;
+                $citasData[] = CitasModel::where('empresa_id', $this->empresa->id)
+                    ->whereDate('fecha', $fecha)
+                    ->count();
+                $ingresosData[] = CitasModel::where('empresa_id', $this->empresa->id)
+                    ->whereDate('fecha_pago', $fecha)
+                    ->where('pagado', 1)
+                    ->sum('monto_pagado');
+            }
+        }
+
+        // Asegurar que no estén vacíos
+        if (empty($labels)) {
+            $labels = ['Sin datos'];
+            $citasData = [0];
+            $ingresosData = [0];
+        }
+
+        $this->labels = $labels;
+        $this->citasPorDia = $citasData;
+        $this->ingresosPorDia = $ingresosData;
+
+        // Top colaboradores
+        $this->topColaboradores = User::where('empresa_id', $this->empresa->id)
+            ->where('rol', 'colaborador')
+            ->where('activo', 1)
+            ->withSum(['citas' => function ($query) use ($fechaInicio, $fechaFin) {
+                $query->whereBetween('fecha_pago', [$fechaInicio, $fechaFin])
+                      ->where('pagado', 1);
+            }], 'monto_pagado')
+            ->having('citas_sum_monto_pagado', '>', 0)
+            ->orderBy('citas_sum_monto_pagado', 'desc')
+            ->limit(5)
+            ->get(['id', 'nombre', 'comision_porcentaje']);
+
+        // Últimas 5 citas
+        $this->ultimasCitas = CitasModel::where('empresa_id', $this->empresa->id)
+            ->with(['cliente:id,nombre,telefono', 'servicio:id,nombre', 'colaborador:id,nombre'])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
     }
 
     public function render()
     {
         return view('livewire.admin.dashboard', [
-            'stats' => $this->stats,
+            'periodo' => $this->periodo,
+            'citasHoy' => $this->citasHoy,
+            'ingresosHoy' => $this->ingresosHoy,
+            'efectivoHoy' => $this->efectivoHoy,
+            'gananciaNeta' => $this->gananciaNeta,
+            'citasPorDia' => $this->citasPorDia,
+            'ingresosPorDia' => $this->ingresosPorDia,
+            'labels' => $this->labels,
+            'topColaboradores' => $this->topColaboradores,
+            'ultimasCitas' => $this->ultimasCitas,
         ]);
     }
 }

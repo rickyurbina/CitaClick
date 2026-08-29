@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use App\Models\EmpresasModel;
 use App\Models\User;
 use App\Models\ServiciosModel;
+use App\Models\ColaboradorHorario;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -33,12 +34,13 @@ class GestionColaboradores extends Component
     public $telefono = '';
     public $password = '';
     public $comision = '';
-    public $horarioInicio = '09:00';
-    public $horarioFin = '18:00';
     public $activo = true;
     public $serviciosSeleccionados = [];
     public $fotoFile = null;
     public $fotoExistente = null;
+
+    // NUEVO: horario semanal
+    public $diasHorario = [];
 
     public $cargando = false;
 
@@ -49,6 +51,9 @@ class GestionColaboradores extends Component
     protected $listeners = [
         'cambiar-seccion' => 'resetearEstado',
     ];
+
+    // Días disponibles
+    private $diasSemana = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
 
     public function resetearEstado()
     {
@@ -115,11 +120,13 @@ class GestionColaboradores extends Component
             'telefono' => 'nullable|string|max:20',
             'password' => $this->colaboradorIdEditar ? 'nullable|min:6' : 'required|min:6',
             'comision' => 'nullable|numeric|min:0|max:100',
-            'horarioInicio' => 'required',
-            'horarioFin' => 'required|after:horarioInicio',
             'activo' => 'boolean',
             'serviciosSeleccionados' => 'required|array|min:1',
             'fotoFile' => 'nullable|image|max:2048|mimes:jpeg,png,jpg,gif,svg,webp',
+            // Validación de días: cada día debe tener inicio y fin si está activo
+            'diasHorario.*.activo' => 'boolean',
+            'diasHorario.*.inicio' => 'nullable|required_if:diasHorario.*.activo,true|date_format:H:i',
+            'diasHorario.*.fin' => 'nullable|required_if:diasHorario.*.activo,true|date_format:H:i|after:diasHorario.*.inicio',
         ];
     }
 
@@ -135,12 +142,14 @@ class GestionColaboradores extends Component
             'comision.numeric' => 'La comisión debe ser un número.',
             'comision.min' => 'La comisión no puede ser negativa.',
             'comision.max' => 'La comisión no puede ser mayor a 100%.',
-            'horarioFin.after' => 'La hora de fin debe ser después de la hora de inicio.',
             'serviciosSeleccionados.required' => 'Debes seleccionar al menos un servicio.',
             'serviciosSeleccionados.min' => 'Debes seleccionar al menos un servicio.',
             'fotoFile.image' => 'El archivo debe ser una imagen.',
             'fotoFile.max' => 'La imagen no puede pesar más de 2MB.',
             'fotoFile.mimes' => 'La imagen debe ser jpeg, png, jpg, gif, svg o webp.',
+            'diasHorario.*.inicio.required_if' => 'La hora de inicio es obligatoria para los días activos.',
+            'diasHorario.*.fin.required_if' => 'La hora de fin es obligatoria para los días activos.',
+            'diasHorario.*.fin.after' => 'La hora de fin debe ser posterior a la hora de inicio.',
         ];
     }
 
@@ -152,6 +161,8 @@ class GestionColaboradores extends Component
         }
         $this->resetFormulario();
         $this->colaboradorIdEditar = null;
+        // Inicializar días con valores por defecto (todos activos con horario 09:00 - 18:00)
+        $this->inicializarDiasHorario();
         $this->mostrarModal = true;
     }
 
@@ -161,9 +172,10 @@ class GestionColaboradores extends Component
             $this->dispatch('mostrar-mensaje', mensaje: 'No tienes permiso.', tipo: 'error');
             return;
         }
+
         $colaborador = User::where('empresa_id', $this->empresa->id)
             ->where('rol', 'colaborador')
-            ->with('servicios')
+            ->with('servicios', 'horario')
             ->findOrFail($id);
 
         $this->colaboradorIdEditar = $colaborador->id;
@@ -171,13 +183,27 @@ class GestionColaboradores extends Component
         $this->email = $colaborador->email;
         $this->telefono = $colaborador->telefono;
         $this->comision = $colaborador->comision_porcentaje;
-        $this->horarioInicio = $colaborador->horario_inicio ?? '09:00';
-        $this->horarioFin = $colaborador->horario_fin ?? '18:00';
         $this->activo = (bool) $colaborador->activo;
         $this->password = '';
         $this->serviciosSeleccionados = $colaborador->servicios->pluck('id')->toArray();
         $this->fotoExistente = $colaborador->getRawOriginal('foto_url');
         $this->fotoFile = null;
+
+        // Cargar horario
+        $this->inicializarDiasHorario();
+        if ($colaborador->horario) {
+            $config = $colaborador->horario->configuracion;
+            foreach ($this->diasSemana as $dia) {
+                if (isset($config[$dia])) {
+                    $this->diasHorario[$dia] = [
+                        'activo' => $config[$dia]['activo'] ?? false,
+                        'inicio' => $config[$dia]['inicio'] ?? '09:00',
+                        'fin'    => $config[$dia]['fin'] ?? '18:00',
+                    ];
+                }
+            }
+        }
+
         $this->mostrarModal = true;
     }
 
@@ -188,6 +214,7 @@ class GestionColaboradores extends Component
 
         try {
             DB::beginTransaction();
+
             $datos = [
                 'empresa_id' => $this->empresa->id,
                 'nombre' => $this->nombre,
@@ -195,8 +222,6 @@ class GestionColaboradores extends Component
                 'telefono' => $this->telefono,
                 'rol' => 'colaborador',
                 'comision_porcentaje' => $this->comision ?: null,
-                'horario_inicio' => $this->horarioInicio,
-                'horario_fin' => $this->horarioFin,
                 'activo' => $this->activo,
             ];
 
@@ -220,6 +245,8 @@ class GestionColaboradores extends Component
                 if ($colaborador) {
                     $colaborador->update($datos);
                     $colaborador->servicios()->sync($this->serviciosSeleccionados);
+                    // Guardar horario
+                    $this->guardarHorario($colaborador);
                     $mensaje = 'Colaborador actualizado correctamente.';
                 }
             } else {
@@ -228,6 +255,7 @@ class GestionColaboradores extends Component
                 }
                 $colaborador = User::create($datos);
                 $colaborador->servicios()->attach($this->serviciosSeleccionados);
+                $this->guardarHorario($colaborador);
                 $mensaje = 'Colaborador creado correctamente.';
             }
 
@@ -240,6 +268,44 @@ class GestionColaboradores extends Component
             $this->dispatch('mostrar-mensaje', mensaje: 'Ocurrió un error: ' . $e->getMessage(), tipo: 'error');
         }
         $this->cargando = false;
+    }
+
+    private function guardarHorario(User $colaborador)
+    {
+        // Construir array de configuración
+        $config = [];
+        foreach ($this->diasSemana as $dia) {
+            $data = $this->diasHorario[$dia] ?? ['activo' => false, 'inicio' => '09:00', 'fin' => '18:00'];
+            $config[$dia] = [
+                'activo' => (bool) ($data['activo'] ?? false),
+                'inicio' => $data['inicio'] ?? '09:00',
+                'fin'    => $data['fin'] ?? '18:00',
+            ];
+        }
+
+        // Actualizar o crear el registro
+        $horario = $colaborador->horario;
+        if ($horario) {
+            $horario->configuracion = $config;
+            $horario->save();
+        } else {
+            ColaboradorHorario::create([
+                'colaborador_id' => $colaborador->id,
+                'configuracion' => $config,
+            ]);
+        }
+    }
+
+    private function inicializarDiasHorario()
+    {
+        $this->diasHorario = [];
+        foreach ($this->diasSemana as $dia) {
+            $this->diasHorario[$dia] = [
+                'activo' => true,
+                'inicio' => '09:00',
+                'fin' => '18:00',
+            ];
+        }
     }
 
     public function eliminar($id)
@@ -263,6 +329,10 @@ class GestionColaboradores extends Component
                 ->where('rol', 'colaborador')
                 ->first();
             if ($colaborador) {
+                // Eliminar horario si existe
+                if ($colaborador->horario) {
+                    $colaborador->horario->delete();
+                }
                 $this->eliminarFoto($colaborador->getRawOriginal('foto_url'));
                 $colaborador->servicios()->detach();
                 $colaborador->delete();
@@ -305,19 +375,17 @@ class GestionColaboradores extends Component
         $this->telefono = '';
         $this->password = '';
         $this->comision = '';
-        $this->horarioInicio = '09:00';
-        $this->horarioFin = '18:00';
         $this->activo = true;
         $this->serviciosSeleccionados = [];
         $this->fotoFile = null;
         $this->fotoExistente = null;
+        $this->diasHorario = [];
         $this->resetErrorBag();
     }
 
     protected function guardarFoto($file): string
     {
         $nombre = Str::slug($this->nombre) . '-' . time() . '.' . $file->getClientOriginalExtension();
-
         return $file->storeAs('colaboradores', $nombre, 'public');
     }
 
