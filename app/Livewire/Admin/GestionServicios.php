@@ -6,6 +6,7 @@ use App\Models\EmpresasModel;
 use App\Models\ServiciosModel;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Component;
@@ -21,10 +22,8 @@ class GestionServicios extends Component
 
     public EmpresasModel $empresa;
 
-    // Modal
     public $mostrarModal = false;
 
-    // Formulario
     public $servicioIdEditar = null;
     public $nombre = '';
     public $duracion = 30;
@@ -35,8 +34,9 @@ class GestionServicios extends Component
     public $imagenExistente = null;
 
     public $cargando = false;
+    public $mensaje = null;
+    public $tipoMensaje = 'info';
 
-    // Filtros
     public $filtroBuscar = '';
     public $filtroActivo = '';
 
@@ -81,6 +81,28 @@ class GestionServicios extends Component
             ->count();
     }
 
+    public function getImagenPreviewUrlProperty(): ?string
+    {
+        if ($this->imagenFile) {
+            try {
+                return $this->imagenFile->temporaryUrl();
+            } catch (\Throwable $e) {
+                return null;
+            }
+        }
+
+        if ($this->imagenExistente) {
+            $path = ltrim(str_replace('\\', '/', $this->imagenExistente), '/');
+            if (str_starts_with($path, 'storage/')) {
+                $path = substr($path, 8);
+            }
+
+            return asset('storage/' . $path);
+        }
+
+        return null;
+    }
+
     protected function rules()
     {
         return [
@@ -111,18 +133,21 @@ class GestionServicios extends Component
     public function abrirCrear()
     {
         if (!$this->esAdmin) {
-            $this->dispatch('mostrar-mensaje', mensaje: 'No tienes permiso.', tipo: 'error');
+            $this->mensaje = 'No tienes permiso.';
+            $this->tipoMensaje = 'error';
             return;
         }
         $this->resetFormulario();
         $this->servicioIdEditar = null;
+        $this->mensaje = null;
         $this->mostrarModal = true;
     }
 
     public function abrirEditar($id)
     {
         if (!$this->esAdmin) {
-            $this->dispatch('mostrar-mensaje', mensaje: 'No tienes permiso.', tipo: 'error');
+            $this->mensaje = 'No tienes permiso.';
+            $this->tipoMensaje = 'error';
             return;
         }
         $servicio = ServiciosModel::where('empresa_id', $this->empresa->id)->findOrFail($id);
@@ -132,8 +157,11 @@ class GestionServicios extends Component
         $this->precio = $servicio->precio;
         $this->puntos = $servicio->puntos_genera;
         $this->activo = (bool) $servicio->activo;
-        $this->imagenExistente = $servicio->getRawOriginal('imagen_url');
+        $this->imagenExistente = Schema::hasColumn('servicios', 'imagen_url')
+            ? $servicio->getRawOriginal('imagen_url')
+            : null;
         $this->imagenFile = null;
+        $this->mensaje = null;
         $this->mostrarModal = true;
     }
 
@@ -141,6 +169,7 @@ class GestionServicios extends Component
     {
         $this->validate();
         $this->cargando = true;
+        $this->mensaje = null;
 
         try {
             DB::beginTransaction();
@@ -149,17 +178,19 @@ class GestionServicios extends Component
                 'nombre' => $this->nombre,
                 'duracion_minutos' => $this->duracion,
                 'precio' => $this->precio,
-                'puntos_genera' => $this->puntos ?: 0,
-                'activo' => $this->activo,
+                'puntos_genera' => $this->puntos !== '' && $this->puntos !== null ? (int) $this->puntos : 0,
+                'activo' => (bool) $this->activo,
             ];
 
-            if ($this->imagenFile) {
-                if ($this->imagenExistente) {
-                    $this->eliminarImagen($this->imagenExistente);
+            if (Schema::hasColumn('servicios', 'imagen_url')) {
+                if ($this->imagenFile) {
+                    if ($this->imagenExistente) {
+                        $this->eliminarImagen($this->imagenExistente);
+                    }
+                    $datos['imagen_url'] = $this->guardarImagen($this->imagenFile);
+                } else {
+                    $datos['imagen_url'] = $this->imagenExistente;
                 }
-                $datos['imagen_url'] = $this->guardarImagen($this->imagenFile);
-            } else {
-                $datos['imagen_url'] = $this->imagenExistente;
             }
 
             if ($this->servicioIdEditar) {
@@ -172,12 +203,14 @@ class GestionServicios extends Component
                 $mensaje = 'Servicio creado correctamente.';
             }
             DB::commit();
-            $this->dispatch('mostrar-mensaje', mensaje: $mensaje, tipo: 'success');
             $this->cerrarModal();
+            $this->mensaje = $mensaje;
+            $this->tipoMensaje = 'success';
             $this->resetPage();
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('mostrar-mensaje', mensaje: 'Ocurrió un error: ' . $e->getMessage(), tipo: 'error');
+            $this->mensaje = 'Ocurrió un error: ' . $e->getMessage();
+            $this->tipoMensaje = 'error';
         }
         $this->cargando = false;
     }
@@ -185,7 +218,8 @@ class GestionServicios extends Component
     public function eliminar($id)
     {
         if (!$this->esAdmin) {
-            $this->dispatch('mostrar-mensaje', mensaje: 'No tienes permiso.', tipo: 'error');
+            $this->mensaje = 'No tienes permiso.';
+            $this->tipoMensaje = 'error';
             return;
         }
         try {
@@ -193,7 +227,8 @@ class GestionServicios extends Component
                 ->where('servicio_id', $id)
                 ->exists();
             if ($tieneCitas) {
-                $this->dispatch('mostrar-mensaje', mensaje: 'No se puede eliminar. El servicio tiene citas asociadas.', tipo: 'error');
+                $this->mensaje = 'No se puede eliminar. El servicio tiene citas asociadas.';
+                $this->tipoMensaje = 'error';
                 return;
             }
             DB::beginTransaction();
@@ -201,31 +236,38 @@ class GestionServicios extends Component
                 ->where('empresa_id', $this->empresa->id)
                 ->first();
             if ($servicio) {
-                $this->eliminarImagen($servicio->getRawOriginal('imagen_url'));
+                if (Schema::hasColumn('servicios', 'imagen_url')) {
+                    $this->eliminarImagen($servicio->getRawOriginal('imagen_url'));
+                }
                 $servicio->delete();
             }
             DB::commit();
-            $this->dispatch('mostrar-mensaje', mensaje: 'Servicio eliminado correctamente.', tipo: 'success');
+            $this->mensaje = 'Servicio eliminado correctamente.';
+            $this->tipoMensaje = 'success';
             $this->resetPage();
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('mostrar-mensaje', mensaje: 'Ocurrió un error al eliminar el servicio.', tipo: 'error');
+            $this->mensaje = 'Ocurrió un error al eliminar el servicio.';
+            $this->tipoMensaje = 'error';
         }
     }
 
     public function toggleActivo($id)
     {
         if (!$this->esAdmin) {
-            $this->dispatch('mostrar-mensaje', mensaje: 'No tienes permiso.', tipo: 'error');
+            $this->mensaje = 'No tienes permiso.';
+            $this->tipoMensaje = 'error';
             return;
         }
         try {
             $servicio = ServiciosModel::where('empresa_id', $this->empresa->id)->findOrFail($id);
             $servicio->activo = !$servicio->activo;
             $servicio->save();
-            $this->dispatch('mostrar-mensaje', mensaje: 'Estado actualizado correctamente.', tipo: 'success');
+            $this->mensaje = 'Estado actualizado correctamente.';
+            $this->tipoMensaje = 'success';
         } catch (\Exception $e) {
-            $this->dispatch('mostrar-mensaje', mensaje: 'Ocurrió un error al cambiar el estado.', tipo: 'error');
+            $this->mensaje = 'Ocurrió un error al cambiar el estado.';
+            $this->tipoMensaje = 'error';
         }
     }
 
@@ -244,7 +286,7 @@ class GestionServicios extends Component
 
     protected function guardarImagen($file): string
     {
-        $nombre = Str::slug($this->nombre) . '-' . time() . '.' . $file->getClientOriginalExtension();
+        $nombre = Str::slug($this->nombre ?: 'servicio') . '-' . time() . '.' . $file->getClientOriginalExtension();
 
         return $file->storeAs('servicios', $nombre, 'public');
     }
@@ -276,6 +318,7 @@ class GestionServicios extends Component
             'totalServicios' => $this->totalServicios,
             'serviciosActivos' => $this->serviciosActivos,
             'esAdmin' => $this->esAdmin,
+            'imagenPreviewUrl' => $this->imagenPreviewUrl,
         ]);
     }
 }

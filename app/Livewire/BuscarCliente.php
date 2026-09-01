@@ -17,21 +17,21 @@ class BuscarCliente extends Component
     public ?string $mensaje = null;
     public string $tipoMensaje = 'info';
 
-    protected $listeners = [
-        'telefono-verificado' => 'irAAgendar',
-        'telefono-no-encontrado' => 'irARegistro',
-        'cliente-registrado' => 'clienteRegistrado',
-        'volver-a-verificar' => 'irAVerificar',
-        'mostrar-mensaje' => 'mostrarMensaje',
-        'limpiar-mensaje' => 'limpiarMensaje',
-    ];
+    /** Se incrementa en cada cambio de paso para forzar remount y evitar vistas duplicadas */
+    public int $vistaKey = 1;
+
+    private function irAPaso(string $step): void
+    {
+        $this->step = $step;
+        $this->vistaKey++;
+    }
 
     #[On('telefono-verificado')]
     public function irAAgendar($clienteId, $telefono = null)
     {
-        $this->clienteId = $clienteId;
+        $this->clienteId = (int) $clienteId;
         $this->telefono = $telefono;
-        $this->step = 'agendar';
+        $this->irAPaso('agendar');
         $this->limpiarMensaje();
     }
 
@@ -39,24 +39,26 @@ class BuscarCliente extends Component
     public function irARegistro($telefono = null)
     {
         $this->telefono = $telefono;
-        $this->step = 'registro';
+        $this->clienteId = null;
+        $this->irAPaso('registro');
         $this->limpiarMensaje();
     }
 
     #[On('cliente-registrado')]
     public function clienteRegistrado($clienteId, $telefono = null)
     {
-        $this->clienteId = $clienteId;
+        $this->clienteId = (int) $clienteId;
         $this->telefono = $telefono;
-        $this->step = 'agendar';
+        $this->irAPaso('agendar');
         $this->mostrarMensaje('Cliente registrado correctamente.', 'success');
     }
 
     #[On('volver-a-verificar')]
     public function irAVerificar()
     {
-        $this->step = 'verificar';
         $this->clienteId = null;
+        $this->telefono = null;
+        $this->irAPaso('verificar');
         $this->limpiarMensaje();
     }
 
@@ -72,26 +74,61 @@ class BuscarCliente extends Component
         $this->mostrarMensaje($mensaje ?? 'Cita agendada correctamente.', 'success');
     }
 
-    public function mostrarMensaje($mensaje, $tipo = 'info')
+    #[On('mostrar-mensaje')]
+    public function mostrarMensaje($mensaje = null, $tipo = 'info')
     {
+        if (is_array($mensaje)) {
+            $this->mensaje = $mensaje['mensaje'] ?? '';
+            $this->tipoMensaje = $mensaje['tipo'] ?? 'info';
+            return;
+        }
+
         $this->mensaje = $mensaje;
-        $this->tipoMensaje = $tipo;
+        $this->tipoMensaje = $tipo ?? 'info';
     }
 
+    #[On('limpiar-mensaje')]
     public function limpiarMensaje()
     {
         $this->mensaje = null;
         $this->tipoMensaje = 'info';
     }
 
+    public function getPasoComponentProperty(): ?string
+    {
+        return match ($this->step) {
+            'verificar' => 'cliente.verificar-telefono',
+            'registro' => 'cliente.registro-cliente',
+            'agendar' => $this->clienteId ? 'cliente.agendar-cita' : null,
+            default => null,
+        };
+    }
+
+    public function getPasoParamsProperty(): array
+    {
+        return match ($this->step) {
+            'verificar' => [
+                'empresa' => $this->empresa,
+            ],
+            'registro' => [
+                'empresa' => $this->empresa,
+                'telefono' => $this->telefono,
+            ],
+            'agendar' => [
+                'empresa' => $this->empresa,
+                'clienteId' => $this->clienteId,
+            ],
+            default => [],
+        };
+    }
+
     public function render()
     {
+        $this->empresa->refresh();
+
         return view('livewire.cliente.buscar-cliente', [
-            'step' => $this->step,
-            'clienteId' => $this->clienteId,
-            'telefono' => $this->telefono,
-            'mensaje' => $this->mensaje,
-            'tipoMensaje' => $this->tipoMensaje,
+            'pasoComponent' => $this->pasoComponent,
+            'pasoParams' => $this->pasoParams,
         ]);
     }
 }

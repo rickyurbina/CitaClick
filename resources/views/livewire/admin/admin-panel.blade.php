@@ -163,11 +163,13 @@
                 <div class="flex flex-col items-center mb-xl">
                     @if($empresa->logo_src)
                         <img alt="{{ $empresa->nombre }}"
-                             class="w-[160px] h-[160px] object-contain mb-md drop-shadow-sm"
+                             class="w-[160px] h-[160px] object-contain {{ $empresa->estatus === 'activo' ? '' : 'mb-md' }} drop-shadow-sm"
                              src="{{ $empresa->logo_src }}">
                     @endif
-                    <h1 class="font-headline-md text-headline-md text-primary tracking-tight">{{ $empresa->nombre }}</h1>
-                    <p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">Acceso administrativo</p>
+                    @if($empresa->estatus !== 'activo' || !$empresa->logo_src)
+                        <h1 class="font-headline-md text-headline-md text-primary tracking-tight">{{ $empresa->nombre }}</h1>
+                        <p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">Acceso administrativo</p>
+                    @endif
                 </div>
 
                 <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm">

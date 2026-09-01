@@ -33,8 +33,10 @@ class VerificarTelefono extends Component
 
         try {
             $cliente = ClientesModel::where('empresa_id', $this->empresa->id)
-                ->where('telefono', 'like', '%' . $telefonoLimpio . '%')
-                ->orWhere('telefono', $this->telefono)
+                ->where(function ($query) use ($telefonoLimpio) {
+                    $query->where('telefono', $telefonoLimpio)
+                        ->orWhere('telefono', 'like', '%' . $telefonoLimpio . '%');
+                })
                 ->first();
 
             if ($cliente) {

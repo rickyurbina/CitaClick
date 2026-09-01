@@ -5,24 +5,27 @@
         {{-- Logo / Header --}}
         <div class="flex flex-col items-center mb-xl">
             @if($empresa->logo_src)
-                <div class="w-[160px] h-[160px] md:w-[200px] md:h-[200px] flex items-center justify-center bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30 p-md mb-lg">
+                <div class="w-[160px] h-[160px] md:w-[200px] md:h-[200px] flex items-center justify-center bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30 p-md {{ $empresa->estatus === 'activo' ? '' : 'mb-lg' }}">
                     <img src="{{ $empresa->logo_src }}"
                          alt="{{ $empresa->nombre }}"
                          class="w-full h-full object-contain">
                 </div>
             @endif
-            <h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-primary text-center">
-                {{ $empresa->nombre }}
-            </h1>
-            <p class="font-body-md text-body-md text-on-surface-variant text-center mt-xs">
-                @if($step === 'verificar')
-                    Verifica tu número de teléfono para agendar tu cita
-                @elseif($step === 'registro')
-                    Completa tus datos para continuar
-                @elseif($step === 'agendar')
-                    Agenda tu cita con nosotros
-                @endif
-            </p>
+
+            @if($empresa->estatus !== 'activo' || !$empresa->logo_src)
+                <h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-primary text-center">
+                    {{ $empresa->nombre }}
+                </h1>
+                <p class="font-body-md text-body-md text-on-surface-variant text-center mt-xs">
+                    @if($step === 'verificar')
+                        Verifica tu número de teléfono para agendar tu cita
+                    @elseif($step === 'registro')
+                        Completa tus datos para continuar
+                    @elseif($step === 'agendar')
+                        Agenda tu cita con nosotros
+                    @endif
+                </p>
+            @endif
         </div>
 
         {{-- Progress steps --}}

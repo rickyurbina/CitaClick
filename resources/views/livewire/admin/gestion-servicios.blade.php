@@ -1,4 +1,14 @@
 <div>
+    @if($mensaje)
+        <div class="mb-md p-md rounded-lg border flex justify-between items-start gap-md
+            {{ $tipoMensaje === 'success' ? 'bg-secondary-container/40 border-secondary text-on-secondary-container' : 'bg-error-container border-error text-error' }}">
+            <span class="font-body-sm text-body-sm">{{ $mensaje }}</span>
+            <button type="button" wire:click="$set('mensaje', null)" class="shrink-0" aria-label="Cerrar">
+                <span class="material-symbols-outlined text-[18px]">close</span>
+            </button>
+        </div>
+    @endif
+
     {{-- HEADER --}}
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-md mb-xl">
         <div>
@@ -119,10 +129,11 @@
     {{-- MODAL FORMULARIO --}}
     @if($mostrarModal)
     <div class="fixed inset-0 bg-on-surface/40 flex items-center justify-center z-50 p-4"
-         x-data="{ open: true }"
-         x-init="$watch('open', value => { if (!value) @this.cerrarModal(); })"
-         @click.away="open = false">
-        <div class="bg-surface-container-lowest rounded-xl border border-outline-variant max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-lg">
+         wire:click.self="cerrarModal"
+         x-data
+         @keydown.escape.window="$wire.cerrarModal()">
+        <div class="bg-surface-container-lowest rounded-xl border border-outline-variant max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-lg"
+             @click.stop>
             <div class="sticky top-0 bg-surface-container-lowest z-10 px-lg py-md border-b border-outline-variant flex justify-between items-center">
                 <h3 class="font-headline-md text-headline-md text-on-surface flex items-center gap-2">
                     <span class="material-symbols-outlined text-secondary">{{ $servicioIdEditar ? 'edit' : 'add_box' }}</span>
@@ -130,14 +141,23 @@
                 </h3>
                 <button type="button" wire:click="cerrarModal" class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors"><span class="material-symbols-outlined">close</span></button>
             </div>
-            <form wire:submit.prevent="guardar" class="p-lg space-y-md" enctype="multipart/form-data">
+
+            @if($errors->any())
+                <div class="mx-lg mt-4 p-3 bg-error-container border border-error rounded-lg text-error text-sm">
+                    <ul class="list-disc pl-4 space-y-1">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <form wire:submit.prevent="guardar" class="p-lg space-y-md">
                 <div class="flex flex-col items-center gap-sm pb-md border-b border-outline-variant">
                     <div class="relative group">
                         <div class="w-28 h-28 rounded-xl overflow-hidden border-2 border-dashed border-outline-variant bg-surface-container-low flex items-center justify-center">
-                            @if($imagenFile)
-                                <img src="{{ $imagenFile->temporaryUrl() }}" alt="Vista previa" class="w-full h-full object-cover">
-                            @elseif($imagenExistente)
-                                <img src="{{ asset('storage/' . ltrim(str_replace('\\', '/', $imagenExistente), '/')) }}" alt="Imagen actual" class="w-full h-full object-cover">
+                            @if($imagenPreviewUrl)
+                                <img src="{{ $imagenPreviewUrl }}" alt="Vista previa" class="w-full h-full object-cover">
                             @else
                                 <span class="material-symbols-outlined text-outline text-[40px]">add_a_photo</span>
                             @endif
@@ -148,6 +168,7 @@
                         </label>
                     </div>
                     <p class="font-label-sm text-label-sm text-on-surface-variant">Imagen del servicio (opcional)</p>
+                    <div wire:loading wire:target="imagenFile" class="font-label-sm text-label-sm text-on-surface-variant">Subiendo imagen...</div>
                     @error('imagenFile') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                     @if($imagenExistente && !$imagenFile)
                         <button type="button" wire:click="$set('imagenExistente', null)" class="font-label-sm text-label-sm text-error hover:underline">Quitar imagen</button>
@@ -183,9 +204,9 @@
                 </div>
                 <div class="flex justify-end gap-sm pt-md border-t border-outline-variant">
                     <button type="button" wire:click="cerrarModal" class="px-lg py-sm rounded-lg border border-outline-variant text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high transition-colors">Cancelar</button>
-                    <button type="submit" class="px-lg py-sm rounded-lg bg-secondary text-on-secondary font-label-md text-label-md hover:opacity-90 transition-opacity" wire:loading.attr="disabled">
-                        <span wire:loading.remove>{{ $servicioIdEditar ? 'Actualizar' : 'Guardar' }}</span>
-                        <span wire:loading>Guardando...</span>
+                    <button type="submit" class="px-lg py-sm rounded-lg bg-secondary text-on-secondary font-label-md text-label-md hover:opacity-90 transition-opacity" wire:loading.attr="disabled" wire:target="guardar">
+                        <span wire:loading.remove wire:target="guardar">{{ $servicioIdEditar ? 'Actualizar' : 'Guardar' }}</span>
+                        <span wire:loading wire:target="guardar">Guardando...</span>
                     </button>
                 </div>
             </form>
