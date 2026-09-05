@@ -8,6 +8,7 @@ use App\Models\ClientesModel;
 use App\Models\ServiciosModel;
 use App\Models\User;
 use App\Models\ColaboradorHorario;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
@@ -23,7 +24,6 @@ class AgendarCita extends Component
     public $citasAnteriores = [];
     public int $totalCitas = 0;
 
-    // Reagendar
     public ?int $citaReagendarId = null;
     public ?CitasModel $citaReagendar = null;
 
@@ -75,7 +75,6 @@ class AgendarCita extends Component
                 ->limit(10);
         }])->findOrFail($clienteId);
 
-        // Si se pasa un ID de cita para reagendar (desde URL o evento)
         if ($citaId) {
             $this->cargarCitaParaReagendar($citaId);
         }
@@ -93,8 +92,6 @@ class AgendarCita extends Component
         }
     }
 
-    // ==================== REAGENDAR DESDE EVENTO ====================
-
     public function cargarCitaParaReagendar($citaId)
     {
         $cita = CitasModel::where('empresa_id', $this->empresa->id)
@@ -108,7 +105,6 @@ class AgendarCita extends Component
             return;
         }
 
-        // Validar que se pueda reagendar (misma regla que cancelar: 24 horas)
         if (!$cita->puedeCancelar('cliente')) {
             $this->dispatch('mostrar-mensaje', mensaje: 'Solo puedes reagendar 24 horas antes de la cita.', tipo: 'error');
             return;
@@ -123,7 +119,6 @@ class AgendarCita extends Component
         $this->mostrarFormulario = true;
         $this->mostrarHistorial = false;
 
-        // Obtener fecha y hora como string
         $fechaStr = $this->normalizarFecha($cita->fecha);
         $horaStr = $this->normalizarHora($cita->hora_inicio);
         $this->fecha = $fechaStr ?: '';
@@ -133,8 +128,6 @@ class AgendarCita extends Component
         $this->generarCalendario();
         $this->cargarHorasDisponibles();
     }
-
-    // ==================== MÉTODOS AUXILIARES DE NORMALIZACIÓN ====================
 
     private function normalizarFecha($fecha): ?string
     {
@@ -153,8 +146,6 @@ class AgendarCita extends Component
         if (is_string($hora) && strtotime($hora)) return date('H:i', strtotime($hora));
         return null;
     }
-
-    // ==================== RESTANTE DEL CÓDIGO (SIN CAMBIOS) ====================
 
     public function getServiciosProperty()
     {
@@ -179,41 +170,33 @@ class AgendarCita extends Component
         return $query->orderBy('nombre')->get();
     }
 
+    // Con caché de horario
     private function obtenerHorarioConfig($colaboradorId)
     {
-        Log::info('obtenerHorarioConfig - Inicio', ['colaborador_id' => $colaboradorId]);
-
-        $colaborador = User::with('horario')->find($colaboradorId);
-        if (!$colaborador) {
-            Log::warning('Colaborador no encontrado');
-            return [];
-        }
-
-        if ($colaborador->horario) {
-            return $colaborador->horario->configuracion;
-        }
-
-        $dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
-        $config = [];
-        foreach ($dias as $dia) {
-            $config[$dia] = [
-                'activo' => true,
-                'inicio' => '09:00',
-                'fin' => '18:00',
-            ];
-        }
-
-        try {
-            $horario = ColaboradorHorario::create([
-                'colaborador_id' => $colaboradorId,
-                'configuracion' => $config,
-            ]);
-            Log::info('Horario por defecto creado');
-            return $horario->configuracion;
-        } catch (\Exception $e) {
-            Log::error('Error al crear horario por defecto: ' . $e->getMessage());
-            return [];
-        }
+        $cacheKey = 'horario_colaborador_' . $colaboradorId;
+        return Cache::remember($cacheKey, 3600, function () use ($colaboradorId) {
+            $colaborador = User::with('horario')->find($colaboradorId);
+            if (!$colaborador) {
+                return [];
+            }
+            if ($colaborador->horario) {
+                return $colaborador->horario->configuracion;
+            }
+            $dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+            $config = [];
+            foreach ($dias as $dia) {
+                $config[$dia] = ['activo' => true, 'inicio' => '09:00', 'fin' => '18:00'];
+            }
+            try {
+                $horario = ColaboradorHorario::create([
+                    'colaborador_id' => $colaboradorId,
+                    'configuracion' => $config,
+                ]);
+                return $horario->configuracion;
+            } catch (\Exception $e) {
+                return [];
+            }
+        });
     }
 
     private function getDiaSemana($fecha)
@@ -267,7 +250,6 @@ class AgendarCita extends Component
         }
 
         $primerDiaSemana = (int) date('w', strtotime($hoy));
-
         $semanas = [];
         $semanaActual = array_fill(0, 7, null);
 
@@ -298,11 +280,6 @@ class AgendarCita extends Component
 
     public function calcularDiasDisponibles()
     {
-        Log::info('calcularDiasDisponibles - Inicio', [
-            'colaboradorId' => $this->colaboradorId,
-            'servicioId' => $this->servicioId
-        ]);
-
         $this->cargandoCalendario = true;
 
         try {
@@ -336,13 +313,14 @@ class AgendarCita extends Component
             $hoy = date('Y-m-d');
             $fechaFin = date('Y-m-d', strtotime($hoy . ' + ' . ($this->diasRango - 1) . ' days'));
 
+            // Consulta optimizada: solo campos necesarios
             $citasOcupadas = CitasModel::where('empresa_id', $this->empresa->id)
                 ->where('colaborador_id', $this->colaboradorId)
                 ->whereDate('fecha', '>=', $hoy)
                 ->whereDate('fecha', '<=', $fechaFin)
                 ->where('estado', '!=', 'cancelada')
                 ->where('estado', '!=', 'no_asistio')
-                ->get();
+                ->get(['fecha', 'hora_inicio', 'hora_fin']);
 
             $citasPorFecha = [];
             foreach ($citasOcupadas as $cita) {
@@ -663,12 +641,9 @@ class AgendarCita extends Component
         }
     }
 
-    // ==================== REAGENDAR (NUEVO MÉTODO) ====================
-
     public function reagendarCita($citaId)
     {
         $this->cargarCitaParaReagendar($citaId);
-        // No redirigir, solo actualizar el estado del componente
     }
 
     public function agendarCita()
@@ -677,7 +652,6 @@ class AgendarCita extends Component
 
         if (!$this->validarClienteActivo()) return;
 
-        // Verificar que la hora aún esté disponible
         $horaDisponible = false;
         foreach ($this->horasDisponibles as $hora) {
             if ($hora['inicio'] === $this->horaInicio && $hora['disponible']) {
@@ -742,7 +716,6 @@ class AgendarCita extends Component
 
             $this->cargarHistorial();
 
-            // Resetear formulario
             $this->reset([
                 'servicioId',
                 'colaboradorId',

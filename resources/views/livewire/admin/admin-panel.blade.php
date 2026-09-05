@@ -13,7 +13,6 @@
             </div>
 
             <nav class="flex-grow space-y-1 overflow-y-auto">
-                {{-- Dashboard: SOLO admin (dueño) --}}
                 @if($esAdmin)
                 <button wire:click="cambiarSeccion('dashboard')"
                         type="button"
@@ -26,7 +25,6 @@
                 </button>
                 @endif
 
-                {{-- Citas: todos los roles --}}
                 @if($puedeGestionarCitas)
                 <button wire:click="cambiarSeccion('citas')"
                         type="button"
@@ -45,7 +43,6 @@
                 </button>
                 @endif
 
-                {{-- Colaboradores y Servicios: solo admin (dueño) --}}
                 @if($esAdmin)
                 <button wire:click="cambiarSeccion('colaboradores')"
                         type="button"
@@ -79,7 +76,6 @@
             </div>
         </aside>
 
-        {{-- Mobile nav --}}
         <div class="md:pl-64 flex flex-col min-h-screen">
             <header class="sticky top-0 z-30 bg-surface border-b border-outline-variant shadow-sm h-16 flex items-center md:hidden">
                 <div class="flex justify-between items-center w-full px-margin-mobile">
@@ -107,9 +103,7 @@
             </main>
         </div>
 
-        {{-- Mobile bottom nav --}}
         <nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-safe bg-surface h-16 md:hidden border-t border-outline-variant shadow-lg">
-            {{-- Dashboard - solo admin --}}
             @if($esAdmin)
             <button wire:click="cambiarSeccion('dashboard')" type="button"
                     class="flex flex-col items-center justify-center px-4 py-1 transition-all
@@ -119,7 +113,6 @@
             </button>
             @endif
 
-            {{-- Citas - para todos --}}
             @if($puedeGestionarCitas)
             <button wire:click="cambiarSeccion('citas')" type="button"
                     class="flex flex-col items-center justify-center px-4 py-1 transition-all
@@ -135,7 +128,6 @@
             </button>
             @endif
 
-            {{-- Solo admin --}}
             @if($esAdmin)
             <button wire:click="cambiarSeccion('colaboradores')" type="button"
                     class="flex flex-col items-center justify-center px-4 py-1 transition-all
@@ -220,7 +212,7 @@
                                 </div>
                                 <input type="email"
                                        id="admin-email"
-                                       wire:model.live.debounce.300ms="email"
+                                       wire:model="email"
                                        class="w-full pl-10 pr-4 py-3 bg-white border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all"
                                        placeholder="trabajador@empresa.com"
                                        autocomplete="email"
@@ -237,7 +229,7 @@
                                 </div>
                                 <input type="password"
                                        id="admin-password"
-                                       wire:model.live.debounce.300ms="password"
+                                       wire:model="password"
                                        class="w-full pl-10 pr-4 py-3 bg-white border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all"
                                        placeholder="••••••••"
                                        autocomplete="current-password">

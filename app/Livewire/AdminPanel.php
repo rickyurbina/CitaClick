@@ -27,7 +27,6 @@ class AdminPanel extends Component
     {
         $this->empresa = $empresa;
 
-        // Si la empresa no está activa, mostrar solo el logo
         if (!$this->empresaActiva) {
             $this->seccionActiva = 'inactiva';
             return;
@@ -98,20 +97,17 @@ class AdminPanel extends Component
         ];
     }
 
+    // Se elimina validación en tiempo real: solo limpiamos errores
     public function updated($propertyName)
     {
-        if (!$this->isAuthenticated && $this->empresaActiva) {
-            $this->validateOnly($propertyName);
-            if ($propertyName === 'email' || $propertyName === 'password') {
-                $this->error = '';
-                $this->info = '';
-            }
+        if ($propertyName === 'email' || $propertyName === 'password') {
+            $this->error = '';
+            $this->info = '';
         }
     }
 
     public function login()
     {
-        // Si la empresa no está activa, no permitir login
         if (!$this->empresaActiva) {
             $this->error = 'Esta empresa no está activa. Contacta al administrador.';
             return;
@@ -184,12 +180,10 @@ class AdminPanel extends Component
 
     public function cambiarSeccion($seccion)
     {
-        // Si la empresa no está activa, no permitir navegación
         if (!$this->empresaActiva) {
             return;
         }
 
-        // Colaborador y recepcionista solo pueden ir a citas
         if ($this->esColaborador || $this->esRecepcionista) {
             if ($seccion !== 'citas') {
                 $this->dispatch('error', 'No tienes permiso para acceder a esta sección.');
@@ -199,7 +193,6 @@ class AdminPanel extends Component
             return;
         }
 
-        // Admin (dueño) puede ir a dashboard, citas, colaboradores, servicios
         if ($this->esAdmin) {
             $seccionesPermitidas = ['dashboard', 'citas', 'colaboradores', 'servicios'];
             if (in_array($seccion, $seccionesPermitidas)) {
