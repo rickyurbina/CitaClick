@@ -27,14 +27,24 @@ class AdminPanel extends Component
     {
         $this->empresa = $empresa;
 
+        // Si la empresa no está activa, mostrar solo el logo
+        if (!$this->empresaActiva) {
+            $this->seccionActiva = 'inactiva';
+            return;
+        }
+
         if ($this->isAuthenticated) {
-            // 👈 Recepcionista y colaborador van directamente a citas
             if ($this->esRecepcionista || $this->esColaborador) {
                 $this->seccionActiva = 'citas';
             } else {
                 $this->seccionActiva = 'dashboard';
             }
         }
+    }
+
+    public function getEmpresaActivaProperty()
+    {
+        return $this->empresa->estatus === 'activo';
     }
 
     public function getIsAuthenticatedProperty()
@@ -90,7 +100,7 @@ class AdminPanel extends Component
 
     public function updated($propertyName)
     {
-        if (!$this->isAuthenticated) {
+        if (!$this->isAuthenticated && $this->empresaActiva) {
             $this->validateOnly($propertyName);
             if ($propertyName === 'email' || $propertyName === 'password') {
                 $this->error = '';
@@ -101,6 +111,12 @@ class AdminPanel extends Component
 
     public function login()
     {
+        // Si la empresa no está activa, no permitir login
+        if (!$this->empresaActiva) {
+            $this->error = 'Esta empresa no está activa. Contacta al administrador.';
+            return;
+        }
+
         $this->validate();
 
         $key = 'login_attempts_' . $this->email . '_' . $this->empresa->id;
@@ -168,6 +184,11 @@ class AdminPanel extends Component
 
     public function cambiarSeccion($seccion)
     {
+        // Si la empresa no está activa, no permitir navegación
+        if (!$this->empresaActiva) {
+            return;
+        }
+
         // Colaborador y recepcionista solo pueden ir a citas
         if ($this->esColaborador || $this->esRecepcionista) {
             if ($seccion !== 'citas') {
@@ -197,6 +218,7 @@ class AdminPanel extends Component
             'esRecepcionista' => $this->esRecepcionista,
             'esColaborador' => $this->esColaborador,
             'puedeGestionarCitas' => $this->puedeGestionarCitas,
+            'empresaActiva' => $this->empresaActiva,
         ]);
     }
 }

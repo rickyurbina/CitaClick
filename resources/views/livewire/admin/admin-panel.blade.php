@@ -1,5 +1,5 @@
 <div class="min-h-screen bg-surface">
-    @if($isAuthenticated)
+    @if($isAuthenticated && $empresaActiva)
         <aside class="fixed left-0 top-0 h-full z-40 p-md w-64 hidden md:flex flex-col bg-surface border-r border-outline-variant">
             <div class="mb-3xl">
                 <h1 class="font-headline-md text-headline-md font-bold text-primary">{{ $empresa->nombre }}</h1>
@@ -151,8 +151,34 @@
             </button>
             @endif
         </nav>
+    @elseif(!$empresaActiva)
+        {{-- Empresa inactiva o suspendida --}}
+        <div class="min-h-screen flex items-center justify-center p-margin-mobile relative overflow-hidden">
+            <div class="absolute inset-0 bg-surface pointer-events-none">
+                <div class="absolute top-1/4 -left-20 w-72 h-72 bg-surface-container rounded-full blur-3xl opacity-60"></div>
+                <div class="absolute bottom-1/4 -right-20 w-80 h-80 bg-secondary-container rounded-full blur-3xl opacity-40"></div>
+            </div>
+            <div class="w-full max-w-md z-10 text-center">
+                @if($empresa->logo_src)
+                    <img src="{{ $empresa->logo_src }}" alt="{{ $empresa->nombre }}" class="w-[160px] h-[160px] object-contain mx-auto drop-shadow-sm">
+                @else
+                    <h1 class="font-headline-md text-headline-md text-primary">{{ $empresa->nombre }}</h1>
+                @endif
+                <div class="mt-xl p-lg bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm">
+                    <span class="material-symbols-outlined text-6xl text-error block mx-auto mb-4">block</span>
+                    <h2 class="font-headline-md text-headline-md text-on-surface">Empresa no disponible</h2>
+                    <p class="font-body-md text-body-md text-on-surface-variant mt-sm">
+                        Esta empresa se encuentra {{ $empresa->estatus === 'inactivo' ? 'inactiva' : 'suspendida' }}.
+                        Por favor, contacta al administrador para más información.
+                    </p>
+                </div>
+                <div class="mt-2xl text-center opacity-50">
+                    <p class="text-[10px] text-on-surface-variant">© {{ date('Y') }} {{ $empresa->nombre }}</p>
+                </div>
+            </div>
+        </div>
     @else
-        {{-- LOGIN (sin cambios) --}}
+        {{-- LOGIN (empresa activa) --}}
         <div class="min-h-screen flex items-center justify-center p-margin-mobile relative overflow-hidden">
             <div class="absolute inset-0 bg-surface pointer-events-none">
                 <div class="absolute top-1/4 -left-20 w-72 h-72 bg-surface-container rounded-full blur-3xl opacity-60"></div>

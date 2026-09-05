@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
 
 class CitasModel extends Model
 {
@@ -38,7 +37,7 @@ class CitasModel extends Model
     ];
 
     protected $casts = [
-        'fecha' => 'date',
+        'fecha' => 'date:Y-m-d',
         'hora_inicio' => 'datetime:H:i',
         'hora_fin' => 'datetime:H:i',
         'monto_pagado' => 'decimal:2',
@@ -111,15 +110,15 @@ class CitasModel extends Model
 
     public function scopeDelDia($query, $fecha = null)
     {
-        $fecha = $fecha ?? Carbon::today();
+        $fecha = $fecha ?? date('Y-m-d');
         return $query->whereDate('fecha', $fecha);
     }
 
     public function scopeEntreFechas($query, $inicio, $fin)
     {
         return $query->whereBetween('fecha', [
-            Carbon::parse($inicio),
-            Carbon::parse($fin)
+            date('Y-m-d', strtotime($inicio)),
+            date('Y-m-d', strtotime($fin))
         ]);
     }
 
@@ -173,18 +172,18 @@ class CitasModel extends Model
     public function marcarCheckin(): void
     {
         $this->estado = 'en_curso';
-        $this->checkin_time = now();
+        $this->checkin_time = date('Y-m-d H:i:s');
         $this->save();
     }
 
     public function marcarCheckout(): void
     {
         $this->estado = 'atendida';
-        $this->checkout_time = now();
+        $this->checkout_time = date('Y-m-d H:i:s');
         $this->save();
     }
 
-    // ==================== MÉTODO CANCELACIÓN (CORREGIDO FINAL) ====================
+    // ==================== MÉTODO CANCELACIÓN (SIN CARBON) ====================
 
     /**
      * Verifica si la cita puede ser cancelada según el rol y el tiempo restante.
@@ -201,29 +200,74 @@ class CitasModel extends Model
 
         // Cliente y colaborador solo 24 horas antes
         if (in_array($rol, ['cliente', 'colaborador'])) {
-            // Obtener fecha como string Y-m-d
-            $fechaStr = $this->fecha instanceof Carbon
-                ? $this->fecha->format('Y-m-d')
-                : $this->fecha;
+            // Obtener fecha y hora como strings
+            $fechaStr = $this->normalizarFecha($this->fecha);
+            $horaStr = $this->normalizarHora($this->hora_inicio);
 
-            // Obtener hora como string H:i
-            $horaStr = $this->hora_inicio instanceof Carbon
-                ? $this->hora_inicio->format('H:i')
-                : $this->hora_inicio;
-
-            // Si la fecha o hora son inválidas, devolver false
-            if (!$fechaStr || !strtotime($fechaStr) || !$horaStr) {
+            // Si no se pudieron normalizar, retornar false
+            if (!$fechaStr || !$horaStr || !strtotime($fechaStr) || !strtotime($horaStr)) {
                 return false;
             }
 
-            // Parsear fecha y hora para obtener el momento de la cita
-            $horaCita = Carbon::parse($fechaStr . ' ' . $horaStr);
+            // Crear timestamp de la cita
+            $timestampCita = strtotime($fechaStr . ' ' . $horaStr);
+            $ahora = time();
 
             // Calcular diferencia en horas (negativo si ya pasó)
-            return now()->diffInHours($horaCita, false) >= 24;
+            $diferenciaHoras = ($timestampCita - $ahora) / 3600;
+
+            return $diferenciaHoras >= 24;
         }
 
         return false;
+    }
+
+    /**
+     * Normaliza una fecha a string Y-m-d.
+     */
+    private function normalizarFecha($fecha): ?string
+    {
+        if (!$fecha) {
+            return null;
+        }
+
+        if ($fecha instanceof \DateTime) {
+            return $fecha->format('Y-m-d');
+        }
+
+        if (is_object($fecha) && method_exists($fecha, 'format')) {
+            return $fecha->format('Y-m-d');
+        }
+
+        if (is_string($fecha) && strtotime($fecha)) {
+            return date('Y-m-d', strtotime($fecha));
+        }
+
+        return null;
+    }
+
+    /**
+     * Normaliza una hora a string H:i.
+     */
+    private function normalizarHora($hora): ?string
+    {
+        if (!$hora) {
+            return null;
+        }
+
+        if ($hora instanceof \DateTime) {
+            return $hora->format('H:i');
+        }
+
+        if (is_object($hora) && method_exists($hora, 'format')) {
+            return $hora->format('H:i');
+        }
+
+        if (is_string($hora) && strtotime($hora)) {
+            return date('H:i', strtotime($hora));
+        }
+
+        return null;
     }
 
     public function cancelar($motivo = null, $canceladoPor = null): void
@@ -289,7 +333,7 @@ class CitasModel extends Model
             $this->metodo_pago = $metodo;
         }
         
-        $this->fecha_pago = now();
+        $this->fecha_pago = date('Y-m-d H:i:s');
         
         if (Auth::check()) {
             $this->cobrado_por = Auth::id();
@@ -336,7 +380,9 @@ class CitasModel extends Model
 
     public function getDuracionAttribute(): string
     {
-        return $this->hora_inicio . ' - ' . $this->hora_fin;
+        $inicio = $this->normalizarHora($this->hora_inicio);
+        $fin = $this->normalizarHora($this->hora_fin);
+        return ($inicio ?: '') . ' - ' . ($fin ?: '');
     }
 
     public function getCobradoPorNombreAttribute(): ?string
@@ -364,10 +410,6 @@ class CitasModel extends Model
             }
         });
 
-        static::updated(function ($cita) {
-            if ($cita->estado === 'atendida' && $cita->pagado && !$cita->comision) {
-                // La comisión se genera automáticamente por el Observer o Event
-            }
-        });
+        // La comisión se genera automáticamente por el Observer o Event
     }
 }

@@ -17,17 +17,15 @@
             </div>
             <div class="flex flex-col items-end gap-sm">
                 <div class="flex gap-sm">
-                    {{-- SOLO PUNTOS BUENOS --}}
                     <span class="inline-flex items-center gap-xs font-label-sm text-label-sm bg-secondary-container text-on-secondary-container px-sm py-xs rounded-lg">
                         <span class="material-symbols-outlined" style="font-size: 16px;">thumb_up</span>
                         {{ $puntosBuenos ?? 0 }}
                     </span>
-                    {{-- ELIMINADO PUNTOS MALOS --}}
                 </div>
                 @if(isset($cliente) && $cliente->estaBloqueado())
                     <span class="inline-flex items-center gap-xs font-label-sm text-label-sm bg-error text-on-error px-sm py-xs rounded-lg">
                         <span class="material-symbols-outlined" style="font-size: 16px;">block</span>
-                        Bloqueado hasta {{ $cliente->bloqueado_hasta->format('d/m/Y') }}
+                        Bloqueado hasta {{ date('d/m/Y', strtotime($cliente->bloqueado_hasta)) }}
                     </span>
                 @endif
             </div>
@@ -44,7 +42,7 @@
                     disabled:opacity-50">
             <span wire:loading.remove wire:target="mostrarFormularioCita">
                 <span class="material-symbols-outlined" style="font-size: 18px;">event_available</span>
-                Nueva Cita
+                {{ $citaReagendar ? 'Reagendar Cita' : 'Nueva Cita' }}
             </span>
             <span wire:loading wire:target="mostrarFormularioCita" class="flex items-center gap-2">
                 <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -71,88 +69,118 @@
         </button>
     </div>
 
-    {{-- FORMULARIO DE CITA --}}
+    {{-- FORMULARIO DE CITA / REAGENDAR --}}
     @if($mostrarFormulario ?? false)
     <div class="glass-card rounded-xl p-lg space-y-lg">
         <div>
-            <h3 class="font-label-md text-label-md uppercase tracking-widest text-on-surface-variant">Nueva cita</h3>
-            <p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">Selecciona servicio, colaborador y horario.</p>
+            <h3 class="font-label-md text-label-md uppercase tracking-widest text-on-surface-variant">
+                {{ $citaReagendar ? 'Reagendar cita' : 'Nueva cita' }}
+            </h3>
+            <p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">
+                {{ $citaReagendar ? 'Selecciona una nueva fecha y hora para tu cita.' : 'Selecciona servicio, colaborador y horario.' }}
+            </p>
+            @if($citaReagendar)
+                <div class="mt-sm p-sm bg-secondary-container/20 border border-secondary/30 rounded-lg text-sm text-on-surface-variant">
+                    <span class="font-medium">Cita actual:</span> 
+                    {{ date('d/m/Y', strtotime($citaReagendar->fecha)) }} a las {{ date('H:i', strtotime($citaReagendar->hora_inicio)) }} 
+                    con {{ $citaReagendar->colaborador->nombre }} - {{ $citaReagendar->servicio->nombre }}
+                </div>
+            @endif
         </div>
 
         <form wire:submit.prevent="agendarCita" class="space-y-lg">
-            {{-- SERVICIO --}}
+            {{-- SERVICIO (solo lectura si reagendando) --}}
             <div class="space-y-xs">
                 <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Servicio *</label>
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    @forelse($servicios as $servicio)
-                        <button type="button"
-                            wire:click="$set('servicioId', {{ $servicio->id }})"
-                            class="rounded-lg font-body-sm text-sm transition-all duration-200 text-center touch-manipulation overflow-hidden flex flex-col
-                                {{ (string) $servicioId === (string) $servicio->id
-                                    ? 'bg-secondary text-on-secondary shadow-md scale-[0.98] font-semibold ring-2 ring-secondary'
-                                    : 'border border-outline-variant hover:bg-secondary-container hover:border-secondary text-on-surface active:scale-95' }}">
-                            @if($servicio->imagen_src)
-                                <div class="w-full aspect-[4/3] bg-surface-container-low overflow-hidden">
-                                    <img src="{{ $servicio->imagen_src }}"
-                                         alt="{{ $servicio->nombre }}"
-                                         class="w-full h-full object-cover {{ (string) $servicioId === (string) $servicio->id ? 'opacity-95' : '' }}">
-                                </div>
-                            @endif
-                            <div class="p-2.5 md:p-2 flex flex-col gap-0.5 min-h-[72px] justify-center">
-                                <span class="leading-tight">{{ $servicio->nombre }}</span>
-                                <span class="text-xs opacity-80 font-normal">
-                                    ${{ number_format($servicio->precio, 2) }} · {{ $servicio->duracion_minutos }} min
-                                </span>
-                            </div>
-                        </button>
-                    @empty
-                        <div class="col-span-full bg-surface-container-low border border-outline-variant rounded-lg p-md text-center text-on-surface-variant">
-                            <p class="font-body-sm text-body-sm">No hay servicios disponibles.</p>
-                        </div>
-                    @endforelse
-                </div>
-                @error('servicioId') <span class="font-body-sm text-body-sm text-error block">{{ $message }}</span> @enderror
-            </div>
-
-            {{-- COLABORADOR --}}
-            <div class="space-y-xs">
-                <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Colaborador *</label>
-                @if(!$servicioId)
-                    <div class="bg-surface-container-low border border-outline-variant rounded-lg p-md text-center text-on-surface-variant">
-                        <span class="material-symbols-outlined text-[24px] block mx-auto mb-xs">badge</span>
-                        <p class="font-body-sm text-body-sm">Selecciona un servicio para ver los colaboradores.</p>
+                @if($citaReagendar)
+                    <div class="p-3 bg-surface-container-low border border-outline-variant rounded-lg font-body-md text-on-surface">
+                        {{ $citaReagendar->servicio->nombre }} ({{ $citaReagendar->servicio->duracion_minutos }} min - ${{ number_format($citaReagendar->servicio->precio, 2) }})
                     </div>
+                    <input type="hidden" wire:model="servicioId">
                 @else
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        @forelse($colaboradores as $colaborador)
+                        @forelse($servicios as $servicio)
                             <button type="button"
-                                wire:click="$set('colaboradorId', {{ $colaborador->id }})"
-                                class="rounded-lg font-body-sm text-sm transition-all duration-200 text-center touch-manipulation overflow-hidden flex flex-col items-center
-                                    {{ (string) $colaboradorId === (string) $colaborador->id
+                                wire:click="$set('servicioId', {{ $servicio->id }})"
+                                class="rounded-lg font-body-sm text-sm transition-all duration-200 text-center touch-manipulation overflow-hidden flex flex-col
+                                    {{ (string) $servicioId === (string) $servicio->id
                                         ? 'bg-secondary text-on-secondary shadow-md scale-[0.98] font-semibold ring-2 ring-secondary'
                                         : 'border border-outline-variant hover:bg-secondary-container hover:border-secondary text-on-surface active:scale-95' }}">
-                                <div class="pt-3 px-3">
-                                    <div class="w-16 h-16 rounded-full overflow-hidden bg-surface-container-high border border-outline-variant/60 flex items-center justify-center mx-auto
-                                        {{ (string) $colaboradorId === (string) $colaborador->id ? 'border-on-secondary/40' : '' }}">
-                                        @if($colaborador->foto_src)
-                                            <img src="{{ $colaborador->foto_src }}"
-                                                 alt="{{ $colaborador->nombre }}"
-                                                 class="w-full h-full object-cover">
-                                        @else
-                                            <span class="material-symbols-outlined text-[32px] {{ (string) $colaboradorId === (string) $colaborador->id ? 'text-on-secondary/80' : 'text-on-surface-variant' }}">person</span>
-                                        @endif
+                                @if($servicio->imagen_src)
+                                    <div class="w-full aspect-[4/3] bg-surface-container-low overflow-hidden">
+                                        <img src="{{ $servicio->imagen_src }}"
+                                             alt="{{ $servicio->nombre }}"
+                                             class="w-full h-full object-cover {{ (string) $servicioId === (string) $servicio->id ? 'opacity-95' : '' }}">
                                     </div>
-                                </div>
-                                <div class="p-2.5 md:p-2 w-full">
-                                    <span class="leading-tight block">{{ $colaborador->nombre }}</span>
+                                @endif
+                                <div class="p-2.5 md:p-2 flex flex-col gap-0.5 min-h-[72px] justify-center">
+                                    <span class="leading-tight">{{ $servicio->nombre }}</span>
+                                    <span class="text-xs opacity-80 font-normal">
+                                        ${{ number_format($servicio->precio, 2) }} · {{ $servicio->duracion_minutos }} min
+                                    </span>
                                 </div>
                             </button>
                         @empty
                             <div class="col-span-full bg-surface-container-low border border-outline-variant rounded-lg p-md text-center text-on-surface-variant">
-                                <p class="font-body-sm text-body-sm">No hay colaboradores para este servicio.</p>
+                                <p class="font-body-sm text-body-sm">No hay servicios disponibles.</p>
                             </div>
                         @endforelse
                     </div>
+                @endif
+                @error('servicioId') <span class="font-body-sm text-body-sm text-error block">{{ $message }}</span> @enderror
+            </div>
+
+            {{-- COLABORADOR (solo lectura si reagendando) --}}
+            <div class="space-y-xs">
+                <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Colaborador *</label>
+                @if($citaReagendar)
+                    <div class="p-3 bg-surface-container-low border border-outline-variant rounded-lg font-body-md text-on-surface flex items-center gap-3">
+                        @if($citaReagendar->colaborador->foto_src)
+                            <img src="{{ $citaReagendar->colaborador->foto_src }}" alt="" class="w-8 h-8 rounded-full object-cover">
+                        @else
+                            <span class="material-symbols-outlined text-on-surface-variant">person</span>
+                        @endif
+                        {{ $citaReagendar->colaborador->nombre }}
+                    </div>
+                    <input type="hidden" wire:model="colaboradorId">
+                @else
+                    @if(!$servicioId)
+                        <div class="bg-surface-container-low border border-outline-variant rounded-lg p-md text-center text-on-surface-variant">
+                            <span class="material-symbols-outlined text-[24px] block mx-auto mb-xs">badge</span>
+                            <p class="font-body-sm text-body-sm">Selecciona un servicio para ver los colaboradores.</p>
+                        </div>
+                    @else
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            @forelse($colaboradores as $colaborador)
+                                <button type="button"
+                                    wire:click="$set('colaboradorId', {{ $colaborador->id }})"
+                                    class="rounded-lg font-body-sm text-sm transition-all duration-200 text-center touch-manipulation overflow-hidden flex flex-col items-center
+                                        {{ (string) $colaboradorId === (string) $colaborador->id
+                                            ? 'bg-secondary text-on-secondary shadow-md scale-[0.98] font-semibold ring-2 ring-secondary'
+                                            : 'border border-outline-variant hover:bg-secondary-container hover:border-secondary text-on-surface active:scale-95' }}">
+                                    <div class="pt-3 px-3">
+                                        <div class="w-16 h-16 rounded-full overflow-hidden bg-surface-container-high border border-outline-variant/60 flex items-center justify-center mx-auto
+                                            {{ (string) $colaboradorId === (string) $colaborador->id ? 'border-on-secondary/40' : '' }}">
+                                            @if($colaborador->foto_src)
+                                                <img src="{{ $colaborador->foto_src }}"
+                                                     alt="{{ $colaborador->nombre }}"
+                                                     class="w-full h-full object-cover">
+                                            @else
+                                                <span class="material-symbols-outlined text-[32px] {{ (string) $colaboradorId === (string) $colaborador->id ? 'text-on-secondary/80' : 'text-on-surface-variant' }}">person</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <div class="p-2.5 md:p-2 w-full">
+                                        <span class="leading-tight block">{{ $colaborador->nombre }}</span>
+                                    </div>
+                                </button>
+                            @empty
+                                <div class="col-span-full bg-surface-container-low border border-outline-variant rounded-lg p-md text-center text-on-surface-variant">
+                                    <p class="font-body-sm text-body-sm">No hay colaboradores para este servicio.</p>
+                                </div>
+                            @endforelse
+                        </div>
+                    @endif
                 @endif
                 @error('colaboradorId') <span class="font-body-sm text-body-sm text-error block">{{ $message }}</span> @enderror
             </div>
@@ -278,6 +306,9 @@
                                         </button>
                                     @endforeach
                                 </div>
+                                @if($fecha === date('Y-m-d'))
+                                    <p class="font-body-sm text-body-sm text-outline mt-2">* Las horas deben tener al menos 2 horas de anticipación.</p>
+                                @endif
                             @else
                                 <div class="text-center py-4 text-on-surface-variant/60">
                                     <span class="material-symbols-outlined text-[32px] block mx-auto mb-1 opacity-40">event_busy</span>
@@ -317,21 +348,21 @@
                 @error('observaciones') <span class="font-body-sm text-body-sm text-error block">{{ $message }}</span> @enderror
             </div>
 
-            {{-- BOTÓN AGENDAR --}}
+            {{-- BOTÓN AGENDAR / REAGENDAR --}}
             <button type="submit"
                     class="w-full h-14 bg-secondary text-on-secondary font-label-md text-label-md rounded-lg shadow-md hover:bg-[#005a3d] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-sm disabled:opacity-60"
                     wire:loading.attr="disabled"
                     wire:target="agendarCita">
                 <span wire:loading.remove wire:target="agendarCita" class="flex items-center gap-sm">
-                    <span class="material-symbols-outlined" style="font-size: 20px;">calendar_month</span>
-                    Agendar Cita
+                    <span class="material-symbols-outlined" style="font-size: 20px;">{{ $citaReagendar ? 'update' : 'calendar_month' }}</span>
+                    {{ $citaReagendar ? 'Reagendar Cita' : 'Agendar Cita' }}
                 </span>
                 <span wire:loading wire:target="agendarCita" class="flex items-center gap-sm">
                     <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Agendando...
+                    Procesando...
                 </span>
             </button>
         </form>
@@ -365,11 +396,11 @@
                                 <div class="font-body-sm text-body-sm text-on-surface-variant mt-sm flex flex-wrap items-center gap-md">
                                     <span class="inline-flex items-center gap-xs">
                                         <span class="material-symbols-outlined" style="font-size: 16px;">event</span>
-                                        {{ isset($cita->fecha) ? \Carbon\Carbon::parse($cita->fecha)->format('d/m/Y') : '' }}
+                                        {{ date('d/m/Y', strtotime($cita->fecha)) }}
                                     </span>
                                     <span class="inline-flex items-center gap-xs">
                                         <span class="material-symbols-outlined" style="font-size: 16px;">schedule</span>
-                                        {{ $cita->hora_inicio ?? '' }} - {{ $cita->hora_fin ?? '' }}
+                                        {{ date('H:i', strtotime($cita->hora_inicio)) }} - {{ date('H:i', strtotime($cita->hora_fin)) }}
                                     </span>
                                 </div>
                                 <div class="font-body-sm text-body-sm text-on-surface-variant mt-xs flex flex-wrap items-center gap-md">
@@ -392,22 +423,29 @@
                                 @endif
                             </div>
 
-                            @if(in_array($cita->estado ?? '', ['agendada', 'confirmada']))
-                                @php $puedeCancelar = $cita->puedeCancelar('cliente'); @endphp
-                                @if($puedeCancelar)
+                            <div class="flex flex-col items-end gap-1 shrink-0">
+                                @if(in_array($cita->estado, ['agendada', 'confirmada']) && $cita->puedeCancelar('cliente'))
+                                    {{-- Botón reagendar --}}
+                                    <button type="button"
+                                            wire:click="reagendarCita({{ $cita->id }})"
+                                            class="font-label-sm text-label-sm text-secondary hover:bg-secondary-container px-sm py-xs rounded-lg transition-colors flex items-center gap-xs">
+                                        <span class="material-symbols-outlined" style="font-size: 16px;">update</span>
+                                        Reagendar
+                                    </button>
+                                    {{-- Botón cancelar --}}
                                     <button type="button"
                                             wire:click="cancelarCita({{ $cita->id }})"
                                             onclick="confirm('¿Cancelar esta cita?') || event.stopImmediatePropagation()"
-                                            class="font-label-sm text-label-sm text-error hover:bg-error-container px-sm py-xs rounded-lg transition-colors shrink-0 flex items-center gap-xs">
+                                            class="font-label-sm text-label-sm text-error hover:bg-error-container px-sm py-xs rounded-lg transition-colors flex items-center gap-xs">
                                         <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
                                         Cancelar
                                     </button>
-                                @else
+                                @elseif(in_array($cita->estado, ['agendada', 'confirmada']))
                                     <span class="text-xs text-on-surface-variant opacity-50" title="Solo 24 horas antes">
                                         🔒 No disponible
                                     </span>
                                 @endif
-                            @endif
+                            </div>
                         </div>
                     </div>
                 @endforeach

@@ -17,13 +17,17 @@ class BuscarCliente extends Component
     public ?string $mensaje = null;
     public string $tipoMensaje = 'info';
 
-    /** Se incrementa en cada cambio de paso para forzar remount y evitar vistas duplicadas */
     public int $vistaKey = 1;
 
     private function irAPaso(string $step): void
     {
         $this->step = $step;
         $this->vistaKey++;
+    }
+
+    public function getEmpresaActivaProperty()
+    {
+        return $this->empresa->estatus === 'activo';
     }
 
     #[On('telefono-verificado')]
@@ -129,6 +133,7 @@ class BuscarCliente extends Component
         return view('livewire.cliente.buscar-cliente', [
             'pasoComponent' => $this->pasoComponent,
             'pasoParams' => $this->pasoParams,
+            'empresaActiva' => $this->empresaActiva,
         ]);
     }
 }
