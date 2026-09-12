@@ -80,34 +80,76 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {{-- Citas --}}
         <div class="bg-surface p-6 rounded-xl border border-outline-variant shadow-sm">
-            <h3 class="font-headline-md text-headline-md text-on-surface mb-4 flex items-center gap-2">
-                <span class="material-symbols-outlined text-secondary">bar_chart</span>
-                Citas
-            </h3>
             @php
-                $maxCitas = max($citasPorDia) > 0 ? max($citasPorDia) : 1;
-                $totalCitas = count($citasPorDia);
+                $citasAtendidas = $citasAtendidas ?? [];
+                $citasProgramadas = $citasProgramadas ?? [];
+                $citasCanceladas = $citasCanceladas ?? [];
+                $totalAtendidas = array_sum($citasAtendidas);
+                $totalProgramadas = array_sum($citasProgramadas);
+                $totalCanceladas = array_sum($citasCanceladas);
+                $maxCitas = count($citasPorDia) ? max($citasPorDia) : 0;
+                $maxCitas = $maxCitas > 0 ? $maxCitas : 1;
+                $totalPuntosCitas = count($citasPorDia);
                 $isMes = $periodo === 'mes';
-                $barClass = $isMes ? 'space-x-0.5' : 'space-x-2';
+                $barClass = $isMes ? 'gap-0.5' : 'gap-2';
                 $labelClass = $isMes ? 'text-[8px]' : 'text-xs';
+                $hayCitas = $totalPuntosCitas > 0 && ($totalPuntosCitas > 1 || ($citasPorDia[0] ?? 0) > 0);
             @endphp
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+                <h3 class="font-headline-md text-headline-md text-on-surface flex items-center gap-2">
+                    <span class="material-symbols-outlined text-secondary">bar_chart</span>
+                    Citas por estado
+                </h3>
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1" role="list" aria-label="Leyenda de citas">
+                    <span class="inline-flex items-center gap-1.5 text-xs text-on-surface-variant" role="listitem">
+                        <span class="w-2.5 h-2.5 rounded-sm bg-secondary shrink-0"></span>
+                        Atendidas ({{ $totalAtendidas }})
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 text-xs text-on-surface-variant" role="listitem">
+                        <span class="w-2.5 h-2.5 rounded-sm bg-primary-container shrink-0"></span>
+                        Programadas ({{ $totalProgramadas }})
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 text-xs text-on-surface-variant" role="listitem">
+                        <span class="w-2.5 h-2.5 rounded-sm bg-error shrink-0"></span>
+                        Canceladas / No asistió ({{ $totalCanceladas }})
+                    </span>
+                </div>
+            </div>
 
-            @if($totalCitas > 1 || $citasPorDia[0] > 0)
+            @if($hayCitas)
                 <div class="h-64 flex items-end {{ $barClass }}">
                     @foreach($citasPorDia as $index => $cita)
                         @php
-                            $height = ($cita / $maxCitas) * 150; // altura máxima 150px
+                            $atendidas = $citasAtendidas[$index] ?? 0;
+                            $programadas = $citasProgramadas[$index] ?? 0;
+                            $canceladas = $citasCanceladas[$index] ?? 0;
+                            $height = ($cita / $maxCitas) * 170;
                             $label = $labels[$index] ?? '';
                         @endphp
-                        <div class="flex-1 flex flex-col items-center">
-                            <div class="w-full bg-secondary/20 rounded-t" style="height: {{ $height }}px;">
-                                <div class="w-full bg-secondary rounded-t h-full transition-all duration-500" 
-                                     style="height: {{ ($cita / $maxCitas) * 100 }}%;"></div>
+                        <div class="flex-1 min-w-0 flex flex-col items-center justify-end h-full">
+                            @if($cita > 0 && !$isMes)
+                                <span class="text-[10px] font-medium text-on-surface mb-1">{{ $cita }}</span>
+                            @endif
+                            <div class="w-full max-w-[2.5rem] rounded-t overflow-hidden bg-surface-container-low"
+                                 style="height: {{ max($height, $cita > 0 ? 8 : 2) }}px;"
+                                 title="{{ $label }}: {{ $atendidas }} atendidas, {{ $programadas }} programadas, {{ $canceladas }} canceladas">
+                                @if($canceladas > 0)
+                                    <div class="w-full bg-error transition-all duration-500" style="height: {{ ($canceladas / $cita) * 100 }}%"></div>
+                                @endif
+                                @if($programadas > 0)
+                                    <div class="w-full bg-primary-container transition-all duration-500" style="height: {{ ($programadas / $cita) * 100 }}%"></div>
+                                @endif
+                                @if($atendidas > 0)
+                                    <div class="w-full bg-secondary transition-all duration-500" style="height: {{ ($atendidas / $cita) * 100 }}%"></div>
+                                @endif
                             </div>
                             <span class="{{ $labelClass }} text-on-surface-variant mt-1 truncate w-full text-center">{{ $label }}</span>
                         </div>
                     @endforeach
                 </div>
+                <p class="mt-3 text-[11px] text-on-surface-variant leading-relaxed">
+                    Verde: citas atendidas. Azul oscuro: agendadas, confirmadas o en curso. Rojo: canceladas o no asistió.
+                </p>
             @else
                 <div class="h-64 flex items-center justify-center text-on-surface-variant">
                     <span class="material-symbols-outlined text-4xl text-outline mr-2">info</span>
@@ -118,34 +160,76 @@
 
         {{-- Ingresos --}}
         <div class="bg-surface p-6 rounded-xl border border-outline-variant shadow-sm">
-            <h3 class="font-headline-md text-headline-md text-on-surface mb-4 flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary">trending_up</span>
-                Ingresos ($)
-            </h3>
             @php
-                $maxIngresos = max($ingresosPorDia) > 0 ? max($ingresosPorDia) : 1;
-                $totalIngresos = count($ingresosPorDia);
+                $ingresosEfectivo = $ingresosEfectivo ?? [];
+                $ingresosTarjeta = $ingresosTarjeta ?? [];
+                $ingresosTransferencia = $ingresosTransferencia ?? [];
+                $totalEfectivo = array_sum($ingresosEfectivo);
+                $totalTarjeta = array_sum($ingresosTarjeta);
+                $totalTransferencia = array_sum($ingresosTransferencia);
+                $maxIngresos = count($ingresosPorDia) ? max($ingresosPorDia) : 0;
+                $maxIngresos = $maxIngresos > 0 ? $maxIngresos : 1;
+                $totalPuntosIngresos = count($ingresosPorDia);
                 $isMes = $periodo === 'mes';
-                $barClass = $isMes ? 'space-x-0.5' : 'space-x-2';
+                $barClass = $isMes ? 'gap-0.5' : 'gap-2';
                 $labelClass = $isMes ? 'text-[8px]' : 'text-xs';
+                $hayIngresos = $totalPuntosIngresos > 0 && ($totalPuntosIngresos > 1 || ($ingresosPorDia[0] ?? 0) > 0);
             @endphp
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+                <h3 class="font-headline-md text-headline-md text-on-surface flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">trending_up</span>
+                    Ingresos por método
+                </h3>
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1" role="list" aria-label="Leyenda de ingresos">
+                    <span class="inline-flex items-center gap-1.5 text-xs text-on-surface-variant" role="listitem">
+                        <span class="w-2.5 h-2.5 rounded-sm bg-secondary shrink-0"></span>
+                        Efectivo (${{ number_format($totalEfectivo, 0) }})
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 text-xs text-on-surface-variant" role="listitem">
+                        <span class="w-2.5 h-2.5 rounded-sm bg-primary-container shrink-0"></span>
+                        Tarjeta (${{ number_format($totalTarjeta, 0) }})
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 text-xs text-on-surface-variant" role="listitem">
+                        <span class="w-2.5 h-2.5 rounded-sm bg-amber-500 shrink-0"></span>
+                        Transferencia (${{ number_format($totalTransferencia, 0) }})
+                    </span>
+                </div>
+            </div>
 
-            @if($totalIngresos > 1 || $ingresosPorDia[0] > 0)
+            @if($hayIngresos)
                 <div class="h-64 flex items-end {{ $barClass }}">
                     @foreach($ingresosPorDia as $index => $ingreso)
                         @php
-                            $height = ($ingreso / $maxIngresos) * 150;
+                            $efectivo = $ingresosEfectivo[$index] ?? 0;
+                            $tarjeta = $ingresosTarjeta[$index] ?? 0;
+                            $transferencia = $ingresosTransferencia[$index] ?? 0;
+                            $height = ($ingreso / $maxIngresos) * 170;
                             $label = $labels[$index] ?? '';
                         @endphp
-                        <div class="flex-1 flex flex-col items-center">
-                            <div class="w-full bg-primary/20 rounded-t" style="height: {{ $height }}px;">
-                                <div class="w-full bg-primary rounded-t h-full transition-all duration-500" 
-                                     style="height: {{ ($ingreso / $maxIngresos) * 100 }}%;"></div>
+                        <div class="flex-1 min-w-0 flex flex-col items-center justify-end h-full">
+                            @if($ingreso > 0 && !$isMes)
+                                <span class="text-[10px] font-medium text-on-surface mb-1">${{ number_format($ingreso, 0) }}</span>
+                            @endif
+                            <div class="w-full max-w-[2.5rem] rounded-t overflow-hidden bg-surface-container-low"
+                                 style="height: {{ max($height, $ingreso > 0 ? 8 : 2) }}px;"
+                                 title="{{ $label }}: Efectivo ${{ number_format($efectivo, 2) }}, Tarjeta ${{ number_format($tarjeta, 2) }}, Transferencia ${{ number_format($transferencia, 2) }}">
+                                @if($transferencia > 0)
+                                    <div class="w-full bg-amber-500 transition-all duration-500" style="height: {{ ($transferencia / $ingreso) * 100 }}%"></div>
+                                @endif
+                                @if($tarjeta > 0)
+                                    <div class="w-full bg-primary-container transition-all duration-500" style="height: {{ ($tarjeta / $ingreso) * 100 }}%"></div>
+                                @endif
+                                @if($efectivo > 0)
+                                    <div class="w-full bg-secondary transition-all duration-500" style="height: {{ ($efectivo / $ingreso) * 100 }}%"></div>
+                                @endif
                             </div>
                             <span class="{{ $labelClass }} text-on-surface-variant mt-1 truncate w-full text-center">{{ $label }}</span>
                         </div>
                     @endforeach
                 </div>
+                <p class="mt-3 text-[11px] text-on-surface-variant leading-relaxed">
+                    Verde: efectivo. Azul oscuro: tarjeta. Ámbar: transferencia.
+                </p>
             @else
                 <div class="h-64 flex items-center justify-center text-on-surface-variant">
                     <span class="material-symbols-outlined text-4xl text-outline mr-2">info</span>

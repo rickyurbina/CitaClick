@@ -3,7 +3,6 @@
 namespace App\Livewire\SuperAdmin;
 
 use App\Models\EmpresasModel;
-use App\Models\CitasModel;
 use App\Models\ComisionesModel;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -39,15 +38,6 @@ class Dashboard extends Component
             ->where('estatus', 'pagada')
             ->sum('monto');
 
-        $ingresosMes = CitasModel::whereMonth('fecha_pago', Carbon::now()->month)
-            ->whereYear('fecha_pago', Carbon::now()->year)
-            ->where('pagado', 1)
-            ->sum('monto_pagado');
-
-        $citasMes = CitasModel::whereMonth('fecha', Carbon::now()->month)
-            ->whereYear('fecha', Carbon::now()->year)
-            ->count();
-
         $empresasPorPlan = EmpresasModel::select('plan', DB::raw('count(*) as total'))
             ->groupBy('plan')
             ->pluck('total', 'plan')
@@ -71,8 +61,6 @@ class Dashboard extends Component
             'empresasSuspendidas' => $empresasSuspendidas,
             'empresasInactivas' => $empresasInactivas,
             'cobroMes' => $cobroMes,
-            'ingresosMes' => $ingresosMes,
-            'citasMes' => $citasMes,
             'empresasPorPlan' => $empresasPorPlan,
             'crecimientoMensual' => $crecimientoMensual,
             'labelsCrecimiento' => $labelsCrecimiento,

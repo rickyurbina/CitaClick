@@ -67,12 +67,7 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-lg mb-xl">
-        <div class="bg-surface-container-lowest p-md border border-outline-variant rounded shadow-sm">
-            <p class="text-on-surface-variant font-label-sm">Ingresos Totales del Mes</p>
-            <p class="text-headline-md font-bold text-secondary">${{ number_format($stats['ingresosMes'] ?? 0, 2) }}</p>
-            <p class="font-body-sm text-on-surface-variant mt-xs">{{ $stats['citasMes'] ?? 0 }} citas realizadas</p>
-        </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-lg mb-xl">
         <div class="bg-surface-container-lowest p-md border border-outline-variant rounded shadow-sm">
             <p class="text-on-surface-variant font-label-sm">Empresas Inactivas</p>
             <p class="text-headline-md font-bold text-on-surface">{{ $stats['empresasInactivas'] ?? 0 }}</p>

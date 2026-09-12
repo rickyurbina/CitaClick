@@ -22,6 +22,12 @@ class Dashboard extends Component
     public $gananciaNeta = 0;
     public $citasPorDia = [];
     public $ingresosPorDia = [];
+    public $citasAtendidas = [];
+    public $citasProgramadas = [];
+    public $citasCanceladas = [];
+    public $ingresosEfectivo = [];
+    public $ingresosTarjeta = [];
+    public $ingresosTransferencia = [];
     public $labels = [];
     public $topColaboradores = [];
     public $ultimasCitas = [];
@@ -68,7 +74,7 @@ class Dashboard extends Component
                 break;
         }
 
-        $cacheKey = 'dashboard_stats_' . $this->empresa->id . '_' . $this->periodo;
+        $cacheKey = 'dashboard_stats_v2_' . $this->empresa->id . '_' . $this->periodo;
         $stats = Cache::remember($cacheKey, 300, function () use ($fechaInicio, $fechaFin, $hoy) {
             $citasHoy = CitasModel::where('empresa_id', $this->empresa->id)
                 ->whereDate('fecha', $hoy)
@@ -95,48 +101,114 @@ class Dashboard extends Component
             $gananciaNeta = $ingresosTotales - $comisiones;
 
             $labels = [];
-            $citasData = [];
-            $ingresosData = [];
+            $bucketKeys = [];
 
             if ($this->periodo === 'dia') {
                 for ($h = 8; $h <= 20; $h++) {
-                    $horaInicio = $hoy->copy()->setHour($h)->setMinute(0);
-                    $horaFin = $hoy->copy()->setHour($h)->setMinute(59);
+                    $bucketKeys[] = (string) $h;
                     $labels[] = $h . ':00';
-                    $citasData[] = CitasModel::where('empresa_id', $this->empresa->id)
-                        ->whereBetween('fecha', [$horaInicio, $horaFin])
-                        ->count();
-                    $ingresosData[] = CitasModel::where('empresa_id', $this->empresa->id)
-                        ->whereBetween('fecha_pago', [$horaInicio, $horaFin])
-                        ->where('pagado', 1)
-                        ->sum('monto_pagado');
                 }
             } elseif ($this->periodo === 'semana') {
                 for ($i = 6; $i >= 0; $i--) {
                     $fecha = $hoy->copy()->subDays($i);
+                    $bucketKeys[] = $fecha->toDateString();
                     $labels[] = $fecha->format('D d');
-                    $citasData[] = CitasModel::where('empresa_id', $this->empresa->id)
-                        ->whereDate('fecha', $fecha)
-                        ->count();
-                    $ingresosData[] = CitasModel::where('empresa_id', $this->empresa->id)
-                        ->whereDate('fecha_pago', $fecha)
-                        ->where('pagado', 1)
-                        ->sum('monto_pagado');
                 }
-            } elseif ($this->periodo === 'mes') {
+            } else {
                 $diasDelMes = $hoy->daysInMonth;
                 for ($d = 1; $d <= $diasDelMes; $d++) {
                     $fecha = $hoy->copy()->day($d);
-                    $labels[] = $d;
-                    $citasData[] = CitasModel::where('empresa_id', $this->empresa->id)
-                        ->whereDate('fecha', $fecha)
-                        ->count();
-                    $ingresosData[] = CitasModel::where('empresa_id', $this->empresa->id)
-                        ->whereDate('fecha_pago', $fecha)
-                        ->where('pagado', 1)
-                        ->sum('monto_pagado');
+                    $bucketKeys[] = $fecha->toDateString();
+                    $labels[] = (string) $d;
                 }
             }
+
+            $vacios = array_fill_keys($bucketKeys, 0);
+            $citasAtendidasMap = $vacios;
+            $citasProgramadasMap = $vacios;
+            $citasCanceladasMap = $vacios;
+            $ingresosEfectivoMap = $vacios;
+            $ingresosTarjetaMap = $vacios;
+            $ingresosTransferenciaMap = $vacios;
+
+            $graficaInicio = $this->periodo === 'semana'
+                ? $hoy->copy()->subDays(6)->startOfDay()
+                : $fechaInicio;
+            $graficaFin = $this->periodo === 'semana'
+                ? $hoy->copy()->endOfDay()
+                : $fechaFin;
+
+            $citasPeriodo = CitasModel::where('empresa_id', $this->empresa->id)
+                ->whereBetween('fecha', [$graficaInicio, $graficaFin])
+                ->get(['fecha', 'hora_inicio', 'estado']);
+
+            $pagosPeriodo = CitasModel::where('empresa_id', $this->empresa->id)
+                ->whereBetween('fecha_pago', [$graficaInicio, $graficaFin])
+                ->where('pagado', 1)
+                ->get(['fecha_pago', 'monto_pagado', 'metodo_pago']);
+
+            $estadosProgramadas = ['agendada', 'confirmada', 'en_curso'];
+            $estadosCanceladas = ['cancelada', 'no_asistio'];
+
+            foreach ($citasPeriodo as $cita) {
+                $clave = $this->periodo === 'dia'
+                    ? (string) Carbon::parse($cita->hora_inicio)->hour
+                    : Carbon::parse($cita->fecha)->toDateString();
+
+                if (!array_key_exists($clave, $vacios)) {
+                    continue;
+                }
+
+                if ($cita->estado === 'atendida') {
+                    $citasAtendidasMap[$clave]++;
+                } elseif (in_array($cita->estado, $estadosCanceladas, true)) {
+                    $citasCanceladasMap[$clave]++;
+                } elseif (in_array($cita->estado, $estadosProgramadas, true)) {
+                    $citasProgramadasMap[$clave]++;
+                } else {
+                    $citasProgramadasMap[$clave]++;
+                }
+            }
+
+            foreach ($pagosPeriodo as $pago) {
+                $fechaPago = Carbon::parse($pago->fecha_pago);
+                $clave = $this->periodo === 'dia'
+                    ? (string) $fechaPago->hour
+                    : $fechaPago->toDateString();
+
+                if (!array_key_exists($clave, $vacios)) {
+                    continue;
+                }
+
+                $monto = (float) $pago->monto_pagado;
+                if ($pago->metodo_pago === 'tarjeta') {
+                    $ingresosTarjetaMap[$clave] += $monto;
+                } elseif ($pago->metodo_pago === 'transferencia') {
+                    $ingresosTransferenciaMap[$clave] += $monto;
+                } else {
+                    $ingresosEfectivoMap[$clave] += $monto;
+                }
+            }
+
+            $citasAtendidas = array_values($citasAtendidasMap);
+            $citasProgramadas = array_values($citasProgramadasMap);
+            $citasCanceladas = array_values($citasCanceladasMap);
+            $ingresosEfectivo = array_values($ingresosEfectivoMap);
+            $ingresosTarjeta = array_values($ingresosTarjetaMap);
+            $ingresosTransferencia = array_values($ingresosTransferenciaMap);
+
+            $citasData = array_map(
+                fn ($atendida, $programada, $cancelada) => $atendida + $programada + $cancelada,
+                $citasAtendidas,
+                $citasProgramadas,
+                $citasCanceladas
+            );
+            $ingresosData = array_map(
+                fn ($efectivo, $tarjeta, $transferencia) => $efectivo + $tarjeta + $transferencia,
+                $ingresosEfectivo,
+                $ingresosTarjeta,
+                $ingresosTransferencia
+            );
 
             $topColaboradores = User::where('empresa_id', $this->empresa->id)
                 ->where('rol', 'colaborador')
@@ -164,6 +236,12 @@ class Dashboard extends Component
                 'labels' => $labels,
                 'citasData' => $citasData,
                 'ingresosData' => $ingresosData,
+                'citasAtendidas' => $citasAtendidas,
+                'citasProgramadas' => $citasProgramadas,
+                'citasCanceladas' => $citasCanceladas,
+                'ingresosEfectivo' => $ingresosEfectivo,
+                'ingresosTarjeta' => $ingresosTarjeta,
+                'ingresosTransferencia' => $ingresosTransferencia,
                 'topColaboradores' => $topColaboradores,
                 'ultimasCitas' => $ultimasCitas,
             ];
@@ -176,6 +254,12 @@ class Dashboard extends Component
         $this->labels = $stats['labels'];
         $this->citasPorDia = $stats['citasData'];
         $this->ingresosPorDia = $stats['ingresosData'];
+        $this->citasAtendidas = $stats['citasAtendidas'];
+        $this->citasProgramadas = $stats['citasProgramadas'];
+        $this->citasCanceladas = $stats['citasCanceladas'];
+        $this->ingresosEfectivo = $stats['ingresosEfectivo'];
+        $this->ingresosTarjeta = $stats['ingresosTarjeta'];
+        $this->ingresosTransferencia = $stats['ingresosTransferencia'];
         $this->topColaboradores = $stats['topColaboradores'];
         $this->ultimasCitas = $stats['ultimasCitas'];
     }
@@ -190,6 +274,12 @@ class Dashboard extends Component
             'gananciaNeta' => $this->gananciaNeta,
             'citasPorDia' => $this->citasPorDia,
             'ingresosPorDia' => $this->ingresosPorDia,
+            'citasAtendidas' => $this->citasAtendidas,
+            'citasProgramadas' => $this->citasProgramadas,
+            'citasCanceladas' => $this->citasCanceladas,
+            'ingresosEfectivo' => $this->ingresosEfectivo,
+            'ingresosTarjeta' => $this->ingresosTarjeta,
+            'ingresosTransferencia' => $this->ingresosTransferencia,
             'labels' => $this->labels,
             'topColaboradores' => $this->topColaboradores,
             'ultimasCitas' => $this->ultimasCitas,
