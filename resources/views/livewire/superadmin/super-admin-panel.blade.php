@@ -70,9 +70,9 @@
 
         <main class="ml-64 p-lg">
             @if($seccionActiva === 'dashboard')
-                <livewire:superadmin.dashboard wire:key="dashboard" />
+                @livewire(\App\Livewire\SuperAdmin\Dashboard::class, [], key('dashboard'))
             @elseif($seccionActiva === 'pagos')
-                <livewire:superadmin.gestion-pagos wire:key="pagos" />
+                @livewire(\App\Livewire\SuperAdmin\GestionPagos::class, [], key('pagos'))
             @endif
         </main>
     @else

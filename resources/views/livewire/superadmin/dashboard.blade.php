@@ -258,6 +258,6 @@
         </div>
     </div>
 
-    <livewire:superadmin.formulario-empresa />
-    <livewire:superadmin.detalles-empresa />
+    @livewire(\App\Livewire\SuperAdmin\FormularioEmpresa::class)
+    @livewire(\App\Livewire\SuperAdmin\DetallesEmpresa::class)
 </div>
