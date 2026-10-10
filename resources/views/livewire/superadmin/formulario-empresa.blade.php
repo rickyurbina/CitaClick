@@ -24,6 +24,7 @@
             <form wire:submit.prevent="guardar" enctype="multipart/form-data" class="p-xl">
                 <div class="grid grid-cols-12 gap-xl">
                     <div class="col-span-12 lg:col-span-4 flex flex-col items-center justify-start text-center border-r-0 lg:border-r border-outline-variant lg:pr-xl pb-xl lg:pb-0">
+                        {{-- LOGO: sin cambios --}}
                         <div class="relative group w-full flex flex-col items-center">
                             @if($logoExistente && $modo === 'editar' && !$logoFile)
                                 <div class="relative mb-md">
@@ -34,10 +35,7 @@
                                     </div>
                                     <label class="absolute -bottom-2 -right-2 bg-primary text-on-primary p-2 rounded-full shadow-lg hover:scale-105 transition-transform active:scale-95 cursor-pointer">
                                         <span class="material-symbols-outlined text-[20px]">edit</span>
-                                        <input type="file"
-                                               wire:model="logoFile"
-                                               accept="image/*"
-                                               class="hidden">
+                                        <input type="file" wire:model="logoFile" accept="image/*" class="hidden">
                                     </label>
                                 </div>
                                 <button type="button"
@@ -47,15 +45,12 @@
                                 </button>
                             @elseif($logoFile)
                                 <div class="w-32 h-32 rounded-xl bg-surface-container flex items-center justify-center border-2 border-outline-variant mb-md overflow-hidden">
-                                    <img src="{{ $logoFile->temporaryUrl() }}"
-                                         alt="Vista previa"
-                                         class="w-full h-full object-contain">
+                                    <img src="{{ $logoFile->temporaryUrl() }}" alt="Vista previa" class="w-full h-full object-contain">
                                 </div>
                                 <div class="mb-md text-center">
                                     <p class="font-label-sm text-label-sm text-on-surface">{{ $logoFile->getClientOriginalName() }}</p>
                                     <p class="font-body-sm text-body-sm text-on-surface-variant">{{ round($logoFile->getSize() / 1024) }} KB</p>
-                                    <button type="button"
-                                            wire:click="$set('logoFile', null)"
+                                    <button type="button" wire:click="$set('logoFile', null)"
                                             class="font-label-sm text-label-sm text-error hover:underline mt-xs">
                                         Eliminar
                                     </button>
@@ -69,16 +64,13 @@
                                         <span class="absolute -bottom-2 -right-2 bg-primary text-on-primary p-2 rounded-full shadow-lg hover:scale-105 transition-transform active:scale-95 pointer-events-none">
                                             <span class="material-symbols-outlined text-[20px]">edit</span>
                                         </span>
-                                        <input type="file"
-                                               wire:model="logoFile"
-                                               accept="image/*"
-                                               class="hidden">
+                                        <input type="file" wire:model="logoFile" accept="image/*" class="hidden">
                                     </label>
                                 </div>
                             @endif
 
                             <h4 class="font-label-md text-label-md text-on-surface mt-md">Logo del Negocio</h4>
-                            <p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">Formatos aceptados: PNG, JPG, SVG, WEBP. Max: 2MB.</p>
+                            <p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">PNG, JPG, SVG, WEBP. Max: 2MB.</p>
                             @error('logoFile')
                                 <span class="text-error font-label-sm text-label-sm mt-xs block">{{ $message }}</span>
                             @enderror
@@ -87,8 +79,7 @@
                         <div class="mt-xl w-full text-left space-y-lg">
                             <div>
                                 <label for="estatus" class="block font-label-md text-label-md text-on-surface-variant mb-xs">Estado del Negocio *</label>
-                                <select id="estatus"
-                                        wire:model="estatus"
+                                <select id="estatus" wire:model="estatus"
                                         class="w-full h-10 px-md bg-surface-container-lowest border border-outline-variant rounded-lg text-body-md appearance-none cursor-pointer">
                                     <option value="activo">Activo</option>
                                     <option value="prueba">Prueba</option>
@@ -110,13 +101,12 @@
                     </div>
 
                     <div class="col-span-12 lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-lg">
+                        {{-- Nombre --}}
                         <div class="col-span-1 md:col-span-2">
                             <label for="nombre" class="block font-label-md text-label-md text-on-surface-variant mb-xs">
                                 Nombre del Negocio <span class="text-error">*</span>
                             </label>
-                            <input type="text"
-                                   id="nombre"
-                                   wire:model="nombre"
+                            <input type="text" id="nombre" wire:model="nombre"
                                    class="w-full h-10 px-md bg-white border border-outline-variant rounded-lg text-body-md text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
                                    placeholder="Ej. Soluciones Corporativas S.A."
                                    autofocus>
@@ -125,15 +115,14 @@
                             @enderror
                         </div>
 
+                        {{-- Email contacto --}}
                         <div class="col-span-1 md:col-span-2">
                             <label for="emailContacto" class="block font-label-md text-label-md text-on-surface-variant mb-xs">
                                 Email de contacto <span class="text-error">*</span>
                             </label>
                             <div class="relative">
                                 <span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-[18px]">mail</span>
-                                <input type="email"
-                                       id="emailContacto"
-                                       wire:model="emailContacto"
+                                <input type="email" id="emailContacto" wire:model="emailContacto"
                                        class="w-full h-10 pl-10 pr-md bg-white border border-outline-variant rounded-lg text-body-md text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
                                        placeholder="contacto@empresa.com">
                             </div>
@@ -142,13 +131,12 @@
                             @enderror
                         </div>
 
+                        {{-- Teléfono --}}
                         <div>
                             <label for="telefono" class="block font-label-md text-label-md text-on-surface-variant mb-xs">Teléfono de Oficina</label>
                             <div class="relative">
                                 <span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-[18px]">call</span>
-                                <input type="tel"
-                                       id="telefono"
-                                       wire:model="telefono"
+                                <input type="tel" id="telefono" wire:model="telefono"
                                        class="w-full h-10 pl-10 pr-md bg-white border border-outline-variant rounded-lg text-body-md text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
                                        placeholder="+52 (55) 0000-0000">
                             </div>
@@ -157,10 +145,10 @@
                             @enderror
                         </div>
 
+                        {{-- Plan --}}
                         <div>
                             <label for="plan" class="block font-label-md text-label-md text-on-surface-variant mb-xs">Plan *</label>
-                            <select id="plan"
-                                    wire:model="plan"
+                            <select id="plan" wire:model="plan"
                                     class="w-full h-10 px-md bg-white border border-outline-variant rounded-lg text-body-md appearance-none cursor-pointer">
                                 <option value="basico">Básico</option>
                                 <option value="pro">Pro</option>
@@ -171,13 +159,12 @@
                             @enderror
                         </div>
 
+                        {{-- Fecha vencimiento --}}
                         <div class="col-span-1 md:col-span-2">
                             <label for="fechaVencimiento" class="block font-label-md text-label-md text-on-surface-variant mb-xs">Fecha de vencimiento</label>
                             <div class="relative max-w-md">
                                 <span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-[18px]">calendar_today</span>
-                                <input type="date"
-                                       id="fechaVencimiento"
-                                       wire:model="fechaVencimiento"
+                                <input type="date" id="fechaVencimiento" wire:model="fechaVencimiento"
                                        min="{{ date('Y-m-d', strtotime('+1 day')) }}"
                                        class="w-full h-10 pl-10 pr-md bg-white border border-outline-variant rounded-lg text-body-md text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none">
                             </div>
@@ -186,12 +173,99 @@
                             @enderror
                             <p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">Dejar en blanco si no aplica</p>
                         </div>
+
+                        {{-- ⬇️ NUEVO: Usuario administrador (solo en modo crear) ⬇️ --}}
+                        @if($modo === 'crear')
+                        <div class="col-span-1 md:col-span-2 mt-lg pt-lg border-t border-outline-variant">
+                            <div class="flex items-center gap-sm mb-md">
+                                <span class="material-symbols-outlined text-primary text-[20px]">admin_panel_settings</span>
+                                <h4 class="font-label-md text-label-md text-on-surface uppercase tracking-wider">Usuario Administrador de la Empresa</h4>
+                            </div>
+                            <p class="font-body-sm text-body-sm text-on-surface-variant mb-md">
+                                Este usuario podrá iniciar sesión en el panel de la empresa con rol <strong>Administrador</strong>.
+                            </p>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-lg">
+                                <div class="col-span-1 md:col-span-2">
+                                    <label for="adminNombre" class="block font-label-md text-label-md text-on-surface-variant mb-xs">
+                                        Nombre completo <span class="text-error">*</span>
+                                    </label>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-[18px]">person</span>
+                                        <input type="text" id="adminNombre" wire:model="adminNombre"
+                                               class="w-full h-10 pl-10 pr-md bg-white border border-outline-variant rounded-lg text-body-md text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                                               placeholder="Ej. Juan Pérez">
+                                    </div>
+                                    @error('adminNombre')
+                                        <span class="text-error font-label-sm text-label-sm mt-xs block">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <label for="adminEmail" class="block font-label-md text-label-md text-on-surface-variant mb-xs">
+                                        Email de acceso <span class="text-error">*</span>
+                                    </label>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-[18px]">mail</span>
+                                        <input type="email" id="adminEmail" wire:model="adminEmail"
+                                               class="w-full h-10 pl-10 pr-md bg-white border border-outline-variant rounded-lg text-body-md text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                                               placeholder="admin@empresa.com">
+                                    </div>
+                                    @error('adminEmail')
+                                        <span class="text-error font-label-sm text-label-sm mt-xs block">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <label for="adminTelefono" class="block font-label-md text-label-md text-on-surface-variant mb-xs">Teléfono</label>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-[18px]">call</span>
+                                        <input type="tel" id="adminTelefono" wire:model="adminTelefono"
+                                               class="w-full h-10 pl-10 pr-md bg-white border border-outline-variant rounded-lg text-body-md text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                                               placeholder="Opcional">
+                                    </div>
+                                    @error('adminTelefono')
+                                        <span class="text-error font-label-sm text-label-sm mt-xs block">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <label for="adminPassword" class="block font-label-md text-label-md text-on-surface-variant mb-xs">
+                                        Contraseña <span class="text-error">*</span>
+                                    </label>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-[18px]">lock</span>
+                                        <input type="password" id="adminPassword" wire:model="adminPassword"
+                                               class="w-full h-10 pl-10 pr-md bg-white border border-outline-variant rounded-lg text-body-md text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                                               placeholder="Mínimo 6 caracteres">
+                                    </div>
+                                    @error('adminPassword')
+                                        <span class="text-error font-label-sm text-label-sm mt-xs block">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <label for="adminPasswordConfirm" class="block font-label-md text-label-md text-on-surface-variant mb-xs">
+                                        Confirmar contraseña <span class="text-error">*</span>
+                                    </label>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline text-[18px]">lock</span>
+                                        <input type="password" id="adminPasswordConfirm" wire:model="adminPasswordConfirm"
+                                               class="w-full h-10 pl-10 pr-md bg-white border border-outline-variant rounded-lg text-body-md text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                                               placeholder="Repite la contraseña">
+                                    </div>
+                                    @error('adminPasswordConfirm')
+                                        <span class="text-error font-label-sm text-label-sm mt-xs block">{{ $message }}</span>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+                        @endif
                     </div>
                 </div>
 
                 <div class="mt-xl flex items-center justify-end gap-md pt-xl border-t border-outline-variant">
-                    <button type="button"
-                            wire:click="cerrarModal"
+                    <button type="button" wire:click="cerrarModal"
                             class="px-xl py-2.5 rounded-lg border border-outline-variant text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high transition-colors active:scale-[0.98]">
                         Cancelar
                     </button>
@@ -218,25 +292,15 @@
     <script>
         document.addEventListener('alpine:init', () => {
             Alpine.data('formularioEmpresa', () => ({
-                init() {
-                    document.body.style.overflow = 'hidden';
-                },
-                cerrar() {
-                    @this.cerrarModal();
-                },
-                destroy() {
-                    document.body.style.overflow = 'auto';
-                }
+                init() { document.body.style.overflow = 'hidden'; },
+                cerrar() { @this.cerrarModal(); },
+                destroy() { document.body.style.overflow = 'auto'; }
             }));
         });
 
         document.addEventListener('livewire:initialized', () => {
-            @this.on('modal-cerrado', () => {
-                document.body.style.overflow = 'auto';
-            });
-            @this.on('modal-abierto', () => {
-                document.body.style.overflow = 'hidden';
-            });
+            @this.on('modal-cerrado', () => { document.body.style.overflow = 'auto'; });
+            @this.on('modal-abierto', () => { document.body.style.overflow = 'hidden'; });
         });
     </script>
     @endpush
