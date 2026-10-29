@@ -11,6 +11,7 @@ use App\Http\Controllers\DueñoController;
 use App\Http\Controllers\RecepcionistaController;
 use App\Http\Controllers\ColaboradorController;
 use App\Http\Controllers\ClienteController;
+use App\Http\Controllers\StorageImageController;
 use App\Livewire\AdminPanel;
 use App\Livewire\SuperAdmin\SuperAdminPanel;
 use Livewire\Volt\Volt;
@@ -32,6 +33,10 @@ Route::get('/dashboard',SuperAdminPanel::class)->name('superadmin');
 Route::get('/{empresa:slug}', BuscarCliente::class)->name('clientes');
 
 Route::get('/{empresa:slug}/panel', AdminPanel::class)->name('usuarios');
+
+Route::get('/media/{path}', [StorageImageController::class, 'show'])
+    ->where('path', '.*')
+    ->name('storage.image');
 
 // // Rutas públicas (login)
 // Route::get('/login-cliente', [AuthController::class, 'showLoginCliente'])->name('login.cliente');

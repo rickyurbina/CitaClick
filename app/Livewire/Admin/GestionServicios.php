@@ -4,8 +4,15 @@ namespace App\Livewire\Admin;
 
 use App\Models\EmpresasModel;
 use App\Models\ServiciosModel;
+use App\Models\CitasModel;
+use App\Models\ListaEsperaModel;
+use App\Models\PromocionesModel;
+use App\Models\ComisionesModel;
+use App\Models\AuditoriaCitasModel;
+use App\Models\RedencionesPromocionModel;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -23,6 +30,11 @@ class GestionServicios extends Component
     public EmpresasModel $empresa;
 
     public $mostrarModal = false;
+
+    // Modal eliminar (confirmación)
+    public $mostrarModalEliminar = false;
+    public $eliminarId = null;
+    public $eliminarDetalles = [];
 
     public $servicioIdEditar = null;
     public $nombre = '';
@@ -209,12 +221,17 @@ class GestionServicios extends Component
             $this->resetPage();
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Error al guardar servicio', ['error' => $e->getMessage()]);
             $this->mensaje = 'Ocurrió un error: ' . $e->getMessage();
             $this->tipoMensaje = 'error';
         }
         $this->cargando = false;
     }
 
+    /**
+     * Abre el modal de confirmación y calcula los registros que se
+     * eliminarán en cascada.
+     */
     public function eliminar($id)
     {
         if (!$this->esAdmin) {
@@ -222,32 +239,132 @@ class GestionServicios extends Component
             $this->tipoMensaje = 'error';
             return;
         }
+
+        $servicio = ServiciosModel::where('empresa_id', $this->empresa->id)->find($id);
+
+        if (!$servicio) {
+            $this->mensaje = 'Servicio no encontrado.';
+            $this->tipoMensaje = 'error';
+            return;
+        }
+
+        $citaIds = CitasModel::where('servicio_id', $servicio->id)->pluck('id');
+
+        $this->eliminarId = $servicio->id;
+        $this->eliminarDetalles = [
+            'nombre'      => $servicio->nombre,
+            'precio'      => $servicio->precio,
+            'citas'       => $citaIds->count(),
+            'comisiones'  => $citaIds->isNotEmpty()
+                                ? ComisionesModel::whereIn('cita_id', $citaIds)->count()
+                                : 0,
+            'auditorias'  => $citaIds->isNotEmpty()
+                                ? AuditoriaCitasModel::whereIn('cita_id', $citaIds)->count()
+                                : 0,
+            'redenciones' => $citaIds->isNotEmpty()
+                                ? RedencionesPromocionModel::whereIn('cita_id', $citaIds)->count()
+                                : 0,
+            'lista_espera' => ListaEsperaModel::where('servicio_id', $servicio->id)->count(),
+            'promociones'  => Schema::hasColumn('promociones', 'servicio_id')
+                                ? PromocionesModel::where('servicio_id', $servicio->id)->count()
+                                : 0,
+            'colaboradores' => $servicio->colaboradores()->count(),
+            'tiene_imagen'  => Schema::hasColumn('servicios', 'imagen_url') && $servicio->getRawOriginal('imagen_url') ? 1 : 0,
+        ];
+
+        $this->mostrarModalEliminar = true;
+    }
+
+    public function cancelarEliminacion()
+    {
+        $this->mostrarModalEliminar = false;
+        $this->eliminarId = null;
+        $this->eliminarDetalles = [];
+    }
+
+    /**
+     * Ejecuta el borrado en cascada de TODOS los registros relacionados.
+     */
+    public function ejecutarEliminacion()
+    {
+        if (!$this->esAdmin) {
+            $this->mensaje = 'No tienes permiso.';
+            $this->tipoMensaje = 'error';
+            return;
+        }
+
+        if (!$this->eliminarId) {
+            $this->mensaje = 'No hay servicio seleccionado.';
+            $this->tipoMensaje = 'error';
+            return;
+        }
+
         try {
-            $tieneCitas = \App\Models\CitasModel::where('empresa_id', $this->empresa->id)
-                ->where('servicio_id', $id)
-                ->exists();
-            if ($tieneCitas) {
-                $this->mensaje = 'No se puede eliminar. El servicio tiene citas asociadas.';
-                $this->tipoMensaje = 'error';
-                return;
-            }
             DB::beginTransaction();
-            $servicio = ServiciosModel::where('id', $id)
+
+            $servicio = ServiciosModel::where('id', $this->eliminarId)
                 ->where('empresa_id', $this->empresa->id)
                 ->first();
-            if ($servicio) {
-                if (Schema::hasColumn('servicios', 'imagen_url')) {
-                    $this->eliminarImagen($servicio->getRawOriginal('imagen_url'));
-                }
-                $servicio->delete();
+
+            if (!$servicio) {
+                throw new \Exception('Servicio no encontrado.');
             }
+
+            $citaIds = CitasModel::where('servicio_id', $servicio->id)->pluck('id');
+
+            // 1. Redenciones de promociones
+            if ($citaIds->isNotEmpty()) {
+                RedencionesPromocionModel::whereIn('cita_id', $citaIds)->delete();
+            }
+
+            // 2. Auditorías de esas citas
+            if ($citaIds->isNotEmpty()) {
+                AuditoriaCitasModel::whereIn('cita_id', $citaIds)->delete();
+            }
+
+            // 3. Comisiones de esas citas
+            if ($citaIds->isNotEmpty()) {
+                ComisionesModel::whereIn('cita_id', $citaIds)->delete();
+            }
+
+            // 4. Citas del servicio
+            if ($citaIds->isNotEmpty()) {
+                CitasModel::whereIn('id', $citaIds)->delete();
+            }
+
+            // 5. Lista de espera
+            ListaEsperaModel::where('servicio_id', $servicio->id)->delete();
+
+            // 6. Promociones (si existe la columna)
+            if (Schema::hasColumn('promociones', 'servicio_id')) {
+                PromocionesModel::where('servicio_id', $servicio->id)->delete();
+            }
+
+            // 7. Pivot colaborador_servicio
+            $servicio->colaboradores()->detach();
+
+            // 8. Imagen
+            if (Schema::hasColumn('servicios', 'imagen_url')) {
+                $this->eliminarImagen($servicio->getRawOriginal('imagen_url'));
+            }
+
+            // 9. Servicio
+            $servicio->delete();
+
             DB::commit();
-            $this->mensaje = 'Servicio eliminado correctamente.';
+
+            $this->mensaje = "Servicio \"{$servicio->nombre}\" eliminado junto con todos sus registros relacionados.";
             $this->tipoMensaje = 'success';
+            $this->cancelarEliminacion();
             $this->resetPage();
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->mensaje = 'Ocurrió un error al eliminar el servicio.';
+            Log::error('Error al eliminar servicio', [
+                'id' => $this->eliminarId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            $this->mensaje = 'Error al eliminar: ' . $e->getMessage();
             $this->tipoMensaje = 'error';
         }
     }
@@ -287,7 +404,6 @@ class GestionServicios extends Component
     protected function guardarImagen($file): string
     {
         $nombre = Str::slug($this->nombre ?: 'servicio') . '-' . time() . '.' . $file->getClientOriginalExtension();
-
         return $file->storeAs('servicios', $nombre, 'public');
     }
 

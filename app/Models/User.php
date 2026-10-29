@@ -88,6 +88,7 @@ class User extends Authenticatable
     {
         return $this->hasOne(ColaboradorHorario::class, 'colaborador_id');
     }
+
     // ==================== SCOPES ====================
 
     public function scopeDeEmpresa($query, $empresaId)
@@ -164,21 +165,7 @@ class User extends Authenticatable
 
     public function getFotoSrcAttribute(): ?string
     {
-        $value = $this->attributes['foto_url'] ?? null;
-
-        if (!$value) {
-            return null;
-        }
-
-        if (filter_var($value, FILTER_VALIDATE_URL)) {
-            return $value;
-        }
-
-        $path = str_starts_with($value, 'storage/')
-            ? substr($value, 8)
-            : ltrim($value, '/');
-
-        return asset('storage/' . $path);
+        return \App\Support\StorageHelper::url($this->attributes['foto_url'] ?? null);
     }
 
     public function getNombreCompletoAttribute(): string
@@ -220,8 +207,8 @@ class User extends Authenticatable
         ];
 
         $color = $colors[$this->rol] ?? 'bg-gray-100 text-gray-800';
-        
-        return '<span class="px-2 py-1 text-xs rounded-full ' . $color . '">' 
+
+        return '<span class="px-2 py-1 text-xs rounded-full ' . $color . '">'
                . $this->rol_label . '</span>';
     }
 

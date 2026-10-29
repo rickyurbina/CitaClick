@@ -3,9 +3,22 @@
 namespace App\Livewire\SuperAdmin;
 
 use App\Models\EmpresasModel;
+use App\Models\User;
+use App\Models\ClientesModel;
+use App\Models\ServiciosModel;
+use App\Models\CitasModel;
 use App\Models\ComisionesModel;
+use App\Models\AuditoriaCitasModel;
+use App\Models\RedencionesPromocionModel;
+use App\Models\ListaEsperaModel;
+use App\Models\NotificacionesModel;
+use App\Models\PromocionesModel;
+use App\Models\PagoEmpresaModel;
+use App\Models\ColaboradorHorario;
+use App\Support\StorageHelper;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -16,14 +29,24 @@ class Dashboard extends Component
 
     protected $paginationTheme = 'tailwind';
 
+    // Mensajes
+    public $mensaje = null;
+    public $tipoMensaje = 'info';
+
+    // Filtros
     public $filtroBuscar = '';
     public $filtroPlan = '';
     public $filtroEstatus = '';
 
-    // 👈 VARIABLES PARA CONTROLAR APERTURA FORZADA
+    // Control de apertura (legacy)
     public $forzarApertura = false;
     public $empresaIdForzar = null;
-    public $accionForzar = 'crear'; // 'crear' o 'editar'
+    public $accionForzar = 'crear';
+
+    // Modal de eliminación
+    public $mostrarModalEliminar = false;
+    public $eliminarId = null;
+    public $eliminarDetalles = [];
 
     public function getStatsProperty()
     {
@@ -49,7 +72,7 @@ class Dashboard extends Component
             $mes = Carbon::now()->subMonths($i);
             $inicio = $mes->copy()->startOfMonth();
             $fin = $mes->copy()->endOfMonth();
-            
+
             $crecimientoMensual[] = EmpresasModel::whereBetween('created_at', [$inicio, $fin])->count();
             $labelsCrecimiento[] = $mes->format('M Y');
         }
@@ -72,7 +95,7 @@ class Dashboard extends Component
         $query = EmpresasModel::query();
 
         if ($this->filtroBuscar) {
-            $query->where(function($q) {
+            $query->where(function ($q) {
                 $q->where('nombre', 'like', '%' . $this->filtroBuscar . '%')
                   ->orWhere('email_contacto', 'like', '%' . $this->filtroBuscar . '%')
                   ->orWhere('slug', 'like', '%' . $this->filtroBuscar . '%');
@@ -100,7 +123,8 @@ class Dashboard extends Component
         return ['activo', 'inactivo', 'prueba', 'suspendido'];
     }
 
-    // 👈 MÉTODOS PARA FORZAR APERTURA
+    // ==================== APERTURA DE MODALES ====================
+
     public function abrirCrearEmpresa()
     {
         $this->forzarApertura = true;
@@ -122,6 +146,8 @@ class Dashboard extends Component
         $this->dispatch('ver-detalles-empresa', id: $id);
     }
 
+    // ==================== CAMBIAR ESTATUS ====================
+
     public function cambiarEstatus($id, $nuevoEstatus)
     {
         try {
@@ -129,62 +155,195 @@ class Dashboard extends Component
             $empresa->estatus = $nuevoEstatus;
             $empresa->save();
 
-            $this->dispatch('mostrar-mensaje', 
-                mensaje: 'Estatus actualizado a "' . ucfirst($nuevoEstatus) . '"',
-                tipo: 'success'
-            );
-
+            $this->mensaje = 'Estatus actualizado a "' . ucfirst($nuevoEstatus) . '".';
+            $this->tipoMensaje = 'success';
         } catch (\Exception $e) {
-            $this->dispatch('mostrar-mensaje', 
-                mensaje: 'Ocurrió un error al cambiar el estatus.',
-                tipo: 'error'
-            );
+            Log::error('Error al cambiar estatus', ['id' => $id, 'error' => $e->getMessage()]);
+            $this->mensaje = 'Ocurrió un error al cambiar el estatus.';
+            $this->tipoMensaje = 'error';
         }
     }
 
+    // ==================== ELIMINACIÓN EN CASCADA ====================
+
+    /**
+     * Abre el modal de confirmación y calcula los registros asociados.
+     */
     public function eliminarEmpresa($id)
     {
+        $empresa = EmpresasModel::find($id);
+
+        if (!$empresa) {
+            $this->mensaje = 'Empresa no encontrada.';
+            $this->tipoMensaje = 'error';
+            return;
+        }
+
+        $userIds = User::where('empresa_id', $empresa->id)->pluck('id');
+        $clienteIds = ClientesModel::where('empresa_id', $empresa->id)->pluck('id');
+        $servicioIds = ServiciosModel::where('empresa_id', $empresa->id)->pluck('id');
+        $citaIds = CitasModel::where('empresa_id', $empresa->id)->pluck('id');
+
+        $this->eliminarId = $empresa->id;
+        $this->eliminarDetalles = [
+            'nombre'         => $empresa->nombre,
+            'slug'           => $empresa->slug,
+            'email'          => $empresa->email_contacto,
+            'plan'           => $empresa->plan,
+            'estatus'        => $empresa->estatus,
+            'users'          => $userIds->count(),
+            'clientes'       => $clienteIds->count(),
+            'servicios'      => $servicioIds->count(),
+            'citas'          => $citaIds->count(),
+            'comisiones'     => ComisionesModel::where('empresa_id', $empresa->id)->count(),
+            'auditorias'     => $citaIds->isNotEmpty()
+                                    ? AuditoriaCitasModel::whereIn('cita_id', $citaIds)->count()
+                                    : 0,
+            'redenciones'    => RedencionesPromocionModel::where('empresa_id', $empresa->id)->count(),
+            'lista_espera'   => ListaEsperaModel::where('empresa_id', $empresa->id)->count(),
+            'notificaciones' => NotificacionesModel::where('empresa_id', $empresa->id)->count(),
+            'promociones'    => PromocionesModel::where('empresa_id', $empresa->id)->count(),
+            'pagos'          => PagoEmpresaModel::where('empresa_id', $empresa->id)->count(),
+            'tiene_logo'     => $empresa->getRawOriginal('logo_url') ? 1 : 0,
+        ];
+
+        $this->mostrarModalEliminar = true;
+    }
+
+    public function cancelarEliminacion()
+    {
+        $this->mostrarModalEliminar = false;
+        $this->eliminarId = null;
+        $this->eliminarDetalles = [];
+    }
+
+    /**
+     * Ejecuta el borrado en cascada de TODOS los registros asociados a la empresa.
+     */
+    public function ejecutarEliminacion()
+    {
+        if (!$this->eliminarId) {
+            $this->mensaje = 'No hay empresa seleccionada.';
+            $this->tipoMensaje = 'error';
+            return;
+        }
+
         try {
             DB::beginTransaction();
 
-            $empresa = EmpresasModel::findOrFail($id);
-            
-            $tieneDatos = $empresa->users()->count() > 0 || 
-                          $empresa->clientes()->count() > 0 || 
-                          $empresa->citas()->count() > 0;
+            $empresa = EmpresasModel::find($this->eliminarId);
 
-            if ($tieneDatos) {
-                $this->dispatch('mostrar-mensaje', 
-                    mensaje: 'No se puede eliminar. La empresa tiene datos asociados.',
-                    tipo: 'error'
-                );
-                DB::rollBack();
-                return;
+            if (!$empresa) {
+                throw new \Exception('Empresa no encontrada.');
             }
 
-            $logoPath = $empresa->getRawOriginal('logo_url');
-            if ($logoPath && Storage::disk('public')->exists($logoPath)) {
-                Storage::disk('public')->delete($logoPath);
+            $nombreEmpresa = $empresa->nombre;
+
+            // Obtener IDs antes de borrar
+            $userIds = User::where('empresa_id', $empresa->id)->pluck('id');
+            $servicioIds = ServiciosModel::where('empresa_id', $empresa->id)->pluck('id');
+            $citaIds = CitasModel::where('empresa_id', $empresa->id)->pluck('id');
+
+            // 1. Redenciones (por empresa y por citas)
+            RedencionesPromocionModel::where('empresa_id', $empresa->id)->delete();
+            if ($citaIds->isNotEmpty()) {
+                RedencionesPromocionModel::whereIn('cita_id', $citaIds)->delete();
             }
 
+            // 2. Auditorías (por cita y por usuario)
+            if ($citaIds->isNotEmpty()) {
+                AuditoriaCitasModel::whereIn('cita_id', $citaIds)->delete();
+            }
+            if ($userIds->isNotEmpty()) {
+                AuditoriaCitasModel::whereIn('usuario_id', $userIds)->delete();
+            }
+
+            // 3. Comisiones
+            ComisionesModel::where('empresa_id', $empresa->id)->delete();
+            if ($citaIds->isNotEmpty()) {
+                ComisionesModel::whereIn('cita_id', $citaIds)->delete();
+            }
+
+            // 4. Citas
+            CitasModel::where('empresa_id', $empresa->id)->delete();
+
+            // 5. Lista de espera
+            ListaEsperaModel::where('empresa_id', $empresa->id)->delete();
+
+            // 6. Notificaciones
+            NotificacionesModel::where('empresa_id', $empresa->id)->delete();
+
+            // 7. Promociones
+            PromocionesModel::where('empresa_id', $empresa->id)->delete();
+
+            // 8. Pagos
+            PagoEmpresaModel::where('empresa_id', $empresa->id)->delete();
+
+            // 9. Horarios y pivots de colaboradores
+            if ($userIds->isNotEmpty()) {
+                ColaboradorHorario::whereIn('colaborador_id', $userIds)->delete();
+                DB::table('colaborador_servicio')->whereIn('colaborador_id', $userIds)->delete();
+            }
+            if ($servicioIds->isNotEmpty()) {
+                DB::table('colaborador_servicio')->whereIn('servicio_id', $servicioIds)->delete();
+            }
+
+            // 10. Imágenes de servicios
+            if ($servicioIds->isNotEmpty()) {
+                foreach (ServiciosModel::whereIn('id', $servicioIds)->get() as $servicio) {
+                    $p = StorageHelper::path($servicio->getRawOriginal('imagen_url'));
+                    if ($p && Storage::disk('public')->exists($p)) {
+                        Storage::disk('public')->delete($p);
+                    }
+                }
+            }
+
+            // 11. Servicios
+            ServiciosModel::where('empresa_id', $empresa->id)->delete();
+
+            // 12. Clientes
+            ClientesModel::where('empresa_id', $empresa->id)->delete();
+
+            // 13. Fotos de usuarios + usuarios
+            if ($userIds->isNotEmpty()) {
+                foreach (User::whereIn('id', $userIds)->get() as $user) {
+                    $p = StorageHelper::path($user->getRawOriginal('foto_url'));
+                    if ($p && Storage::disk('public')->exists($p)) {
+                        Storage::disk('public')->delete($p);
+                    }
+                }
+            }
+            User::where('empresa_id', $empresa->id)->delete();
+
+            // 14. Logo de la empresa
+            $logo = StorageHelper::path($empresa->getRawOriginal('logo_url'));
+            if ($logo && Storage::disk('public')->exists($logo)) {
+                Storage::disk('public')->delete($logo);
+            }
+
+            // 15. Empresa
             $empresa->delete();
 
             DB::commit();
 
-            $this->dispatch('mostrar-mensaje', 
-                mensaje: 'Empresa eliminada correctamente.',
-                tipo: 'success'
-            );
+            $this->mensaje = "Empresa \"{$nombreEmpresa}\" eliminada junto con todos sus registros relacionados.";
+            $this->tipoMensaje = 'success';
+            $this->cancelarEliminacion();
             $this->resetPage();
 
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->dispatch('mostrar-mensaje', 
-                mensaje: 'Ocurrió un error al eliminar la empresa.',
-                tipo: 'error'
-            );
+            Log::error('Error al eliminar empresa', [
+                'id' => $this->eliminarId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            $this->mensaje = 'Error al eliminar la empresa: ' . $e->getMessage();
+            $this->tipoMensaje = 'error';
         }
     }
+
+    // ==================== FILTROS ====================
 
     public function limpiarFiltros()
     {
@@ -204,6 +363,7 @@ class Dashboard extends Component
             'forzarApertura' => $this->forzarApertura,
             'accionForzar' => $this->accionForzar,
             'empresaIdForzar' => $this->empresaIdForzar,
+            'eliminarDetalles' => $this->eliminarDetalles,
         ]);
     }
 }

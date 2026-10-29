@@ -24,37 +24,40 @@
             <form wire:submit.prevent="guardar" enctype="multipart/form-data" class="p-xl">
                 <div class="grid grid-cols-12 gap-xl">
                     <div class="col-span-12 lg:col-span-4 flex flex-col items-center justify-start text-center border-r-0 lg:border-r border-outline-variant lg:pr-xl pb-xl lg:pb-0">
-                        {{-- LOGO: sin cambios --}}
+                        {{-- LOGO --}}
                         <div class="relative group w-full flex flex-col items-center">
-                            @if($logoExistente && $modo === 'editar' && !$logoFile)
+                            @if($logoPreviewUrl)
                                 <div class="relative mb-md">
                                     <div class="w-32 h-32 rounded-xl bg-surface-container flex items-center justify-center border-2 border-outline-variant overflow-hidden">
-                                        <img src="{{ asset('storage/' . ltrim(str_replace('\\', '/', $logoExistente), '/')) }}"
+                                        <img src="{{ $logoPreviewUrl }}"
                                              alt="Logo actual"
                                              class="w-full h-full object-contain">
                                     </div>
                                     <label class="absolute -bottom-2 -right-2 bg-primary text-on-primary p-2 rounded-full shadow-lg hover:scale-105 transition-transform active:scale-95 cursor-pointer">
                                         <span class="material-symbols-outlined text-[20px]">edit</span>
-                                        <input type="file" wire:model="logoFile" accept="image/*" class="hidden">
+                                        <input type="file"
+                                               wire:model="logoFile"
+                                               accept="image/*"
+                                               class="hidden">
                                     </label>
                                 </div>
-                                <button type="button"
-                                        wire:click="$set('logoExistente', null)"
-                                        class="font-label-sm text-label-sm text-error hover:underline mb-sm">
-                                    Eliminar logo
-                                </button>
-                            @elseif($logoFile)
-                                <div class="w-32 h-32 rounded-xl bg-surface-container flex items-center justify-center border-2 border-outline-variant mb-md overflow-hidden">
-                                    <img src="{{ $logoFile->temporaryUrl() }}" alt="Vista previa" class="w-full h-full object-contain">
-                                </div>
-                                <div class="mb-md text-center">
-                                    <p class="font-label-sm text-label-sm text-on-surface">{{ $logoFile->getClientOriginalName() }}</p>
-                                    <p class="font-body-sm text-body-sm text-on-surface-variant">{{ round($logoFile->getSize() / 1024) }} KB</p>
-                                    <button type="button" wire:click="$set('logoFile', null)"
-                                            class="font-label-sm text-label-sm text-error hover:underline mt-xs">
-                                        Eliminar
+
+                                @if($logoFile)
+                                    <div class="mb-md text-center">
+                                        <p class="font-label-sm text-label-sm text-on-surface">{{ $logoFile->getClientOriginalName() }}</p>
+                                        <p class="font-body-sm text-body-sm text-on-surface-variant">{{ round($logoFile->getSize() / 1024) }} KB</p>
+                                        <button type="button" wire:click="$set('logoFile', null)"
+                                                class="font-label-sm text-label-sm text-error hover:underline mt-xs">
+                                            Descartar nuevo archivo
+                                        </button>
+                                    </div>
+                                @elseif($logoExistente)
+                                    <button type="button"
+                                            wire:click="$set('logoExistente', null)"
+                                            class="font-label-sm text-label-sm text-error hover:underline mb-sm">
+                                        Eliminar logo
                                     </button>
-                                </div>
+                                @endif
                             @else
                                 <div class="relative mb-md">
                                     <label class="relative group cursor-pointer block">
@@ -64,13 +67,19 @@
                                         <span class="absolute -bottom-2 -right-2 bg-primary text-on-primary p-2 rounded-full shadow-lg hover:scale-105 transition-transform active:scale-95 pointer-events-none">
                                             <span class="material-symbols-outlined text-[20px]">edit</span>
                                         </span>
-                                        <input type="file" wire:model="logoFile" accept="image/*" class="hidden">
+                                        <input type="file"
+                                               wire:model="logoFile"
+                                               accept="image/*"
+                                               class="hidden">
                                     </label>
                                 </div>
                             @endif
 
                             <h4 class="font-label-md text-label-md text-on-surface mt-md">Logo del Negocio</h4>
                             <p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">PNG, JPG, SVG, WEBP. Max: 2MB.</p>
+                            <div wire:loading wire:target="logoFile" class="font-label-sm text-label-sm text-secondary mt-xs">
+                                Subiendo imagen...
+                            </div>
                             @error('logoFile')
                                 <span class="text-error font-label-sm text-label-sm mt-xs block">{{ $message }}</span>
                             @enderror
@@ -101,7 +110,6 @@
                     </div>
 
                     <div class="col-span-12 lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-lg">
-                        {{-- Nombre --}}
                         <div class="col-span-1 md:col-span-2">
                             <label for="nombre" class="block font-label-md text-label-md text-on-surface-variant mb-xs">
                                 Nombre del Negocio <span class="text-error">*</span>
@@ -115,7 +123,6 @@
                             @enderror
                         </div>
 
-                        {{-- Email contacto --}}
                         <div class="col-span-1 md:col-span-2">
                             <label for="emailContacto" class="block font-label-md text-label-md text-on-surface-variant mb-xs">
                                 Email de contacto <span class="text-error">*</span>
@@ -131,7 +138,6 @@
                             @enderror
                         </div>
 
-                        {{-- Teléfono --}}
                         <div>
                             <label for="telefono" class="block font-label-md text-label-md text-on-surface-variant mb-xs">Teléfono de Oficina</label>
                             <div class="relative">
@@ -145,7 +151,6 @@
                             @enderror
                         </div>
 
-                        {{-- Plan --}}
                         <div>
                             <label for="plan" class="block font-label-md text-label-md text-on-surface-variant mb-xs">Plan *</label>
                             <select id="plan" wire:model="plan"
@@ -159,7 +164,6 @@
                             @enderror
                         </div>
 
-                        {{-- Fecha vencimiento --}}
                         <div class="col-span-1 md:col-span-2">
                             <label for="fechaVencimiento" class="block font-label-md text-label-md text-on-surface-variant mb-xs">Fecha de vencimiento</label>
                             <div class="relative max-w-md">
@@ -174,7 +178,7 @@
                             <p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">Dejar en blanco si no aplica</p>
                         </div>
 
-                        {{-- ⬇️ NUEVO: Usuario administrador (solo en modo crear) ⬇️ --}}
+                        {{-- Usuario administrador (solo en modo crear) --}}
                         @if($modo === 'crear')
                         <div class="col-span-1 md:col-span-2 mt-lg pt-lg border-t border-outline-variant">
                             <div class="flex items-center gap-sm mb-md">

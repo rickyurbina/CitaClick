@@ -1,4 +1,15 @@
 <div>
+    {{-- MENSAJES --}}
+    @if($mensaje)
+        <div class="mb-md p-md rounded-lg border flex justify-between items-start gap-md
+            {{ $tipoMensaje === 'success' ? 'bg-secondary-container/40 border-secondary text-on-secondary-container' : 'bg-error-container border-error text-error' }}">
+            <span class="font-body-sm text-body-sm">{{ $mensaje }}</span>
+            <button type="button" wire:click="$set('mensaje', null)" class="shrink-0" aria-label="Cerrar">
+                <span class="material-symbols-outlined text-[18px]">close</span>
+            </button>
+        </div>
+    @endif
+
     <div class="flex justify-between items-end mb-lg">
         <div>
             <nav class="flex items-center gap-xs text-on-surface-variant font-label-sm mb-xs">
@@ -232,7 +243,6 @@
                                 </button>
                                 <button type="button"
                                         wire:click="eliminarEmpresa({{ $empresa->id }})"
-                                        onclick="confirm('¿Eliminar esta empresa? Esto eliminará todos sus datos.') || event.stopImmediatePropagation()"
                                         class="w-8 h-8 rounded hover:bg-error-container text-error transition-all flex items-center justify-center"
                                         title="Eliminar empresa">
                                     <span class="material-symbols-outlined text-[18px]">delete</span>
@@ -257,6 +267,155 @@
             {{ $empresas->links() }}
         </div>
     </div>
+
+    {{-- MODAL DE CONFIRMACIÓN DE ELIMINACIÓN --}}
+    @if($mostrarModalEliminar && $eliminarDetalles)
+    <div class="fixed inset-0 bg-on-surface/60 flex items-center justify-center z-[60] p-4"
+         wire:click.self="cancelarEliminacion">
+        <div class="bg-surface-container-lowest rounded-xl border border-error max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            {{-- Header rojo --}}
+            <div class="bg-error-container px-lg py-md border-b border-error rounded-t-xl flex items-center gap-md">
+                <div class="w-12 h-12 rounded-full bg-error text-on-error flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-[28px]">warning</span>
+                </div>
+                <div>
+                    <h3 class="font-headline-md text-headline-md text-error font-bold">Eliminar empresa permanentemente</h3>
+                    <p class="font-body-sm text-body-sm text-on-error-container">Esta acción no se puede deshacer</p>
+                </div>
+            </div>
+
+            <div class="p-lg space-y-md">
+                {{-- Datos de la empresa --}}
+                <div class="bg-surface-container-low rounded-lg p-md border border-outline-variant">
+                    <p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-xs">Empresa</p>
+                    <p class="font-body-md text-body-md text-on-surface font-semibold">{{ $eliminarDetalles['nombre'] }}</p>
+                    <p class="font-body-sm text-body-sm text-on-surface-variant">{{ $eliminarDetalles['slug'] }} · {{ $eliminarDetalles['email'] }}</p>
+                    <div class="flex gap-sm mt-sm">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium capitalize
+                            @if($eliminarDetalles['plan'] == 'basico') bg-surface-container text-on-surface-variant
+                            @elseif($eliminarDetalles['plan'] == 'pro') bg-primary/10 text-primary
+                            @else bg-secondary-container text-on-secondary-container @endif">
+                            Plan: {{ $eliminarDetalles['plan'] }}
+                        </span>
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium capitalize
+                            @if($eliminarDetalles['estatus'] == 'activo') bg-secondary-container text-on-secondary-container
+                            @elseif($eliminarDetalles['estatus'] == 'prueba') bg-surface-container-high text-on-surface
+                            @elseif($eliminarDetalles['estatus'] == 'suspendido') bg-error-container text-on-error-container
+                            @else bg-surface-container text-on-surface-variant @endif">
+                            {{ $eliminarDetalles['estatus'] }}
+                        </span>
+                    </div>
+                </div>
+
+                {{-- Advertencia con desglose --}}
+                <div class="bg-error-container/60 border border-error rounded-lg p-md">
+                    <p class="font-label-md text-label-md text-error font-bold mb-sm">⚠️ Se eliminarán TODOS los registros asociados:</p>
+                    <ul class="space-y-1 font-body-sm text-body-sm text-on-surface">
+                        @if($eliminarDetalles['users'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">group</span>
+                                <span><strong>{{ $eliminarDetalles['users'] }}</strong> usuario(s) (admins, recepcionistas, colaboradores)</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['clientes'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">person</span>
+                                <span><strong>{{ $eliminarDetalles['clientes'] }}</strong> cliente(s)</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['servicios'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">content_cut</span>
+                                <span><strong>{{ $eliminarDetalles['servicios'] }}</strong> servicio(s) (y sus imágenes)</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['citas'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">event</span>
+                                <span><strong>{{ $eliminarDetalles['citas'] }}</strong> cita(s)</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['comisiones'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">attach_money</span>
+                                <span><strong>{{ $eliminarDetalles['comisiones'] }}</strong> comisión(es)</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['auditorias'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">history</span>
+                                <span><strong>{{ $eliminarDetalles['auditorias'] }}</strong> registro(s) de auditoría</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['redenciones'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">redeem</span>
+                                <span><strong>{{ $eliminarDetalles['redenciones'] }}</strong> redención(es) de promociones</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['lista_espera'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">hourglass_empty</span>
+                                <span><strong>{{ $eliminarDetalles['lista_espera'] }}</strong> registro(s) en lista de espera</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['notificaciones'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">notifications</span>
+                                <span><strong>{{ $eliminarDetalles['notificaciones'] }}</strong> notificación(es)</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['promociones'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">local_offer</span>
+                                <span><strong>{{ $eliminarDetalles['promociones'] }}</strong> promoción(es)</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['pagos'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">receipt_long</span>
+                                <span><strong>{{ $eliminarDetalles['pagos'] }}</strong> pago(s) de la empresa</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['tiene_logo'])
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">image</span>
+                                <span>Logo de la empresa</span>
+                            </li>
+                        @endif
+                        <li class="flex items-start gap-2">
+                            <span class="material-symbols-outlined text-error text-[18px]">storefront</span>
+                            <span>La empresa en sí</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <p class="font-body-sm text-body-sm text-on-surface-variant text-center italic">
+                    Si solo quieres bloquear el acceso temporalmente, cambia el estatus a <strong>Suspendido</strong> en lugar de eliminar.
+                </p>
+            </div>
+
+            <div class="px-lg py-md border-t border-outline-variant flex justify-end gap-sm">
+                <button type="button" wire:click="cancelarEliminacion"
+                        class="px-lg py-sm rounded-lg border border-outline-variant text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high transition-colors">
+                    Cancelar
+                </button>
+                <button type="button" wire:click="ejecutarEliminacion"
+                        class="px-lg py-sm rounded-lg bg-error text-on-error font-label-md text-label-md hover:opacity-90 transition-opacity flex items-center gap-2"
+                        wire:loading.attr="disabled" wire:target="ejecutarEliminacion">
+                    <span wire:loading.remove wire:target="ejecutarEliminacion" class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">delete_forever</span>
+                        Sí, eliminar todo
+                    </span>
+                    <span wire:loading wire:target="ejecutarEliminacion" class="flex items-center gap-2">
+                        <span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                        Eliminando...
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
 
     @livewire(\App\Livewire\SuperAdmin\FormularioEmpresa::class)
     @livewire(\App\Livewire\SuperAdmin\DetallesEmpresa::class)

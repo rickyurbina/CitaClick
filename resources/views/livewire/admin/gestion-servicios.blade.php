@@ -113,7 +113,7 @@
                                 <button wire:click="toggleActivo({{ $servicio->id }})" class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded transition-colors" title="{{ $servicio->activo ? 'Desactivar' : 'Activar' }}">
                                     @if($servicio->activo) <span class="material-symbols-outlined">block</span> @else <span class="material-symbols-outlined">check_circle</span> @endif
                                 </button>
-                                <button wire:click="eliminar({{ $servicio->id }})" onclick="confirm('¿Eliminar este servicio?') || event.stopImmediatePropagation()" class="p-2 text-on-surface-variant hover:bg-error-container hover:text-error rounded transition-colors" title="Eliminar"><span class="material-symbols-outlined">delete</span></button>
+                                <button wire:click="eliminar({{ $servicio->id }})" class="p-2 text-on-surface-variant hover:bg-error-container hover:text-error rounded transition-colors" title="Eliminar"><span class="material-symbols-outlined">delete</span></button>
                             </div>
                         </td>
                     </tr>
@@ -210,6 +210,116 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+    @endif
+
+    {{-- MODAL CONFIRMAR ELIMINACIÓN --}}
+    @if($mostrarModalEliminar && $eliminarDetalles)
+    <div class="fixed inset-0 bg-on-surface/60 flex items-center justify-center z-[60] p-4"
+         wire:click.self="cancelarEliminacion">
+        <div class="bg-surface-container-lowest rounded-xl border border-error max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            {{-- Header rojo --}}
+            <div class="bg-error-container px-lg py-md border-b border-error rounded-t-xl flex items-center gap-md">
+                <div class="w-12 h-12 rounded-full bg-error text-on-error flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-[28px]">warning</span>
+                </div>
+                <div>
+                    <h3 class="font-headline-md text-headline-md text-error font-bold">Eliminar servicio permanentemente</h3>
+                    <p class="font-body-sm text-body-sm text-on-error-container">Esta acción no se puede deshacer</p>
+                </div>
+            </div>
+
+            <div class="p-lg space-y-md">
+                {{-- Datos del servicio --}}
+                <div class="bg-surface-container-low rounded-lg p-md border border-outline-variant">
+                    <p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-xs">Servicio</p>
+                    <p class="font-body-md text-body-md text-on-surface font-semibold">{{ $eliminarDetalles['nombre'] }}</p>
+                    <p class="font-body-sm text-body-sm text-on-surface-variant">Precio: ${{ number_format($eliminarDetalles['precio'], 2) }}</p>
+                </div>
+
+                {{-- Advertencia --}}
+                <div class="bg-error-container/60 border border-error rounded-lg p-md">
+                    <p class="font-label-md text-label-md text-error font-bold mb-sm">⚠️ Se eliminarán TODOS los registros asociados:</p>
+                    <ul class="space-y-1 font-body-sm text-body-sm text-on-surface">
+                        @if($eliminarDetalles['citas'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">cancel</span>
+                                <span><strong>{{ $eliminarDetalles['citas'] }}</strong> cita(s) asociada(s) al servicio</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['comisiones'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">attach_money</span>
+                                <span><strong>{{ $eliminarDetalles['comisiones'] }}</strong> comisión(es) de esas citas</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['auditorias'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">history</span>
+                                <span><strong>{{ $eliminarDetalles['auditorias'] }}</strong> registro(s) de auditoría</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['redenciones'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">redeem</span>
+                                <span><strong>{{ $eliminarDetalles['redenciones'] }}</strong> redención(es) de promociones</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['lista_espera'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">hourglass_empty</span>
+                                <span><strong>{{ $eliminarDetalles['lista_espera'] }}</strong> registro(s) en lista de espera</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['promociones'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">local_offer</span>
+                                <span><strong>{{ $eliminarDetalles['promociones'] }}</strong> promoción(es) del servicio</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['colaboradores'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">link_off</span>
+                                <span>Asignación de <strong>{{ $eliminarDetalles['colaboradores'] }}</strong> colaborador(es)</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['tiene_imagen'])
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">image</span>
+                                <span>Imagen del servicio</span>
+                            </li>
+                        @endif
+                        <li class="flex items-start gap-2">
+                            <span class="material-symbols-outlined text-error text-[18px]">delete</span>
+                            <span>El servicio en sí</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <p class="font-body-sm text-body-sm text-on-surface-variant text-center italic">
+                    Si necesitas conservar el historial, usa <strong>Desactivar</strong> en su lugar.
+                </p>
+            </div>
+
+            <div class="px-lg py-md border-t border-outline-variant flex justify-end gap-sm">
+                <button type="button" wire:click="cancelarEliminacion"
+                        class="px-lg py-sm rounded-lg border border-outline-variant text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high transition-colors">
+                    Cancelar
+                </button>
+                <button type="button" wire:click="ejecutarEliminacion"
+                        class="px-lg py-sm rounded-lg bg-error text-on-error font-label-md text-label-md hover:opacity-90 transition-opacity flex items-center gap-2"
+                        wire:loading.attr="disabled" wire:target="ejecutarEliminacion">
+                    <span wire:loading.remove wire:target="ejecutarEliminacion" class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">delete_forever</span>
+                        Sí, eliminar todo
+                    </span>
+                    <span wire:loading wire:target="ejecutarEliminacion" class="flex items-center gap-2">
+                        <span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                        Eliminando...
+                    </span>
+                </button>
+            </div>
         </div>
     </div>
     @endif

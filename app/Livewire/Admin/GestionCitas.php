@@ -148,7 +148,7 @@ class GestionCitas extends Component
         return CitasModel::where('empresa_id', $this->empresa->id)
             ->where('colaborador_id', $this->usuarioId)
             ->whereDate('fecha', Carbon::today())
-            ->whereIn('estado', ['agendada', 'confirmada', 'en_curso']) // 👈 Incluye en_curso
+            ->whereIn('estado', ['agendada', 'confirmada', 'en_curso'])
             ->with(['cliente:id,nombre,telefono', 'servicio:id,nombre,precio'])
             ->orderBy('hora_inicio', 'asc')
             ->get();
@@ -382,7 +382,69 @@ class GestionCitas extends Component
         return $query->orderBy('nombre')->get(['id', 'nombre', 'comision_porcentaje']);
     }
 
-    // ==================== CALENDARIO DINÁMICO ====================
+    // ==================== HELPERS DE FECHA/HORA ====================
+
+    private function normalizarFecha($fecha): ?string
+    {
+        if (!$fecha) return null;
+        if ($fecha instanceof \DateTime) return $fecha->format('Y-m-d');
+        if (is_object($fecha) && method_exists($fecha, 'format')) return $fecha->format('Y-m-d');
+        if (is_string($fecha) && strtotime($fecha)) return date('Y-m-d', strtotime($fecha));
+        return null;
+    }
+
+    private function normalizarHora($hora): ?string
+    {
+        if (!$hora) return null;
+        if ($hora instanceof \DateTime) return $hora->format('H:i');
+        if (is_object($hora) && method_exists($hora, 'format')) return $hora->format('H:i');
+        if (is_string($hora) && strtotime($hora)) return date('H:i', strtotime($hora));
+        return null;
+    }
+
+    private function horaToMinutos($hora): int
+    {
+        if (!$hora) return 0;
+        $hora = substr((string) $hora, 0, 5);
+        if (!str_contains($hora, ':')) return 0;
+        [$h, $m] = explode(':', $hora);
+        return ((int) $h) * 60 + ((int) $m);
+    }
+
+    private function minutosToHora(int $minutos): string
+    {
+        $h = intdiv($minutos, 60);
+        $m = $minutos % 60;
+        return str_pad((string) $h, 2, '0', STR_PAD_LEFT) . ':' . str_pad((string) $m, 2, '0', STR_PAD_LEFT);
+    }
+
+    private function getDiaSemana($fecha): string
+    {
+        $timestamp = strtotime((string) $fecha);
+        $diaNumero = (int) date('N', $timestamp); // 1=Lunes … 7=Domingo
+        $dias = [
+            1 => 'lunes',
+            2 => 'martes',
+            3 => 'miercoles',
+            4 => 'jueves',
+            5 => 'viernes',
+            6 => 'sabado',
+            7 => 'domingo',
+        ];
+        return $dias[$diaNumero] ?? '';
+    }
+
+    private function getNombreDia($fecha): string
+    {
+        $dias = [
+            'Monday' => 'lunes', 'Tuesday' => 'martes', 'Wednesday' => 'miercoles',
+            'Thursday' => 'jueves', 'Friday' => 'viernes', 'Saturday' => 'sabado', 'Sunday' => 'domingo',
+        ];
+        $nombre = date('l', strtotime((string) $fecha));
+        return $dias[$nombre] ?? '';
+    }
+
+    // ==================== HORARIO COLABORADOR ====================
 
     private function obtenerHorarioConfig($colaboradorId)
     {
@@ -391,7 +453,10 @@ class GestionCitas extends Component
             return [];
         }
         if ($colaborador->horario) {
-            return $colaborador->horario->configuracion;
+            $config = $colaborador->horario->configuracion;
+            if (is_array($config) && !empty($config)) {
+                return $config;
+            }
         }
         $dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
         $config = [];
@@ -409,26 +474,20 @@ class GestionCitas extends Component
             ]);
             return $horario->configuracion;
         } catch (\Exception $e) {
-            return [];
+            return $config;
         }
     }
 
-    private function getDiaSemana($fecha)
-    {
-        $dias = [
-            1 => 'lunes', 2 => 'martes', 3 => 'miercoles',
-            4 => 'jueves', 5 => 'viernes', 6 => 'sabado', 7 => 'domingo'
-        ];
-        return $dias[Carbon::parse($fecha)->dayOfWeek];
-    }
+    // ==================== CALENDARIO ====================
 
     public function generarListaDias()
     {
         $dias = [];
-        $hoy = Carbon::today();
+        $hoy = date('Y-m-d');
+
         for ($i = 0; $i < $this->diasRango; $i++) {
-            $fecha = $hoy->copy()->addDays($i);
-            $fechaStr = $fecha->format('Y-m-d');
+            $fechaStr = date('Y-m-d', strtotime($hoy . ' + ' . $i . ' days'));
+
             $disponible = false;
             foreach ($this->diasDisponibles as $d) {
                 if ($d['fecha'] === $fechaStr) {
@@ -436,15 +495,17 @@ class GestionCitas extends Component
                     break;
                 }
             }
+
             $dias[] = [
-                'dia' => $fecha->day,
+                'dia' => (int) date('j', strtotime($fechaStr)),
                 'fecha' => $fechaStr,
-                'nombreDia' => $fecha->locale('es')->isoFormat('dddd'),
-                'esHoy' => $fecha->isToday(),
-                'esSeleccionado' => $this->fecha === $fechaStr,
+                'nombreDia' => $this->getNombreDia($fechaStr),
+                'esHoy' => ($fechaStr === $hoy),
+                'esSeleccionado' => ($this->fecha === $fechaStr),
                 'disponible' => $disponible,
             ];
         }
+
         $this->diasCalendario = $dias;
     }
 
@@ -470,8 +531,9 @@ class GestionCitas extends Component
                 return;
             }
 
-            $this->duracionServicio = $servicio->duracion_minutos;
+            $this->duracionServicio = (int) $servicio->duracion_minutos;
             $horarioConfig = $this->obtenerHorarioConfig($this->colaboradorId);
+
             if (empty($horarioConfig)) {
                 $this->diasDisponibles = [];
                 $this->generarListaDias();
@@ -479,52 +541,60 @@ class GestionCitas extends Component
                 return;
             }
 
-            $diasRango = $this->diasRango;
+            $hoy = date('Y-m-d');
+            $fechaFin = date('Y-m-d', strtotime($hoy . ' + ' . ($this->diasRango - 1) . ' days'));
+
             $citasOcupadas = CitasModel::where('empresa_id', $this->empresa->id)
                 ->where('colaborador_id', $this->colaboradorId)
-                ->where('fecha', '>=', Carbon::today())
-                ->where('fecha', '<=', Carbon::today()->addDays($diasRango))
+                ->whereDate('fecha', '>=', $hoy)
+                ->whereDate('fecha', '<=', $fechaFin)
                 ->where('estado', '!=', 'cancelada')
                 ->where('estado', '!=', 'no_asistio')
-                ->get()
-                ->groupBy('fecha');
+                ->get(['fecha', 'hora_inicio', 'hora_fin']);
+
+            $citasPorFecha = [];
+            foreach ($citasOcupadas as $cita) {
+                $fechaCita = $this->normalizarFecha($cita->fecha);
+                if (!$fechaCita) continue;
+                if (!isset($citasPorFecha[$fechaCita])) {
+                    $citasPorFecha[$fechaCita] = [];
+                }
+                $citasPorFecha[$fechaCita][] = $cita;
+            }
 
             $diasDisponibles = [];
 
-            for ($i = 0; $i < $diasRango; $i++) {
-                $fecha = Carbon::today()->addDays($i);
-                $fechaStr = $fecha->format('Y-m-d');
+            for ($i = 0; $i < $this->diasRango; $i++) {
+                $fechaStr = date('Y-m-d', strtotime($hoy . ' + ' . $i . ' days'));
 
-                if ($fecha->isPast() && !$fecha->isToday()) {
-                    continue;
-                }
+                if ($fechaStr < $hoy) continue;
 
-                $diaSemana = $this->getDiaSemana($fecha);
+                $diaSemana = $this->getDiaSemana($fechaStr);
                 $infoDia = $horarioConfig[$diaSemana] ?? null;
 
-                if (!$infoDia || !$infoDia['activo']) {
-                    continue;
-                }
+                if (!$infoDia || !$infoDia['activo']) continue;
 
                 $horarioInicio = $infoDia['inicio'] ?? '09:00';
                 $horarioFin = $infoDia['fin'] ?? '18:00';
 
-                $citasDelDia = $citasOcupadas->get($fechaStr) ?? collect();
+                $citasDelDia = $citasPorFecha[$fechaStr] ?? [];
 
-                if (!$citasDelDia instanceof \Illuminate\Support\Collection) {
-                    $citasDelDia = collect($citasDelDia);
-                }
-
-                $espacios = $this->calcularEspacios($horarioInicio, $horarioFin, $this->duracionServicio, $citasDelDia);
+                $espacios = $this->calcularEspacios(
+                    $horarioInicio,
+                    $horarioFin,
+                    $this->duracionServicio,
+                    $citasDelDia,
+                    $fechaStr
+                );
 
                 if ($espacios > 0) {
                     $diasDisponibles[] = [
                         'fecha' => $fechaStr,
-                        'dia' => $fecha->day,
-                        'mes' => $fecha->month,
-                        'año' => $fecha->year,
+                        'dia' => (int) date('j', strtotime($fechaStr)),
+                        'mes' => (int) date('n', strtotime($fechaStr)),
+                        'año' => (int) date('Y', strtotime($fechaStr)),
                         'espacios' => $espacios,
-                        'esHoy' => $fecha->isToday(),
+                        'esHoy' => ($fechaStr === $hoy),
                     ];
                 }
             }
@@ -533,6 +603,13 @@ class GestionCitas extends Component
             $this->generarListaDias();
 
         } catch (\Exception $e) {
+            Log::error('Error en calcularDiasDisponibles (GestionCitas)', [
+                'error' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+                'colaborador_id' => $this->colaboradorId,
+                'servicio_id' => $this->servicioId,
+            ]);
             $this->diasDisponibles = [];
             $this->generarListaDias();
         }
@@ -540,37 +617,52 @@ class GestionCitas extends Component
         $this->cargandoCalendario = false;
     }
 
-    private function calcularEspacios($inicio, $fin, $duracion, $citasDelDia)
+    private function calcularEspacios($inicio, $fin, $duracion, $citasDelDia, $fecha = null): int
     {
-        $inicio = Carbon::parse($inicio);
-        $fin = Carbon::parse($fin);
+        $inicioMinutos = $this->horaToMinutos($inicio);
+        $finMinutos = $this->horaToMinutos($fin);
+        $duracion = (int) $duracion;
 
-        if (!$citasDelDia instanceof \Illuminate\Support\Collection) {
-            $citasDelDia = collect($citasDelDia);
+        if ($duracion <= 0 || $finMinutos <= $inicioMinutos) {
+            return 0;
         }
 
         $bloques = [];
-        $horaActual = clone $inicio;
+        $horaActual = $inicioMinutos;
 
-        while ($horaActual->addMinutes($duracion) <= $fin) {
-            $inicioBloque = $horaActual->copy()->subMinutes($duracion);
-            $finBloque = $horaActual->copy();
+        $ahoraMinutos = null;
+        if ($fecha && $fecha === date('Y-m-d')) {
+            $ahoraMinutos = $this->horaToMinutos(date('H:i'));
+        }
+
+        while ($horaActual + $duracion <= $finMinutos) {
+            if ($ahoraMinutos !== null && $horaActual < $ahoraMinutos) {
+                $horaActual += $duracion;
+                continue;
+            }
+
             $bloques[] = [
-                'inicio' => $inicioBloque->format('H:i'),
-                'fin' => $finBloque->format('H:i'),
+                'inicio' => $this->minutosToHora($horaActual),
+                'fin' => $this->minutosToHora($horaActual + $duracion),
+                'inicioMinutos' => $horaActual,
+                'finMinutos' => $horaActual + $duracion,
             ];
+            $horaActual += $duracion;
         }
 
         $disponibles = 0;
         foreach ($bloques as $bloque) {
             $ocupado = false;
-            $bloqueInicio = Carbon::parse($bloque['inicio']);
-            $bloqueFin = Carbon::parse($bloque['fin']);
             foreach ($citasDelDia as $cita) {
                 if (!is_object($cita)) continue;
-                $citaInicio = Carbon::parse($cita->hora_inicio);
-                $citaFin = Carbon::parse($cita->hora_fin);
-                if ($bloqueInicio < $citaFin && $bloqueFin > $citaInicio) {
+
+                $horaInicioCita = $this->normalizarHora($cita->hora_inicio);
+                $horaFinCita = $this->normalizarHora($cita->hora_fin);
+
+                $citaInicio = $this->horaToMinutos($horaInicioCita);
+                $citaFin = $this->horaToMinutos($horaFinCita);
+
+                if ($bloque['inicioMinutos'] < $citaFin && $bloque['finMinutos'] > $citaInicio) {
                     $ocupado = true;
                     break;
                 }
@@ -611,35 +703,47 @@ class GestionCitas extends Component
 
         $horarioInicio = $infoDia['inicio'] ?? '09:00';
         $horarioFin = $infoDia['fin'] ?? '18:00';
-        $duracion = $servicio->duracion_minutos;
+        $duracion = (int) $servicio->duracion_minutos;
+
+        if ($duracion <= 0) {
+            $this->horasDisponibles = [];
+            return;
+        }
 
         $citasDelDia = CitasModel::where('empresa_id', $this->empresa->id)
             ->where('colaborador_id', $this->colaboradorId)
-            ->where('fecha', $this->fecha)
+            ->whereDate('fecha', $this->fecha)
             ->where('estado', '!=', 'cancelada')
             ->where('estado', '!=', 'no_asistio')
-            ->get();
+            ->get(['hora_inicio', 'hora_fin']);
 
-        $inicio = Carbon::parse($horarioInicio);
-        $fin = Carbon::parse($horarioFin);
+        $inicioMinutos = $this->horaToMinutos($horarioInicio);
+        $finMinutos = $this->horaToMinutos($horarioFin);
+
         $horas = [];
-        $horaActual = clone $inicio;
+        $horaActual = $inicioMinutos;
 
-        while ($horaActual->addMinutes($duracion) <= $fin) {
-            $inicioBloque = $horaActual->copy()->subMinutes($duracion);
-            $finBloque = $horaActual->copy();
+        $ahoraMinutos = null;
+        if ($this->fecha === date('Y-m-d')) {
+            $ahoraMinutos = $this->horaToMinutos(date('H:i'));
+        }
+
+        while ($horaActual + $duracion <= $finMinutos) {
+            $inicioBloque = $horaActual;
+            $finBloque = $horaActual + $duracion;
             $ocupado = false;
 
-            if ($this->fecha === Carbon::today()->format('Y-m-d')) {
-                if ($inicioBloque <= Carbon::now()) {
-                    $ocupado = true;
-                }
+            if ($ahoraMinutos !== null && $inicioBloque < $ahoraMinutos) {
+                $ocupado = true;
             }
 
             if (!$ocupado) {
                 foreach ($citasDelDia as $cita) {
-                    $citaInicio = Carbon::parse($cita->hora_inicio);
-                    $citaFin = Carbon::parse($cita->hora_fin);
+                    $horaInicioCita = $this->normalizarHora($cita->hora_inicio);
+                    $horaFinCita = $this->normalizarHora($cita->hora_fin);
+                    $citaInicio = $this->horaToMinutos($horaInicioCita);
+                    $citaFin = $this->horaToMinutos($horaFinCita);
+
                     if ($inicioBloque < $citaFin && $finBloque > $citaInicio) {
                         $ocupado = true;
                         break;
@@ -648,10 +752,12 @@ class GestionCitas extends Component
             }
 
             $horas[] = [
-                'inicio' => $inicioBloque->format('H:i'),
-                'fin' => $finBloque->format('H:i'),
+                'inicio' => $this->minutosToHora($inicioBloque),
+                'fin' => $this->minutosToHora($finBloque),
                 'disponible' => !$ocupado,
             ];
+
+            $horaActual += $duracion;
         }
 
         $this->horasDisponibles = $horas;
@@ -738,8 +844,8 @@ class GestionCitas extends Component
         $this->clienteId = $cita->cliente_id;
         $this->servicioId = $cita->servicio_id;
         $this->colaboradorId = $cita->colaborador_id;
-        $this->fecha = $cita->fecha instanceof Carbon ? $cita->fecha->format('Y-m-d') : $cita->fecha;
-        $this->horaInicio = substr($cita->hora_inicio, 0, 5);
+        $this->fecha = $this->normalizarFecha($cita->fecha) ?? '';
+        $this->horaInicio = $this->normalizarHora($cita->hora_inicio) ?? '';
         $this->estado = $cita->estado;
         $this->montoPagado = $cita->monto_pagado;
         $this->metodoPago = $cita->metodo_pago;
@@ -785,8 +891,6 @@ class GestionCitas extends Component
         $this->resetPage();
     }
 
-    // ELIMINAR CITA - ELIMINADO PARA TODOS LOS ROLES
-
     public function cambiarEstado($id, $nuevoEstado)
     {
         if ($this->esColaborador && !in_array($nuevoEstado, ['en_curso', 'atendida'])) {
@@ -812,7 +916,7 @@ class GestionCitas extends Component
                 function ($attribute, $value, $fail) {
                     $conflicto = CitasModel::where('empresa_id', $this->empresa->id)
                         ->where('colaborador_id', $this->colaboradorId)
-                        ->where('fecha', $this->fecha)
+                        ->whereDate('fecha', $this->fecha)
                         ->where('hora_inicio', $value)
                         ->where('estado', '!=', 'cancelada')
                         ->where('estado', '!=', 'no_asistio')
@@ -1250,31 +1354,31 @@ class GestionCitas extends Component
         }
     }
 
-    // ==================== CHECK IN / CHECK OUT (SOLO COLABORADOR) ====================
+    // ==================== CHECK IN / CHECK OUT ====================
 
     public function checkIn($id)
     {
         $cita = CitasModel::where('empresa_id', $this->empresa->id)->findOrFail($id);
-        
+
         if (!$this->esColaborador) {
             $this->dispatch('error', 'Solo el colaborador puede realizar check-in.');
             return;
         }
-        
+
         if ($cita->colaborador_id !== $this->usuarioId) {
             $this->dispatch('error', 'No puedes modificar esta cita.');
             return;
         }
-        
+
         if (!in_array($cita->estado, ['agendada', 'confirmada'])) {
             $this->dispatch('error', 'Esta cita no puede iniciar.');
             return;
         }
-        
+
         $cita->estado = 'en_curso';
         $cita->checkin_time = now();
         $cita->save();
-        
+
         $this->dispatch('success', '✅ Check-in realizado. Cliente en atención.');
         $this->resetPage();
     }
@@ -1282,26 +1386,26 @@ class GestionCitas extends Component
     public function checkOut($id)
     {
         $cita = CitasModel::where('empresa_id', $this->empresa->id)->findOrFail($id);
-        
+
         if (!$this->esColaborador) {
             $this->dispatch('error', 'Solo el colaborador puede realizar check-out.');
             return;
         }
-        
+
         if ($cita->colaborador_id !== $this->usuarioId) {
             $this->dispatch('error', 'No puedes modificar esta cita.');
             return;
         }
-        
+
         if ($cita->estado !== 'en_curso') {
             $this->dispatch('error', 'La cita debe estar en curso para finalizar.');
             return;
         }
-        
+
         $cita->estado = 'atendida';
         $cita->checkout_time = now();
         $cita->save();
-        
+
         $this->dispatch('success', '✅ Check-out realizado. Cita finalizada.');
         $this->resetPage();
     }

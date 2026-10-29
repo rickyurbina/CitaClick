@@ -19,7 +19,6 @@ class FormularioEmpresa extends Component
     public $empresaId = null;
     public $modo = 'crear';
 
-    // Datos de la empresa
     public $nombre = '';
     public $emailContacto = '';
     public $telefono = '';
@@ -29,7 +28,6 @@ class FormularioEmpresa extends Component
     public $logoFile = null;
     public $fechaVencimiento = '';
 
-    // 👇 Datos del usuario administrador de la empresa (solo creación)
     public $adminNombre = '';
     public $adminEmail = '';
     public $adminPassword = '';
@@ -72,7 +70,6 @@ class FormularioEmpresa extends Component
         $this->fechaVencimiento = $empresa->fecha_vencimiento ? $empresa->fecha_vencimiento->format('Y-m-d') : '';
         $this->logoFile = null;
 
-        // No cargamos datos del admin en modo edición
         $this->adminNombre = '';
         $this->adminEmail = '';
         $this->adminPassword = '';
@@ -99,7 +96,6 @@ class FormularioEmpresa extends Component
             'fechaVencimiento' => 'nullable|date|after:today',
         ];
 
-        // 👇 Reglas del admin solo cuando se está creando
         if ($this->modo === 'crear') {
             $rules['adminNombre']          = 'required|string|max:100';
             $rules['adminEmail']           = 'required|email|max:150|unique:users,email';
@@ -129,7 +125,6 @@ class FormularioEmpresa extends Component
             'fechaVencimiento.date' => 'Ingresa una fecha válida.',
             'fechaVencimiento.after' => 'La fecha de vencimiento debe ser posterior a hoy.',
 
-            // Mensajes del admin
             'adminNombre.required' => 'El nombre del administrador es obligatorio.',
             'adminEmail.required' => 'El email del administrador es obligatorio.',
             'adminEmail.email' => 'Ingresa un email válido para el administrador.',
@@ -150,7 +145,6 @@ class FormularioEmpresa extends Component
         try {
             DB::beginTransaction();
 
-            // Manejo del logo
             $logoPath = null;
 
             if ($this->logoFile) {
@@ -185,11 +179,9 @@ class FormularioEmpresa extends Component
 
                 $mensaje = 'Empresa actualizada correctamente.';
             } else {
-                // 1) Crear la empresa
                 $datos['slug'] = $this->generarSlug($this->nombre);
                 $empresa = EmpresasModel::create($datos);
 
-                // 2) Crear el usuario administrador de la empresa
                 User::create([
                     'empresa_id' => $empresa->id,
                     'nombre'     => $this->adminNombre,
@@ -232,21 +224,7 @@ class FormularioEmpresa extends Component
 
     protected function normalizarRutaStorage(?string $path): ?string
     {
-        if (!$path) return null;
-
-        if (filter_var($path, FILTER_VALIDATE_URL)) {
-            $path = parse_url($path, PHP_URL_PATH) ?: $path;
-        }
-
-        $path = str_replace('\\', '/', $path);
-
-        if (str_starts_with($path, '/storage/')) {
-            $path = substr($path, 9);
-        } elseif (str_starts_with($path, 'storage/')) {
-            $path = substr($path, 8);
-        }
-
-        return ltrim($path, '/') ?: null;
+        return \App\Support\StorageHelper::path($path);
     }
 
     protected function eliminarLogoAnterior($path)
@@ -291,7 +269,6 @@ class FormularioEmpresa extends Component
         $this->empresaId = null;
         $this->modo = 'crear';
 
-        // Limpiar admin
         $this->adminNombre = '';
         $this->adminEmail = '';
         $this->adminPassword = '';
@@ -299,8 +276,23 @@ class FormularioEmpresa extends Component
         $this->adminTelefono = '';
     }
 
+    public function getLogoPreviewUrlProperty(): ?string
+    {
+        if ($this->logoFile) {
+            try {
+                return $this->logoFile->temporaryUrl();
+            } catch (\Throwable $e) {
+                return null;
+            }
+        }
+
+        return \App\Support\StorageHelper::url($this->logoExistente);
+    }
+
     public function render()
     {
-        return view('livewire.superadmin.formulario-empresa');
+        return view('livewire.superadmin.formulario-empresa', [
+            'logoPreviewUrl' => $this->logoPreviewUrl,
+        ]);
     }
 }

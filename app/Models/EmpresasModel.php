@@ -136,22 +136,7 @@ class EmpresasModel extends Model
 
     public function getLogoSrcAttribute(): ?string
     {
-        $value = $this->attributes['logo_url'] ?? null;
-
-        if (!$value) {
-            return null;
-        }
-
-        if (filter_var($value, FILTER_VALIDATE_URL)) {
-            return $value;
-        }
-
-        // Normalizar por si quedó guardado con prefijo storage/
-        $path = str_starts_with($value, 'storage/')
-            ? substr($value, 8)
-            : ltrim($value, '/');
-
-        return asset('storage/' . $path);
+        return \App\Support\StorageHelper::url($this->attributes['logo_url'] ?? null);
     }
 
     public function getLogoPathAttribute(): ?string

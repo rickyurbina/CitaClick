@@ -93,11 +93,11 @@ class ServiciosModel extends Model
         if ($min) {
             $query->where('precio', '>=', $min);
         }
-        
+
         if ($max) {
             $query->where('precio', '<=', $max);
         }
-        
+
         return $query;
     }
 
@@ -127,33 +127,19 @@ class ServiciosModel extends Model
 
     public function getImagenSrcAttribute(): ?string
     {
-        $value = $this->attributes['imagen_url'] ?? null;
-
-        if (!$value) {
-            return null;
-        }
-
-        if (filter_var($value, FILTER_VALIDATE_URL)) {
-            return $value;
-        }
-
-        $path = str_starts_with($value, 'storage/')
-            ? substr($value, 8)
-            : ltrim($value, '/');
-
-        return asset('storage/' . $path);
+        return \App\Support\StorageHelper::url($this->attributes['imagen_url'] ?? null);
     }
 
     public function getDuracionLabelAttribute(): string
     {
         $minutos = $this->duracion_minutos;
-        
+
         if ($minutos >= 60) {
             $horas = floor($minutos / 60);
             $resto = $minutos % 60;
             return $horas . 'h' . ($resto > 0 ? ' ' . $resto . 'min' : '');
         }
-        
+
         return $minutos . ' min';
     }
 

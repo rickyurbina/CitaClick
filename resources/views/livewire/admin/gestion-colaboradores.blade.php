@@ -1,4 +1,15 @@
 <div>
+    {{-- MENSAJES --}}
+    @if($mensaje)
+        <div class="mb-md p-md rounded-lg border flex justify-between items-start gap-md
+            {{ $tipoMensaje === 'success' ? 'bg-secondary-container/40 border-secondary text-on-secondary-container' : 'bg-error-container border-error text-error' }}">
+            <span class="font-body-sm text-body-sm">{{ $mensaje }}</span>
+            <button type="button" wire:click="$set('mensaje', null)" class="shrink-0" aria-label="Cerrar">
+                <span class="material-symbols-outlined text-[18px]">close</span>
+            </button>
+        </div>
+    @endif
+
     {{-- HEADER --}}
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-md mb-xl">
         <div>
@@ -130,7 +141,7 @@
                                 <button wire:click="toggleActivo({{ $colaborador->id }})" class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded transition-colors" title="{{ $colaborador->activo ? 'Desactivar' : 'Activar' }}">
                                     @if($colaborador->activo) <span class="material-symbols-outlined">block</span> @else <span class="material-symbols-outlined">check_circle</span> @endif
                                 </button>
-                                <button wire:click="eliminar({{ $colaborador->id }})" onclick="confirm('¿Eliminar este colaborador?') || event.stopImmediatePropagation()" class="p-2 text-on-surface-variant hover:bg-error-container hover:text-error rounded transition-colors" title="Eliminar"><span class="material-symbols-outlined">delete</span></button>
+                                <button wire:click="eliminar({{ $colaborador->id }})" class="p-2 text-on-surface-variant hover:bg-error-container hover:text-error rounded transition-colors" title="Eliminar"><span class="material-symbols-outlined">delete</span></button>
                             </div>
                         </td>
                     </tr>
@@ -161,10 +172,8 @@
                 <div class="flex flex-col items-center gap-sm pb-md border-b border-outline-variant">
                     <div class="relative group">
                         <div class="w-28 h-28 rounded-xl overflow-hidden border-2 border-dashed border-outline-variant bg-surface-container-low flex items-center justify-center">
-                            @if($fotoFile)
-                                <img src="{{ $fotoFile->temporaryUrl() }}" alt="Vista previa" class="w-full h-full object-cover">
-                            @elseif($fotoExistente)
-                                <img src="{{ asset('storage/' . ltrim(str_replace('\\', '/', $fotoExistente), '/')) }}" alt="Foto actual" class="w-full h-full object-cover">
+                            @if($fotoPreviewUrl)
+                                <img src="{{ $fotoPreviewUrl }}" alt="Vista previa" class="w-full h-full object-cover">
                             @else
                                 <span class="material-symbols-outlined text-outline text-[40px]">add_a_photo</span>
                             @endif
@@ -175,6 +184,9 @@
                         </label>
                     </div>
                     <p class="font-label-sm text-label-sm text-on-surface-variant">Foto del colaborador</p>
+                    <div wire:loading wire:target="fotoFile" class="font-label-sm text-label-sm text-secondary">
+                        Subiendo imagen...
+                    </div>
                     @error('fotoFile') <span class="text-error text-label-sm font-label-sm">{{ $message }}</span> @enderror
                     @if($fotoExistente && !$fotoFile)
                         <button type="button" wire:click="$set('fotoExistente', null)" class="font-label-sm text-label-sm text-error hover:underline">Quitar foto</button>
@@ -223,7 +235,6 @@
                     </div>
                 </div>
 
-                {{-- NUEVO: Horario semanal --}}
                 <div class="border-t border-outline-variant pt-md">
                     <h4 class="font-label-md text-label-md text-on-surface mb-sm">Horario semanal</h4>
                     <p class="font-body-sm text-body-sm text-on-surface-variant mb-md">Selecciona los días que trabaja y sus horarios.</p>
@@ -280,6 +291,113 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+    @endif
+
+    {{-- MODAL CONFIRMAR ELIMINACIÓN --}}
+    @if($mostrarModalEliminar && $eliminarDetalles)
+    <div class="fixed inset-0 bg-on-surface/60 flex items-center justify-center z-[60] p-4"
+         wire:click.self="cancelarEliminacion">
+        <div class="bg-surface-container-lowest rounded-xl border border-error max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div class="bg-error-container px-lg py-md border-b border-error rounded-t-xl flex items-center gap-md">
+                <div class="w-12 h-12 rounded-full bg-error text-on-error flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-[28px]">warning</span>
+                </div>
+                <div>
+                    <h3 class="font-headline-md text-headline-md text-error font-bold">Eliminar colaborador permanentemente</h3>
+                    <p class="font-body-sm text-body-sm text-on-error-container">Esta acción no se puede deshacer</p>
+                </div>
+            </div>
+
+            <div class="p-lg space-y-md">
+                <div class="bg-surface-container-low rounded-lg p-md border border-outline-variant">
+                    <p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-xs">Colaborador</p>
+                    <p class="font-body-md text-body-md text-on-surface font-semibold">{{ $eliminarDetalles['nombre'] }}</p>
+                    <p class="font-body-sm text-body-sm text-on-surface-variant">{{ $eliminarDetalles['email'] }}</p>
+                </div>
+
+                <div class="bg-error-container/60 border border-error rounded-lg p-md">
+                    <p class="font-label-md text-label-md text-error font-bold mb-sm">⚠️ Se eliminarán TODOS los registros asociados:</p>
+                    <ul class="space-y-1 font-body-sm text-body-sm text-on-surface">
+                        @if($eliminarDetalles['citas'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">cancel</span>
+                                <span><strong>{{ $eliminarDetalles['citas'] }}</strong> cita(s) asignada(s) al colaborador</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['citas_cobradas'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">payments</span>
+                                <span><strong>{{ $eliminarDetalles['citas_cobradas'] }}</strong> cita(s) donde fue cobrador (se desvinculará)</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['comisiones'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">attach_money</span>
+                                <span><strong>{{ $eliminarDetalles['comisiones'] }}</strong> comisión(es) registrada(s)</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['auditorias'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">history</span>
+                                <span><strong>{{ $eliminarDetalles['auditorias'] }}</strong> registro(s) de auditoría</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['redenciones'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">redeem</span>
+                                <span><strong>{{ $eliminarDetalles['redenciones'] }}</strong> redención(es) de promociones</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['horario'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">schedule</span>
+                                <span>Horario semanal configurado</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['servicios'] > 0)
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">link_off</span>
+                                <span>Asignación de <strong>{{ $eliminarDetalles['servicios'] }}</strong> servicio(s)</span>
+                            </li>
+                        @endif
+                        @if($eliminarDetalles['tiene_foto'])
+                            <li class="flex items-start gap-2">
+                                <span class="material-symbols-outlined text-error text-[18px]">image</span>
+                                <span>Foto de perfil</span>
+                            </li>
+                        @endif
+                        <li class="flex items-start gap-2">
+                            <span class="material-symbols-outlined text-error text-[18px]">person_remove</span>
+                            <span>La cuenta del colaborador</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <p class="font-body-sm text-body-sm text-on-surface-variant text-center italic">
+                    Si necesitas conservar el historial, usa <strong>Desactivar</strong> en su lugar.
+                </p>
+            </div>
+
+            <div class="px-lg py-md border-t border-outline-variant flex justify-end gap-sm">
+                <button type="button" wire:click="cancelarEliminacion"
+                        class="px-lg py-sm rounded-lg border border-outline-variant text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high transition-colors">
+                    Cancelar
+                </button>
+                <button type="button" wire:click="ejecutarEliminacion"
+                        class="px-lg py-sm rounded-lg bg-error text-on-error font-label-md text-label-md hover:opacity-90 transition-opacity flex items-center gap-2"
+                        wire:loading.attr="disabled" wire:target="ejecutarEliminacion">
+                    <span wire:loading.remove wire:target="ejecutarEliminacion" class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">delete_forever</span>
+                        Sí, eliminar todo
+                    </span>
+                    <span wire:loading wire:target="ejecutarEliminacion" class="flex items-center gap-2">
+                        <span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                        Eliminando...
+                    </span>
+                </button>
+            </div>
         </div>
     </div>
     @endif
