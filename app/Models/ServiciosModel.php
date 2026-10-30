@@ -17,7 +17,7 @@ class ServiciosModel extends Model
     protected $fillable = [
         'empresa_id',
         'nombre',
-        'imagen_url',
+        'imagen_url', // 👈 IMPORTANTE
         'duracion_minutos',
         'precio',
         'puntos_genera',

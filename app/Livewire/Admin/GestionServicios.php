@@ -30,8 +30,6 @@ class GestionServicios extends Component
     public EmpresasModel $empresa;
 
     public $mostrarModal = false;
-
-    // Modal eliminar (confirmación)
     public $mostrarModalEliminar = false;
     public $eliminarId = null;
     public $eliminarDetalles = [];
@@ -103,16 +101,7 @@ class GestionServicios extends Component
             }
         }
 
-        if ($this->imagenExistente) {
-            $path = ltrim(str_replace('\\', '/', $this->imagenExistente), '/');
-            if (str_starts_with($path, 'storage/')) {
-                $path = substr($path, 8);
-            }
-
-            return asset('storage/' . $path);
-        }
-
-        return null;
+        return \App\Support\StorageHelper::url($this->imagenExistente);
     }
 
     protected function rules()
@@ -169,9 +158,7 @@ class GestionServicios extends Component
         $this->precio = $servicio->precio;
         $this->puntos = $servicio->puntos_genera;
         $this->activo = (bool) $servicio->activo;
-        $this->imagenExistente = Schema::hasColumn('servicios', 'imagen_url')
-            ? $servicio->getRawOriginal('imagen_url')
-            : null;
+        $this->imagenExistente = $servicio->getRawOriginal('imagen_url');
         $this->imagenFile = null;
         $this->mensaje = null;
         $this->mostrarModal = true;
@@ -194,15 +181,13 @@ class GestionServicios extends Component
                 'activo' => (bool) $this->activo,
             ];
 
-            if (Schema::hasColumn('servicios', 'imagen_url')) {
-                if ($this->imagenFile) {
-                    if ($this->imagenExistente) {
-                        $this->eliminarImagen($this->imagenExistente);
-                    }
-                    $datos['imagen_url'] = $this->guardarImagen($this->imagenFile);
-                } else {
-                    $datos['imagen_url'] = $this->imagenExistente;
+            if ($this->imagenFile) {
+                if ($this->imagenExistente) {
+                    $this->eliminarImagen(\App\Support\StorageHelper::path($this->imagenExistente));
                 }
+                $datos['imagen_url'] = $this->guardarImagen($this->imagenFile);
+            } else {
+                $datos['imagen_url'] = \App\Support\StorageHelper::path($this->imagenExistente);
             }
 
             if ($this->servicioIdEditar) {
@@ -228,10 +213,8 @@ class GestionServicios extends Component
         $this->cargando = false;
     }
 
-    /**
-     * Abre el modal de confirmación y calcula los registros que se
-     * eliminarán en cascada.
-     */
+    // ==================== ELIMINACIÓN EN CASCADA ====================
+
     public function eliminar($id)
     {
         if (!$this->esAdmin) {
@@ -252,24 +235,16 @@ class GestionServicios extends Component
 
         $this->eliminarId = $servicio->id;
         $this->eliminarDetalles = [
-            'nombre'      => $servicio->nombre,
-            'precio'      => $servicio->precio,
-            'citas'       => $citaIds->count(),
-            'comisiones'  => $citaIds->isNotEmpty()
-                                ? ComisionesModel::whereIn('cita_id', $citaIds)->count()
-                                : 0,
-            'auditorias'  => $citaIds->isNotEmpty()
-                                ? AuditoriaCitasModel::whereIn('cita_id', $citaIds)->count()
-                                : 0,
-            'redenciones' => $citaIds->isNotEmpty()
-                                ? RedencionesPromocionModel::whereIn('cita_id', $citaIds)->count()
-                                : 0,
+            'nombre' => $servicio->nombre,
+            'precio' => $servicio->precio,
+            'citas' => $citaIds->count(),
+            'comisiones' => $citaIds->isNotEmpty() ? ComisionesModel::whereIn('cita_id', $citaIds)->count() : 0,
+            'auditorias' => $citaIds->isNotEmpty() ? AuditoriaCitasModel::whereIn('cita_id', $citaIds)->count() : 0,
+            'redenciones' => $citaIds->isNotEmpty() ? RedencionesPromocionModel::whereIn('cita_id', $citaIds)->count() : 0,
             'lista_espera' => ListaEsperaModel::where('servicio_id', $servicio->id)->count(),
-            'promociones'  => Schema::hasColumn('promociones', 'servicio_id')
-                                ? PromocionesModel::where('servicio_id', $servicio->id)->count()
-                                : 0,
+            'promociones' => Schema::hasColumn('promociones', 'servicio_id') ? PromocionesModel::where('servicio_id', $servicio->id)->count() : 0,
             'colaboradores' => $servicio->colaboradores()->count(),
-            'tiene_imagen'  => Schema::hasColumn('servicios', 'imagen_url') && $servicio->getRawOriginal('imagen_url') ? 1 : 0,
+            'tiene_imagen' => Schema::hasColumn('servicios', 'imagen_url') && $servicio->getRawOriginal('imagen_url') ? 1 : 0,
         ];
 
         $this->mostrarModalEliminar = true;
@@ -282,9 +257,6 @@ class GestionServicios extends Component
         $this->eliminarDetalles = [];
     }
 
-    /**
-     * Ejecuta el borrado en cascada de TODOS los registros relacionados.
-     */
     public function ejecutarEliminacion()
     {
         if (!$this->esAdmin) {
@@ -312,43 +284,25 @@ class GestionServicios extends Component
 
             $citaIds = CitasModel::where('servicio_id', $servicio->id)->pluck('id');
 
-            // 1. Redenciones de promociones
             if ($citaIds->isNotEmpty()) {
                 RedencionesPromocionModel::whereIn('cita_id', $citaIds)->delete();
-            }
-
-            // 2. Auditorías de esas citas
-            if ($citaIds->isNotEmpty()) {
                 AuditoriaCitasModel::whereIn('cita_id', $citaIds)->delete();
-            }
-
-            // 3. Comisiones de esas citas
-            if ($citaIds->isNotEmpty()) {
                 ComisionesModel::whereIn('cita_id', $citaIds)->delete();
-            }
-
-            // 4. Citas del servicio
-            if ($citaIds->isNotEmpty()) {
                 CitasModel::whereIn('id', $citaIds)->delete();
             }
 
-            // 5. Lista de espera
             ListaEsperaModel::where('servicio_id', $servicio->id)->delete();
 
-            // 6. Promociones (si existe la columna)
             if (Schema::hasColumn('promociones', 'servicio_id')) {
                 PromocionesModel::where('servicio_id', $servicio->id)->delete();
             }
 
-            // 7. Pivot colaborador_servicio
             $servicio->colaboradores()->detach();
-
-            // 8. Imagen
+            
             if (Schema::hasColumn('servicios', 'imagen_url')) {
-                $this->eliminarImagen($servicio->getRawOriginal('imagen_url'));
+                $this->eliminarImagen(\App\Support\StorageHelper::path($servicio->getRawOriginal('imagen_url')));
             }
 
-            // 9. Servicio
             $servicio->delete();
 
             DB::commit();

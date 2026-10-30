@@ -37,6 +37,9 @@ class GestionColaboradores extends Component
     public $eliminarId = null;
     public $eliminarDetalles = [];
 
+    // 👇 NUEVO: Variable para saber si editamos/creamos un colaborador o recepcionista
+    public $rol = 'colaborador';
+
     public $colaboradorIdEditar = null;
     public $nombre = '';
     public $email = '';
@@ -70,10 +73,11 @@ class GestionColaboradores extends Component
         return in_array(Auth::guard('web')->user()->rol, ['empresa_admin', 'super_admin']);
     }
 
-    public function getColaboradoresProperty()
+    // 👇 MODIFICADO: Traer tanto colaboradores como recepcionistas
+    public function getUsuariosProperty()
     {
         $query = User::where('empresa_id', $this->empresa->id)
-            ->where('rol', 'colaborador');
+            ->whereIn('rol', ['colaborador', 'recepcionista']);
 
         if ($this->filtroBuscar) {
             $query->where(function ($q) {
@@ -87,7 +91,7 @@ class GestionColaboradores extends Component
             $query->where('activo', $this->filtroActivo);
         }
 
-        return $query->orderBy('nombre')->paginate(10);
+        return $query->orderBy('rol', 'desc')->orderBy('nombre')->paginate(10);
     }
 
     public function getServiciosDisponiblesProperty()
@@ -101,14 +105,14 @@ class GestionColaboradores extends Component
     public function getTotalColaboradoresProperty()
     {
         return User::where('empresa_id', $this->empresa->id)
-            ->where('rol', 'colaborador')
+            ->whereIn('rol', ['colaborador', 'recepcionista'])
             ->count();
     }
 
     public function getColaboradoresActivosProperty()
     {
         return User::where('empresa_id', $this->empresa->id)
-            ->where('rol', 'colaborador')
+            ->whereIn('rol', ['colaborador', 'recepcionista'])
             ->where('activo', 1)
             ->count();
     }
@@ -132,19 +136,25 @@ class GestionColaboradores extends Component
             ? 'unique:users,email,' . $this->colaboradorIdEditar
             : 'unique:users,email';
 
-        return [
+        $rules = [
             'nombre' => 'required|string|max:100',
             'email' => 'required|email|max:150|' . $uniqueRule,
             'telefono' => 'nullable|string|max:20',
             'password' => $this->colaboradorIdEditar ? 'nullable|min:6' : 'required|min:6',
-            'comision' => 'nullable|numeric|min:0|max:100',
             'activo' => 'boolean',
-            'serviciosSeleccionados' => 'required|array|min:1',
             'fotoFile' => 'nullable|image|max:2048|mimes:jpeg,png,jpg,gif,svg,webp',
-            'diasHorario.*.activo' => 'boolean',
-            'diasHorario.*.inicio' => 'nullable|required_if:diasHorario.*.activo,true|date_format:H:i',
-            'diasHorario.*.fin' => 'nullable|required_if:diasHorario.*.activo,true|date_format:H:i|after:diasHorario.*.inicio',
         ];
+
+        // Solo validar comisiones, servicios y horario si es colaborador
+        if ($this->rol === 'colaborador') {
+            $rules['comision'] = 'nullable|numeric|min:0|max:100';
+            $rules['serviciosSeleccionados'] = 'required|array|min:1';
+            $rules['diasHorario.*.activo'] = 'boolean';
+            $rules['diasHorario.*.inicio'] = 'nullable|required_if:diasHorario.*.activo,true|date_format:H:i';
+            $rules['diasHorario.*.fin'] = 'nullable|required_if:diasHorario.*.activo,true|date_format:H:i|after:diasHorario.*.inicio';
+        }
+
+        return $rules;
     }
 
     protected function messages()
@@ -170,7 +180,7 @@ class GestionColaboradores extends Component
         ];
     }
 
-    public function abrirCrear()
+    public function abrirCrear($rol = 'colaborador')
     {
         if (!$this->esAdmin) {
             $this->mensaje = 'No tienes permiso.';
@@ -178,6 +188,7 @@ class GestionColaboradores extends Component
             return;
         }
         $this->resetFormulario();
+        $this->rol = $rol;
         $this->colaboradorIdEditar = null;
         $this->inicializarDiasHorario();
         $this->mostrarModal = true;
@@ -192,11 +203,12 @@ class GestionColaboradores extends Component
         }
 
         $colaborador = User::where('empresa_id', $this->empresa->id)
-            ->where('rol', 'colaborador')
+            ->whereIn('rol', ['colaborador', 'recepcionista'])
             ->with('servicios', 'horario')
             ->findOrFail($id);
 
         $this->colaboradorIdEditar = $colaborador->id;
+        $this->rol = $colaborador->rol; // 👈 Guardamos el rol actual
         $this->nombre = $colaborador->nombre;
         $this->email = $colaborador->email;
         $this->telefono = $colaborador->telefono;
@@ -237,10 +249,14 @@ class GestionColaboradores extends Component
                 'nombre' => $this->nombre,
                 'email' => $this->email,
                 'telefono' => $this->telefono,
-                'rol' => 'colaborador',
-                'comision_porcentaje' => $this->comision ?: null,
+                'rol' => $this->rol, // 👈 Se guarda el rol dinámicamente
                 'activo' => $this->activo,
             ];
+
+            // Solo guardar comisión si es colaborador
+            if ($this->rol === 'colaborador') {
+                $datos['comision_porcentaje'] = $this->comision ?: null;
+            }
 
             if ($this->password) {
                 $datos['password'] = Hash::make($this->password);
@@ -261,9 +277,19 @@ class GestionColaboradores extends Component
                     ->first();
                 if ($colaborador) {
                     $colaborador->update($datos);
-                    $colaborador->servicios()->sync($this->serviciosSeleccionados);
-                    $this->guardarHorario($colaborador);
-                    $this->mensaje = 'Colaborador actualizado correctamente.';
+                    
+                    if ($this->rol === 'colaborador') {
+                        $colaborador->servicios()->sync($this->serviciosSeleccionados);
+                        $this->guardarHorario($colaborador);
+                    } else {
+                        // Si cambió a recepcionista, limpiar rastros de colaborador
+                        $colaborador->servicios()->detach();
+                        if ($colaborador->horario) {
+                            $colaborador->horario->delete();
+                        }
+                    }
+                    
+                    $this->mensaje = ucfirst($this->rol) . ' actualizado correctamente.';
                     $this->tipoMensaje = 'success';
                 }
             } else {
@@ -271,9 +297,13 @@ class GestionColaboradores extends Component
                     $datos['password'] = Hash::make($this->email);
                 }
                 $colaborador = User::create($datos);
-                $colaborador->servicios()->attach($this->serviciosSeleccionados);
-                $this->guardarHorario($colaborador);
-                $this->mensaje = 'Colaborador creado correctamente.';
+                
+                if ($this->rol === 'colaborador') {
+                    $colaborador->servicios()->attach($this->serviciosSeleccionados);
+                    $this->guardarHorario($colaborador);
+                }
+                
+                $this->mensaje = ucfirst($this->rol) . ' creado correctamente.';
                 $this->tipoMensaje = 'success';
             }
 
@@ -282,7 +312,7 @@ class GestionColaboradores extends Component
             $this->resetPage();
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al guardar colaborador', ['error' => $e->getMessage()]);
+            Log::error('Error al guardar usuario', ['error' => $e->getMessage()]);
             $this->mensaje = 'Ocurrió un error: ' . $e->getMessage();
             $this->tipoMensaje = 'error';
         }
@@ -325,8 +355,6 @@ class GestionColaboradores extends Component
         }
     }
 
-    // ==================== MÉTODOS DE ACCIÓN RÁPIDA DE HORARIOS ====================
-
     public function marcarTodosLosDias()
     {
         foreach ($this->diasSemana as $dia) {
@@ -358,8 +386,6 @@ class GestionColaboradores extends Component
         $this->dispatch('success', 'Horario copiado a todos los días activos.');
     }
 
-    // ==================== FIN MÉTODOS DE ACCIÓN RÁPIDA ====================
-
     public function eliminar($id)
     {
         if (!$this->esAdmin) {
@@ -369,11 +395,11 @@ class GestionColaboradores extends Component
         }
 
         $colaborador = User::where('empresa_id', $this->empresa->id)
-            ->where('rol', 'colaborador')
+            ->whereIn('rol', ['colaborador', 'recepcionista'])
             ->find($id);
 
         if (!$colaborador) {
-            $this->mensaje = 'Colaborador no encontrado.';
+            $this->mensaje = 'Usuario no encontrado.';
             $this->tipoMensaje = 'error';
             return;
         }
@@ -384,6 +410,7 @@ class GestionColaboradores extends Component
         $this->eliminarDetalles = [
             'nombre'         => $colaborador->nombre,
             'email'          => $colaborador->email,
+            'rol'            => $colaborador->rol,
             'citas'          => $citaIds->count(),
             'citas_cobradas' => CitasModel::where('cobrado_por', $colaborador->id)->count(),
             'comisiones'     => ComisionesModel::where('colaborador_id', $colaborador->id)->count(),
@@ -415,7 +442,7 @@ class GestionColaboradores extends Component
         }
 
         if (!$this->eliminarId) {
-            $this->mensaje = 'No hay colaborador seleccionado.';
+            $this->mensaje = 'No hay usuario seleccionado.';
             $this->tipoMensaje = 'error';
             return;
         }
@@ -425,55 +452,43 @@ class GestionColaboradores extends Component
 
             $colaborador = User::where('id', $this->eliminarId)
                 ->where('empresa_id', $this->empresa->id)
-                ->where('rol', 'colaborador')
+                ->whereIn('rol', ['colaborador', 'recepcionista'])
                 ->first();
 
             if (!$colaborador) {
-                throw new \Exception('Colaborador no encontrado.');
+                throw new \Exception('Usuario no encontrado.');
             }
 
             $citaIds = CitasModel::where('colaborador_id', $colaborador->id)->pluck('id');
 
             if ($citaIds->isNotEmpty()) {
                 RedencionesPromocionModel::whereIn('cita_id', $citaIds)->delete();
-            }
-
-            if ($citaIds->isNotEmpty()) {
                 AuditoriaCitasModel::whereIn('cita_id', $citaIds)->delete();
+                ComisionesModel::whereIn('cita_id', $citaIds)->delete();
+                CitasModel::where('colaborador_id', $colaborador->id)->delete();
             }
 
             AuditoriaCitasModel::where('usuario_id', $colaborador->id)->delete();
-
-            if ($citaIds->isNotEmpty()) {
-                ComisionesModel::whereIn('cita_id', $citaIds)->delete();
-            }
-
             ComisionesModel::where('colaborador_id', $colaborador->id)->delete();
-
-            CitasModel::where('cobrado_por', $colaborador->id)
-                ->update(['cobrado_por' => null]);
-
-            CitasModel::where('colaborador_id', $colaborador->id)->delete();
+            CitasModel::where('cobrado_por', $colaborador->id)->update(['cobrado_por' => null]);
 
             if ($colaborador->horario) {
                 $colaborador->horario->delete();
             }
 
             $this->eliminarFoto(\App\Support\StorageHelper::path($colaborador->getRawOriginal('foto_url')));
-
             $colaborador->servicios()->detach();
-
             $colaborador->delete();
 
             DB::commit();
 
-            $this->mensaje = "Colaborador \"{$colaborador->nombre}\" eliminado junto con todos sus registros relacionados.";
+            $this->mensaje = "Usuario \"{$colaborador->nombre}\" eliminado junto con todos sus registros relacionados.";
             $this->tipoMensaje = 'success';
             $this->cancelarEliminacion();
             $this->resetPage();
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al eliminar colaborador', [
+            Log::error('Error al eliminar usuario', [
                 'id' => $this->eliminarId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
@@ -493,7 +508,7 @@ class GestionColaboradores extends Component
         try {
             $colaborador = User::where('id', $id)
                 ->where('empresa_id', $this->empresa->id)
-                ->where('rol', 'colaborador')
+                ->whereIn('rol', ['colaborador', 'recepcionista'])
                 ->first();
             if ($colaborador) {
                 $colaborador->activo = !$colaborador->activo;
@@ -510,6 +525,7 @@ class GestionColaboradores extends Component
     public function resetFormulario()
     {
         $this->colaboradorIdEditar = null;
+        $this->rol = 'colaborador';
         $this->nombre = '';
         $this->email = '';
         $this->telefono = '';
@@ -552,7 +568,7 @@ class GestionColaboradores extends Component
     public function render()
     {
         return view('livewire.admin.gestion-colaboradores', [
-            'colaboradores' => $this->colaboradores,
+            'usuarios' => $this->usuarios,
             'totalColaboradores' => $this->totalColaboradores,
             'colaboradoresActivos' => $this->colaboradoresActivos,
             'serviciosDisponibles' => $this->serviciosDisponibles,

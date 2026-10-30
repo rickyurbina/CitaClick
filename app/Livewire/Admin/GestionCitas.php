@@ -30,7 +30,7 @@ class GestionCitas extends Component
     public $mostrarModalColaborador = false;
     public $mostrarModalServicio = false;
     public $mostrarModalPago = false;
-    public $mostrarModalCliente = false; // 👈 NUEVO
+    public $mostrarModalCliente = false;
 
     // ==================== FORMULARIO CITA ====================
     public $citaIdEditar = null;
@@ -345,9 +345,31 @@ class GestionCitas extends Component
             });
         }
 
+        // ==================== NUEVA LÓGICA DE ORDENAMIENTO ====================
         return $query
-            ->orderByDesc('fecha')
-            ->orderByDesc('hora_inicio')
+            ->orderByRaw("
+                CASE 
+                    WHEN estado = 'atendida' THEN 1
+                    WHEN estado IN ('agendada', 'confirmada', 'en_curso') AND fecha >= CURDATE() THEN 2
+                    WHEN estado IN ('agendada', 'confirmada') AND fecha < CURDATE() THEN 3
+                    WHEN estado IN ('cancelada', 'no_asistio') THEN 4
+                    ELSE 5
+                END ASC
+            ")
+            // Para las próximas agendadas, ordenar por fecha y hora ascendente (la más cercana primero)
+            ->orderByRaw("
+                CASE 
+                    WHEN estado IN ('agendada', 'confirmada', 'en_curso') AND fecha >= CURDATE() THEN fecha 
+                END ASC
+            ")
+            ->orderByRaw("
+                CASE 
+                    WHEN estado IN ('agendada', 'confirmada', 'en_curso') AND fecha >= CURDATE() THEN hora_inicio 
+                END ASC
+            ")
+            // Para el resto (atendidas, pasadas, canceladas), ordenar por fecha y hora descendente (la más reciente primero)
+            ->orderBy('fecha', 'desc')
+            ->orderBy('hora_inicio', 'desc')
             ->paginate(15);
     }
 
@@ -819,7 +841,7 @@ class GestionCitas extends Component
         $this->mostrarModalCliente = false;
     }
 
-    // ==================== MÉTODOS CLIENTE (NUEVO) ====================
+    // ==================== MÉTODOS CLIENTE ====================
 
     public function abrirModalCliente()
     {
@@ -880,7 +902,6 @@ class GestionCitas extends Component
                 'total_gastado' => 0,
             ]);
 
-            // Si el modal de crear cita estaba abierto, seleccionamos automáticamente al cliente
             if ($this->mostrarModalCita) {
                 $this->clienteId = $cliente->id;
             }

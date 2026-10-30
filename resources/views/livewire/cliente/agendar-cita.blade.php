@@ -89,7 +89,7 @@
         </div>
 
         <form wire:submit.prevent="agendarCita" class="space-y-lg">
-            {{-- SERVICIO (solo lectura si reagendando) --}}
+            {{-- SERVICIO --}}
             <div class="space-y-xs">
                 <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Servicio *</label>
                 @if($citaReagendar)
@@ -106,14 +106,22 @@
                                     {{ (string) $servicioId === (string) $servicio->id
                                         ? 'bg-secondary text-on-secondary shadow-md scale-[0.98] font-semibold ring-2 ring-secondary'
                                         : 'border border-outline-variant hover:bg-secondary-container hover:border-secondary text-on-surface active:scale-95' }}">
-                                @if($servicio->imagen_src)
-                                    <div class="w-full aspect-[4/3] bg-surface-container-low overflow-hidden">
+                                
+                                {{-- 👇 IMAGEN DEL SERVICIO CON FALLBACK 👇 --}}
+                                <div class="w-full aspect-[4/3] bg-surface-container-low overflow-hidden relative">
+                                    @if($servicio->imagen_src)
                                         <img src="{{ $servicio->imagen_src }}"
                                              alt="{{ $servicio->nombre }}"
                                              class="w-full h-full object-cover {{ (string) $servicioId === (string) $servicio->id ? 'opacity-95' : '' }}">
-                                    </div>
-                                @endif
-                                <div class="p-2.5 md:p-2 flex flex-col gap-0.5 min-h-[72px] justify-center">
+                                    @else
+                                        {{-- Fallback si no hay imagen --}}
+                                        <div class="w-full h-full flex items-center justify-center bg-surface-container-high/50">
+                                            <span class="material-symbols-outlined text-outline-variant text-[32px]">image</span>
+                                        </div>
+                                    @endif
+                                </div>
+                                
+                                <div class="p-2.5 md:p-2 flex flex-col gap-0.5 min-h-[72px] justify-center w-full">
                                     <span class="leading-tight">{{ $servicio->nombre }}</span>
                                     <span class="text-xs opacity-80 font-normal">
                                         ${{ number_format($servicio->precio, 2) }} · {{ $servicio->duracion_minutos }} min
@@ -130,7 +138,7 @@
                 @error('servicioId') <span class="font-body-sm text-body-sm text-error block">{{ $message }}</span> @enderror
             </div>
 
-            {{-- COLABORADOR (solo lectura si reagendando) --}}
+            {{-- COLABORADOR --}}
             <div class="space-y-xs">
                 <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Colaborador *</label>
                 @if($citaReagendar)
@@ -185,7 +193,7 @@
                 @error('colaboradorId') <span class="font-body-sm text-body-sm text-error block">{{ $message }}</span> @enderror
             </div>
 
-            {{-- CALENDARIO EN TABLA SEMANAL CON BOTONES MÁS GRANDES --}}
+            {{-- CALENDARIO --}}
             <div class="space-y-xs">
                 <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Fecha y hora *</label>
 

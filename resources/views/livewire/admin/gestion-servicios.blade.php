@@ -113,6 +113,7 @@
                                 <button wire:click="toggleActivo({{ $servicio->id }})" class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded transition-colors" title="{{ $servicio->activo ? 'Desactivar' : 'Activar' }}">
                                     @if($servicio->activo) <span class="material-symbols-outlined">block</span> @else <span class="material-symbols-outlined">check_circle</span> @endif
                                 </button>
+                                {{-- 👇 BOTÓN DE ELIMINAR CON MODAL CUSTOM 👇 --}}
                                 <button wire:click="eliminar({{ $servicio->id }})" class="p-2 text-on-surface-variant hover:bg-error-container hover:text-error rounded transition-colors" title="Eliminar"><span class="material-symbols-outlined">delete</span></button>
                             </div>
                         </td>
@@ -219,7 +220,6 @@
     <div class="fixed inset-0 bg-on-surface/60 flex items-center justify-center z-[60] p-4"
          wire:click.self="cancelarEliminacion">
         <div class="bg-surface-container-lowest rounded-xl border border-error max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-            {{-- Header rojo --}}
             <div class="bg-error-container px-lg py-md border-b border-error rounded-t-xl flex items-center gap-md">
                 <div class="w-12 h-12 rounded-full bg-error text-on-error flex items-center justify-center shrink-0">
                     <span class="material-symbols-outlined text-[28px]">warning</span>
@@ -231,14 +231,12 @@
             </div>
 
             <div class="p-lg space-y-md">
-                {{-- Datos del servicio --}}
                 <div class="bg-surface-container-low rounded-lg p-md border border-outline-variant">
                     <p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-xs">Servicio</p>
                     <p class="font-body-md text-body-md text-on-surface font-semibold">{{ $eliminarDetalles['nombre'] }}</p>
                     <p class="font-body-sm text-body-sm text-on-surface-variant">Precio: ${{ number_format($eliminarDetalles['precio'], 2) }}</p>
                 </div>
 
-                {{-- Advertencia --}}
                 <div class="bg-error-container/60 border border-error rounded-lg p-md">
                     <p class="font-label-md text-label-md text-error font-bold mb-sm">⚠️ Se eliminarán TODOS los registros asociados:</p>
                     <ul class="space-y-1 font-body-sm text-body-sm text-on-surface">
