@@ -171,11 +171,18 @@
                 <p class="font-body-sm text-body-sm text-on-surface-variant">Gestione y supervise todas las citas activas.</p>
             </div>
             @if($puedeGestionar)
-            <button wire:click="abrirCrearCita" type="button"
-                    class="inline-flex items-center gap-sm px-lg py-3 bg-secondary text-on-secondary font-label-md text-label-md rounded-lg hover:brightness-110 active:scale-95 transition-all shadow-md">
-                <span class="material-symbols-outlined">add</span>
-                Nueva Cita
-            </button>
+            <div class="flex gap-sm">
+                <button wire:click="abrirModalCliente" type="button"
+                        class="inline-flex items-center gap-sm px-md py-3 bg-surface-container-high text-on-surface hover:bg-secondary-container hover:text-on-secondary-container font-label-md text-label-md rounded-lg transition-all shadow-sm">
+                    <span class="material-symbols-outlined">person_add</span>
+                    Nuevo Cliente
+                </button>
+                <button wire:click="abrirCrearCita" type="button"
+                        class="inline-flex items-center gap-sm px-lg py-3 bg-secondary text-on-secondary font-label-md text-label-md rounded-lg hover:brightness-110 active:scale-95 transition-all shadow-md">
+                    <span class="material-symbols-outlined">add</span>
+                    Nueva Cita
+                </button>
+            </div>
             @endif
         </div>
 
@@ -245,7 +252,6 @@
                             <div class="flex justify-end gap-sm items-center flex-wrap">
                                 @if($puedeGestionar)
                                     <button wire:click="editarCita({{ $cita->id }})" class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-all" title="Editar"><span class="material-symbols-outlined text-[20px]">edit</span></button>
-                                    {{-- ELIMINAR ELIMINADO --}}
                                     @if($cita->estado === 'en_curso')
                                         <span class="text-xs text-on-surface-variant">En curso</span>
                                     @endif
@@ -255,7 +261,7 @@
                                     @if(in_array($cita->estado, ['agendada', 'confirmada']))
                                         @php $puedeCancelar = $cita->puedeCancelar(Auth::guard('web')->user()->rol); @endphp
                                         @if($puedeCancelar)
-                                            <button wire:click="cancelarCita({{ $cita->id }})" onclick="confirm('¿Cancelar esta cita?') || event.stopImmediatePropagation()" class="p-2 text-on-surface-variant hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all" title="Cancelar cita"><span class="material-symbols-outlined text-[20px]">cancel</span></button>
+                                            <button wire:click="cancelarCita({{ $cita->id }})" wire:confirm="¿Cancelar esta cita?" class="p-2 text-on-surface-variant hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all" title="Cancelar cita"><span class="material-symbols-outlined text-[20px]">cancel</span></button>
                                         @else
                                             <span class="text-xs text-on-surface-variant opacity-50" title="Solo 24 horas antes">🔒 24h</span>
                                         @endif
@@ -326,7 +332,7 @@
                         @if(in_array($cita->estado, ['agendada', 'confirmada']))
                             @php $puedeCancelar = $cita->puedeCancelar(Auth::guard('web')->user()->rol); @endphp
                             @if($puedeCancelar)
-                                <button wire:click="cancelarCita({{ $cita->id }})" onclick="confirm('¿Cancelar esta cita?') || event.stopImmediatePropagation()" class="px-3 py-1.5 text-xs rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors">Cancelar</button>
+                                <button wire:click="cancelarCita({{ $cita->id }})" wire:confirm="¿Cancelar esta cita?" class="px-3 py-1.5 text-xs rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors">Cancelar</button>
                             @else
                                 <span class="text-xs text-on-surface-variant opacity-50" title="Solo 24 horas antes">🔒 24h</span>
                             @endif
@@ -346,10 +352,9 @@
     </div>
     @endif
 
-    {{-- ==================== VISTA DE COLABORADOR (LISTADOS ESPECIALES) ==================== --}}
+    {{-- ==================== VISTA DE COLABORADOR ==================== --}}
     @if($esColaborador)
     <div class="space-y-lg">
-        {{-- Citas de hoy activas (agendadas, confirmadas, en curso) --}}
         <div class="bg-surface rounded-xl border border-outline-variant overflow-hidden shadow-sm">
             <div class="px-lg py-md border-b border-outline-variant bg-secondary-container/10">
                 <h2 class="font-headline-md text-headline-md text-on-surface flex items-center gap-2">
@@ -401,7 +406,6 @@
             </div>
         </div>
 
-        {{-- Citas atendidas hoy --}}
         <div class="bg-surface rounded-xl border border-outline-variant overflow-hidden shadow-sm">
             <div class="px-lg py-md border-b border-outline-variant bg-secondary-container/5">
                 <h2 class="font-headline-md text-headline-md text-on-surface flex items-center gap-2">
@@ -435,7 +439,6 @@
             </div>
         </div>
 
-        {{-- Citas futuras (mañana y próxima semana) --}}
         <div class="bg-surface rounded-xl border border-outline-variant overflow-hidden shadow-sm">
             <div class="px-lg py-md border-b border-outline-variant bg-primary-container/5">
                 <h2 class="font-headline-md text-headline-md text-on-surface flex items-center gap-2">
@@ -796,6 +799,59 @@
                     </div>
                 </form>
             </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- ==================== MODAL NUEVO CLIENTE ==================== --}}
+    @if($mostrarModalCliente)
+    <div class="fixed inset-0 bg-on-surface/40 flex items-center justify-center z-[60] p-4"
+         wire:click.self="cerrarModalCliente">
+        <div class="bg-surface-container-lowest rounded-xl border border-outline-variant max-w-md w-full shadow-lg">
+            <div class="px-lg py-md border-b border-outline-variant flex justify-between items-center bg-surface-container-low/30 rounded-t-xl">
+                <h3 class="font-headline-md text-headline-md text-on-surface flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">person_add</span>
+                    Nuevo Cliente
+                </h3>
+                <button type="button" wire:click="cerrarModalCliente" class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            @if($errors->any())
+                <div class="mx-lg mt-4 p-3 bg-error-container border border-error rounded-lg text-error text-sm">
+                    <ul class="list-disc pl-4 space-y-1">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <form wire:submit.prevent="guardarCliente" class="p-lg space-y-md">
+                <div class="flex flex-col gap-xs">
+                    <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Nombre Completo *</label>
+                    <input type="text" wire:model="clienteNombre" placeholder="Ej. Juan Pérez" class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none">
+                </div>
+
+                <div class="flex flex-col gap-xs">
+                    <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Teléfono *</label>
+                    <input type="tel" wire:model="clienteTelefono" placeholder="Ej. 5512345678" class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none">
+                </div>
+
+                <div class="flex flex-col gap-xs">
+                    <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Fecha de Nacimiento *</label>
+                    <input type="date" wire:model="clienteFechaNacimiento" max="{{ date('Y-m-d') }}" class="w-full border border-outline-variant rounded-lg p-2 font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none">
+                </div>
+
+                <div class="flex justify-end gap-sm pt-md border-t border-outline-variant mt-lg">
+                    <button type="button" wire:click="cerrarModalCliente" class="px-lg py-sm rounded-lg border border-outline-variant text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high transition-colors">Cancelar</button>
+                    <button type="submit" class="px-lg py-sm rounded-lg bg-primary text-on-primary font-label-md text-label-md hover:opacity-90 transition-opacity" wire:loading.attr="disabled" wire:target="guardarCliente">
+                        <span wire:loading.remove wire:target="guardarCliente">Registrar Cliente</span>
+                        <span wire:loading wire:target="guardarCliente">Registrando...</span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
     @endif

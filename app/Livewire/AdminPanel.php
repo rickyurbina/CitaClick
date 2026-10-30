@@ -7,13 +7,19 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 #[Layout('components.layouts.auth')]
 class AdminPanel extends Component
 {
     public EmpresasModel $empresa;
+    
+    #[Url(as: 'tab')] 
     public string $seccionActiva = 'dashboard';
+
+    // 👇 NUEVO: Propiedad para guardar la URL real del panel
+    public string $urlPanel = '';
 
     // Login
     public string $email = '';
@@ -26,6 +32,9 @@ class AdminPanel extends Component
     public function mount(EmpresasModel $empresa)
     {
         $this->empresa = $empresa;
+        
+        // 👇 GUARDAMOS LA URL REAL ANTES DE QUE LIVEWIRE LA MODIFIQUE
+        $this->urlPanel = request()->url();
 
         if (!$this->empresaActiva) {
             $this->seccionActiva = 'inactiva';
@@ -35,7 +44,7 @@ class AdminPanel extends Component
         if ($this->isAuthenticated) {
             if ($this->esRecepcionista || $this->esColaborador) {
                 $this->seccionActiva = 'citas';
-            } else {
+            } elseif (!$this->seccionActiva) {
                 $this->seccionActiva = 'dashboard';
             }
         }
@@ -97,7 +106,6 @@ class AdminPanel extends Component
         ];
     }
 
-    // Se elimina validación en tiempo real: solo limpiamos errores
     public function updated($propertyName)
     {
         if ($propertyName === 'email' || $propertyName === 'password') {
@@ -151,14 +159,8 @@ class AdminPanel extends Component
             RateLimiter::clear($key);
             $this->reset(['password', 'error', 'info']);
 
-            if ($this->esRecepcionista || $this->esColaborador) {
-                $this->seccionActiva = 'citas';
-            } else {
-                $this->seccionActiva = 'dashboard';
-            }
-
-            $this->dispatch('login-success');
-            return;
+            // 👇 REDIRECCIÓN USANDO LA URL CAPTURADA (Evita el error 405)
+            return $this->redirect($this->urlPanel, navigate: false);
         }
 
         RateLimiter::hit($key);
@@ -175,7 +177,9 @@ class AdminPanel extends Component
 
         $this->reset(['email', 'password', 'error', 'info']);
         $this->seccionActiva = 'login';
-        $this->dispatch('logout-success');
+
+        // 👇 REDIRECCIÓN USANDO LA URL CAPTURADA (Evita el error 405)
+        return $this->redirect($this->urlPanel, navigate: false);
     }
 
     public function cambiarSeccion($seccion)

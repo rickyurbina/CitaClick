@@ -121,6 +121,26 @@
 </head>
 <body class="bg-surface text-on-background">
     @yield('body')
+    
     @stack('scripts')
+
+    {{-- 👇 SCRIPT PARA EXPIRACIÓN DE SESIÓN POR INACTIVIDAD 👇 --}}
+    <script>
+        document.addEventListener('livewire:init', () => {
+            
+            // 1. Desactivar el modal nativo de "This page has expired" de Livewire
+            Livewire.config.alertOnSessionExpired = false;
+
+            // 2. Si de verdad expiró la sesión (por inactividad), recargar de forma silenciosa
+            Livewire.hook('request', ({ fail }) => {
+                fail(({ status, preventDefault }) => {
+                    if (status === 419) {
+                        preventDefault(); // Evita que Livewire muestre su cartel negro
+                        window.location.reload(); // Recarga la página
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 </html>

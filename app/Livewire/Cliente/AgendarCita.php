@@ -8,13 +8,17 @@ use App\Models\ClientesModel;
 use App\Models\ServiciosModel;
 use App\Models\User;
 use App\Models\ColaboradorHorario;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 
 class AgendarCita extends Component
 {
+    /**
+     * Horas de anticipación mínima para clientes.
+     */
+    private const HORAS_ANTICIPACION_CLIENTE = 2;
+
     public EmpresasModel $empresa;
     public int $clienteId;
     public bool $mostrarFormulario = false;
@@ -170,33 +174,31 @@ class AgendarCita extends Component
         return $query->orderBy('nombre')->get();
     }
 
-    // Con caché de horario
     private function obtenerHorarioConfig($colaboradorId)
     {
-        $cacheKey = 'horario_colaborador_' . $colaboradorId;
-        return Cache::remember($cacheKey, 3600, function () use ($colaboradorId) {
-            $colaborador = User::with('horario')->find($colaboradorId);
-            if (!$colaborador) {
-                return [];
-            }
-            if ($colaborador->horario) {
-                return $colaborador->horario->configuracion;
-            }
-            $dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
-            $config = [];
-            foreach ($dias as $dia) {
-                $config[$dia] = ['activo' => true, 'inicio' => '09:00', 'fin' => '18:00'];
-            }
-            try {
-                $horario = ColaboradorHorario::create([
-                    'colaborador_id' => $colaboradorId,
-                    'configuracion' => $config,
-                ]);
-                return $horario->configuracion;
-            } catch (\Exception $e) {
-                return [];
-            }
-        });
+        // 🚨 SE ELIMINÓ LA CACHÉ: Ahora siempre consulta la BD actualizada.
+        $colaborador = User::with('horario')->find($colaboradorId);
+        if (!$colaborador) {
+            return [];
+        }
+        if ($colaborador->horario) {
+            return $colaborador->horario->configuracion;
+        }
+        
+        $dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+        $config = [];
+        foreach ($dias as $dia) {
+            $config[$dia] = ['activo' => true, 'inicio' => '09:00', 'fin' => '18:00'];
+        }
+        try {
+            $horario = ColaboradorHorario::create([
+                'colaborador_id' => $colaboradorId,
+                'configuracion' => $config,
+            ]);
+            return $horario->configuracion;
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 
     private function getDiaSemana($fecha)
@@ -222,14 +224,14 @@ class AgendarCita extends Component
 
     public function generarCalendario()
     {
-        $hoy = date('Y-m-d');
+        $hoy = now()->toDateString(); // Usa la zona horaria de la app
         $totalDias = $this->diasRango;
 
         $dias = [];
         for ($i = 0; $i < $totalDias; $i++) {
-            $fecha = date('Y-m-d', strtotime($hoy . ' + ' . $i . ' days'));
-            $diaNum = (int) date('j', strtotime($fecha));
-            $nombreDia = $this->getNombreDia($fecha);
+            $fechaCarbon = now()->addDays($i);
+            $fecha = $fechaCarbon->toDateString();
+            $diaNum = $fechaCarbon->day;
 
             $disponible = false;
             foreach ($this->diasDisponibles as $d) {
@@ -242,37 +244,32 @@ class AgendarCita extends Component
             $dias[] = [
                 'dia' => $diaNum,
                 'fecha' => $fecha,
-                'nombreDia' => $nombreDia,
+                'nombreDia' => $this->getNombreDia($fecha),
                 'esHoy' => ($fecha === $hoy),
                 'esSeleccionado' => ($this->fecha === $fecha),
                 'disponible' => $disponible,
             ];
         }
 
-        $primerDiaSemana = (int) date('w', strtotime($hoy));
+        // 0 (Domingo) a 6 (Sábado)
+        $primerDiaSemana = (int) now()->dayOfWeek; 
+        
         $semanas = [];
         $semanaActual = array_fill(0, 7, null);
 
-        $indiceDia = 0;
         $posicion = $primerDiaSemana;
-        while ($indiceDia < count($dias) && $posicion < 7) {
-            $semanaActual[$posicion] = $dias[$indiceDia];
-            $indiceDia++;
+        foreach ($dias as $dia) {
+            if ($posicion == 7) {
+                $semanas[] = $semanaActual;
+                $semanaActual = array_fill(0, 7, null);
+                $posicion = 0;
+            }
+            $semanaActual[$posicion] = $dia;
             $posicion++;
         }
 
-        if ($posicion == 7 && $indiceDia < count($dias)) {
+        if ($posicion > 0) {
             $semanas[] = $semanaActual;
-            $semanaActual = array_fill(0, 7, null);
-        }
-
-        while ($indiceDia < count($dias)) {
-            for ($col = 0; $col < 7 && $indiceDia < count($dias); $col++) {
-                $semanaActual[$col] = $dias[$indiceDia];
-                $indiceDia++;
-            }
-            $semanas[] = $semanaActual;
-            $semanaActual = array_fill(0, 7, null);
         }
 
         $this->diasCalendario = $semanas;
@@ -310,16 +307,14 @@ class AgendarCita extends Component
                 return;
             }
 
-            $hoy = date('Y-m-d');
-            $fechaFin = date('Y-m-d', strtotime($hoy . ' + ' . ($this->diasRango - 1) . ' days'));
+            $hoy = now()->toDateString();
+            $fechaFin = now()->addDays($this->diasRango - 1)->toDateString();
 
-            // Consulta optimizada: solo campos necesarios
             $citasOcupadas = CitasModel::where('empresa_id', $this->empresa->id)
                 ->where('colaborador_id', $this->colaboradorId)
                 ->whereDate('fecha', '>=', $hoy)
                 ->whereDate('fecha', '<=', $fechaFin)
-                ->where('estado', '!=', 'cancelada')
-                ->where('estado', '!=', 'no_asistio')
+                ->whereNotIn('estado', ['cancelada', 'no_asistio'])
                 ->get(['fecha', 'hora_inicio', 'hora_fin']);
 
             $citasPorFecha = [];
@@ -334,7 +329,7 @@ class AgendarCita extends Component
             $diasDisponibles = [];
 
             for ($i = 0; $i < $this->diasRango; $i++) {
-                $fecha = date('Y-m-d', strtotime($hoy . ' + ' . $i . ' days'));
+                $fecha = now()->addDays($i)->toDateString();
 
                 if ($fecha < $hoy) continue;
 
@@ -370,7 +365,6 @@ class AgendarCita extends Component
                 'error' => $e->getMessage(),
                 'line' => $e->getLine(),
                 'file' => $e->getFile(),
-                'trace' => $e->getTraceAsString()
             ]);
             $this->diasDisponibles = [];
             $this->generarCalendario();
@@ -388,12 +382,15 @@ class AgendarCita extends Component
         $horaActual = $inicioMinutos;
 
         $ahoraMinutos = null;
-        if ($fecha === date('Y-m-d')) {
-            $ahoraMinutos = $this->horaToMinutos(date('H:i'));
+        if ($fecha === now()->toDateString()) {
+            $ahoraMinutos = $this->horaToMinutos(now()->format('H:i'));
         }
 
+        $minimoMinutos = $this->minimoAnticipacion($ahoraMinutos);
+
         while ($horaActual + $duracion <= $finMinutos) {
-            if ($ahoraMinutos !== null && $horaActual < $ahoraMinutos + 120) {
+            // REGLA: bloquear <= (hora actual + 2h)
+            if ($minimoMinutos !== null && $horaActual <= $minimoMinutos) {
                 $horaActual += $duracion;
                 continue;
             }
@@ -439,6 +436,14 @@ class AgendarCita extends Component
         return str_pad($h, 2, '0', STR_PAD_LEFT) . ':' . str_pad($m, 2, '0', STR_PAD_LEFT);
     }
 
+    private function minimoAnticipacion(?int $ahoraMinutos): ?int
+    {
+        if ($ahoraMinutos === null) {
+            return null;
+        }
+        return $ahoraMinutos + (self::HORAS_ANTICIPACION_CLIENTE * 60);
+    }
+
     public function cargarHorasDisponibles()
     {
         if (!$this->fecha || !strtotime($this->fecha)) {
@@ -473,26 +478,28 @@ class AgendarCita extends Component
         $citasDelDia = CitasModel::where('empresa_id', $this->empresa->id)
             ->where('colaborador_id', $this->colaboradorId)
             ->whereDate('fecha', $this->fecha)
-            ->where('estado', '!=', 'cancelada')
-            ->where('estado', '!=', 'no_asistio')
+            ->whereNotIn('estado', ['cancelada', 'no_asistio'])
             ->get();
 
         $inicioMinutos = $this->horaToMinutos($horarioInicio);
         $finMinutos = $this->horaToMinutos($horarioFin);
         $horas = [];
         $horaActual = $inicioMinutos;
-        $hoy = date('Y-m-d');
+        
         $ahoraMinutos = null;
-        if ($this->fecha === $hoy) {
-            $ahoraMinutos = $this->horaToMinutos(date('H:i'));
+        if ($this->fecha === now()->toDateString()) {
+            $ahoraMinutos = $this->horaToMinutos(now()->format('H:i'));
         }
+
+        $minimoMinutos = $this->minimoAnticipacion($ahoraMinutos);
 
         while ($horaActual + $duracion <= $finMinutos) {
             $inicioBloque = $horaActual;
             $finBloque = $horaActual + $duracion;
             $ocupado = false;
 
-            if ($ahoraMinutos !== null && $inicioBloque < $ahoraMinutos + 120) {
+            // REGLA: bloquear <= (hora actual + 2h)
+            if ($minimoMinutos !== null && $inicioBloque <= $minimoMinutos) {
                 $ocupado = true;
             }
 
@@ -646,11 +653,41 @@ class AgendarCita extends Component
         $this->cargarCitaParaReagendar($citaId);
     }
 
+    private function validarAnticipacionMinima(): bool
+    {
+        if ($this->fecha !== now()->toDateString()) {
+            return true;
+        }
+
+        if (!$this->horaInicio) {
+            return true;
+        }
+
+        $horaInicioMinutos = $this->horaToMinutos($this->horaInicio);
+        $ahoraMinutos = $this->horaToMinutos(now()->format('H:i'));
+        $minimo = $this->minimoAnticipacion($ahoraMinutos);
+
+        if ($minimo !== null && $horaInicioMinutos <= $minimo) {
+            $this->addError(
+                'horaInicio',
+                'Para citas del mismo día necesitas al menos ' .
+                self::HORAS_ANTICIPACION_CLIENTE .
+                ' horas de anticipación.'
+            );
+            return false;
+        }
+
+        return true;
+    }
+
     public function agendarCita()
     {
         $this->validate();
 
         if (!$this->validarClienteActivo()) return;
+        if (!$this->validarAnticipacionMinima()) return;
+
+        $this->cargarHorasDisponibles();
 
         $horaDisponible = false;
         foreach ($this->horasDisponibles as $hora) {
@@ -661,8 +698,7 @@ class AgendarCita extends Component
         }
 
         if (!$horaDisponible) {
-            $this->addError('horaInicio', 'La hora seleccionada ya no está disponible.');
-            $this->cargarHorasDisponibles();
+            $this->addError('horaInicio', 'La hora seleccionada ya no está disponible. Intenta con otra.');
             return;
         }
 

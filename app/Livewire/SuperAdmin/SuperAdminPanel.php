@@ -6,12 +6,17 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 #[Layout('components.layouts.auth')]
 class SuperAdminPanel extends Component
 {
+    #[Url(as: 'tab')]
     public string $seccionActiva = 'dashboard';
+
+    // 👇 NUEVO: Propiedad para guardar la URL real del panel
+    public string $urlPanel = '';
 
     public string $email = '';
     public string $password = '';
@@ -22,8 +27,13 @@ class SuperAdminPanel extends Component
 
     public function mount()
     {
+        // 👇 GUARDAMOS LA URL REAL ANTES DE QUE LIVEWIRE LA MODIFIQUE
+        $this->urlPanel = request()->url();
+
         if ($this->isAuthenticated) {
-            $this->seccionActiva = 'dashboard';
+            if (empty($this->seccionActiva)) {
+                $this->seccionActiva = 'dashboard';
+            }
         }
     }
 
@@ -106,9 +116,9 @@ class SuperAdminPanel extends Component
             session()->regenerate();
             RateLimiter::clear($key);
             $this->reset(['password', 'error', 'info']);
-            $this->seccionActiva = 'dashboard';
-            $this->dispatch('login-success');
-            return;
+            
+            // 👇 REDIRECCIÓN USANDO LA URL CAPTURADA (Evita el error 405)
+            return $this->redirect($this->urlPanel, navigate: false);
         }
 
         RateLimiter::hit($key);
@@ -125,7 +135,9 @@ class SuperAdminPanel extends Component
         
         $this->reset(['email', 'password', 'error', 'info']);
         $this->seccionActiva = 'login';
-        $this->dispatch('logout-success');
+
+        // 👇 REDIRECCIÓN USANDO LA URL CAPTURADA (Evita el error 405)
+        return $this->redirect($this->urlPanel, navigate: false);
     }
 
     public function cambiarSeccion(string $seccion)

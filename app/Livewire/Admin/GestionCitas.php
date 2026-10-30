@@ -30,6 +30,7 @@ class GestionCitas extends Component
     public $mostrarModalColaborador = false;
     public $mostrarModalServicio = false;
     public $mostrarModalPago = false;
+    public $mostrarModalCliente = false; // 👈 NUEVO
 
     // ==================== FORMULARIO CITA ====================
     public $citaIdEditar = null;
@@ -41,6 +42,11 @@ class GestionCitas extends Component
     public $estado = 'agendada';
     public $montoPagado = '';
     public $metodoPago = '';
+
+    // ==================== FORMULARIO CLIENTE ====================
+    public $clienteNombre = '';
+    public $clienteTelefono = '';
+    public $clienteFechaNacimiento = '';
 
     // ==================== FORMULARIO COLABORADOR ====================
     public $colaboradorIdEditar = null;
@@ -421,7 +427,7 @@ class GestionCitas extends Component
     private function getDiaSemana($fecha): string
     {
         $timestamp = strtotime((string) $fecha);
-        $diaNumero = (int) date('N', $timestamp); // 1=Lunes … 7=Domingo
+        $diaNumero = (int) date('N', $timestamp);
         $dias = [
             1 => 'lunes',
             2 => 'martes',
@@ -810,6 +816,80 @@ class GestionCitas extends Component
         $this->mostrarModalColaborador = false;
         $this->mostrarModalServicio = false;
         $this->mostrarModalPago = false;
+        $this->mostrarModalCliente = false;
+    }
+
+    // ==================== MÉTODOS CLIENTE (NUEVO) ====================
+
+    public function abrirModalCliente()
+    {
+        if (!$this->puedeGestionar) {
+            $this->dispatch('error', 'No tienes permiso.');
+            return;
+        }
+        $this->cerrarTodosLosModales();
+        $this->resetFormularioCliente();
+        $this->mostrarModalCliente = true;
+    }
+
+    public function cerrarModalCliente()
+    {
+        $this->mostrarModalCliente = false;
+        $this->resetFormularioCliente();
+    }
+
+    public function resetFormularioCliente()
+    {
+        $this->clienteNombre = '';
+        $this->clienteTelefono = '';
+        $this->clienteFechaNacimiento = '';
+        $this->resetErrorBag();
+    }
+
+    public function guardarCliente()
+    {
+        $this->validate([
+            'clienteNombre' => 'required|string|max:100|regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/',
+            'clienteTelefono' => 'required|string|max:20',
+            'clienteFechaNacimiento' => 'required|date|before:today|after:1900-01-01',
+        ], [
+            'clienteNombre.required' => 'El nombre es obligatorio.',
+            'clienteNombre.regex' => 'El nombre solo puede contener letras y espacios.',
+            'clienteTelefono.required' => 'El teléfono es obligatorio.',
+            'clienteFechaNacimiento.required' => 'La fecha de nacimiento es obligatoria.',
+            'clienteFechaNacimiento.before' => 'La fecha debe ser anterior a hoy.',
+        ]);
+
+        $existe = ClientesModel::where('empresa_id', $this->empresa->id)
+            ->where('telefono', $this->clienteTelefono)
+            ->exists();
+
+        if ($existe) {
+            $this->addError('clienteTelefono', 'Este teléfono ya está registrado.');
+            return;
+        }
+
+        try {
+            $cliente = ClientesModel::create([
+                'empresa_id' => $this->empresa->id,
+                'nombre' => $this->clienteNombre,
+                'telefono' => $this->clienteTelefono,
+                'fecha_nacimiento' => Carbon::parse($this->clienteFechaNacimiento),
+                'puntos_buenos' => 0,
+                'puntos_malos' => 0,
+                'total_gastado' => 0,
+            ]);
+
+            // Si el modal de crear cita estaba abierto, seleccionamos automáticamente al cliente
+            if ($this->mostrarModalCita) {
+                $this->clienteId = $cliente->id;
+            }
+
+            $this->cerrarModalCliente();
+            $this->dispatch('success', 'Cliente creado correctamente.');
+        } catch (\Exception $e) {
+            $this->dispatch('error', 'Error al crear el cliente: ' . $e->getMessage());
+        }
     }
 
     // ==================== MÉTODOS CITA ====================
