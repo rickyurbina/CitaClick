@@ -271,6 +271,7 @@
                             </div>
                         </div>
                         
+                        {{-- Lista de días en cascada (Columna en móviles, Grid en PC) --}}
                         <div class="flex flex-col gap-3 md:grid md:grid-cols-2">
                             @php
                                 $diasEspañol = [
@@ -303,10 +304,35 @@
                                     @endif
                                 </div>
                                 
+                                {{-- Selectores de hora con input nativo invisible (Clic en cualquier parte abre el reloj) --}}
                                 <div class="flex items-center gap-2 {{ $diasHorario[$key]['activo'] ? '' : 'pointer-events-none opacity-50' }}">
-                                    <input type="time" wire:model="diasHorario.{{ $key }}.inicio" class="w-full border border-outline-variant rounded-lg px-2 py-1.5 font-body-sm text-sm bg-white focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all cursor-pointer" {{ $diasHorario[$key]['activo'] ? '' : 'disabled' }}>
+                                    
+                                    {{-- INICIO --}}
+                                    <div class="relative w-full border border-outline-variant rounded-lg bg-white flex items-center justify-between px-3 py-2 cursor-pointer group hover:border-secondary transition-colors"
+                                         @click="$refs.pickerInicio_{{ $key }}.showPicker ? $refs.pickerInicio_{{ $key }}.showPicker() : $refs.pickerInicio_{{ $key }}.focus()">
+                                        <span x-data="{ val: @entangle('diasHorario.'.$key.'.inicio') }" class="font-body-sm text-sm text-on-surface" x-text="val ? val.substring(0,5) : '--:--'"></span>
+                                        <span class="material-symbols-outlined text-[18px] text-outline group-hover:text-secondary pointer-events-none">schedule</span>
+                                        <input type="time" 
+                                               x-ref="pickerInicio_{{ $key }}"
+                                               wire:model="diasHorario.{{ $key }}.inicio" 
+                                               class="absolute inset-0 w-full h-full opacity-0 pointer-events-none" 
+                                               {{ $diasHorario[$key]['activo'] ? '' : 'disabled' }}>
+                                    </div>
+                                    
                                     <span class="text-on-surface-variant text-xs font-bold">a</span>
-                                    <input type="time" wire:model="diasHorario.{{ $key }}.fin" class="w-full border border-outline-variant rounded-lg px-2 py-1.5 font-body-sm text-sm bg-white focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all cursor-pointer" {{ $diasHorario[$key]['activo'] ? '' : 'disabled' }}>
+                                    
+                                    {{-- FIN --}}
+                                    <div class="relative w-full border border-outline-variant rounded-lg bg-white flex items-center justify-between px-3 py-2 cursor-pointer group hover:border-secondary transition-colors"
+                                         @click="$refs.pickerFin_{{ $key }}.showPicker ? $refs.pickerFin_{{ $key }}.showPicker() : $refs.pickerFin_{{ $key }}.focus()">
+                                        <span x-data="{ val: @entangle('diasHorario.'.$key.'.fin') }" class="font-body-sm text-sm text-on-surface" x-text="val ? val.substring(0,5) : '--:--'"></span>
+                                        <span class="material-symbols-outlined text-[18px] text-outline group-hover:text-secondary pointer-events-none">schedule</span>
+                                        <input type="time" 
+                                               x-ref="pickerFin_{{ $key }}"
+                                               wire:model="diasHorario.{{ $key }}.fin" 
+                                               class="absolute inset-0 w-full h-full opacity-0 pointer-events-none" 
+                                               {{ $diasHorario[$key]['activo'] ? '' : 'disabled' }}>
+                                    </div>
+
                                 </div>
                                 
                                 @error("diasHorario.$key.inicio") <span class="text-error text-[10px]">{{ $message }}</span> @enderror

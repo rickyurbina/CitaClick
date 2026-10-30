@@ -3,6 +3,7 @@
 namespace App\Livewire\SuperAdmin;
 
 use App\Models\EmpresasModel;
+use App\Models\PagoEmpresaModel;
 use App\Models\User;
 use App\Models\ClientesModel;
 use App\Models\ServiciosModel;
@@ -13,7 +14,6 @@ use App\Models\RedencionesPromocionModel;
 use App\Models\ListaEsperaModel;
 use App\Models\NotificacionesModel;
 use App\Models\PromocionesModel;
-use App\Models\PagoEmpresaModel;
 use App\Models\ColaboradorHorario;
 use App\Support\StorageHelper;
 use Carbon\Carbon;
@@ -56,9 +56,10 @@ class Dashboard extends Component
         $empresasSuspendidas = EmpresasModel::where('estatus', 'suspendido')->count();
         $empresasInactivas = EmpresasModel::where('estatus', 'inactivo')->count();
 
-        $cobroMes = ComisionesModel::whereMonth('created_at', Carbon::now()->month)
-            ->whereYear('created_at', Carbon::now()->year)
-            ->where('estatus', 'pagada')
+        
+        $cobroMes = PagoEmpresaModel::whereMonth('fecha_pago', Carbon::now()->month)
+            ->whereYear('fecha_pago', Carbon::now()->year)
+            ->where('estatus', 'pagado')
             ->sum('monto');
 
         $empresasPorPlan = EmpresasModel::select('plan', DB::raw('count(*) as total'))
@@ -166,9 +167,6 @@ class Dashboard extends Component
 
     // ==================== ELIMINACIÓN EN CASCADA ====================
 
-    /**
-     * Abre el modal de confirmación y calcula los registros asociados.
-     */
     public function eliminarEmpresa($id)
     {
         $empresa = EmpresasModel::find($id);
@@ -217,9 +215,6 @@ class Dashboard extends Component
         $this->eliminarDetalles = [];
     }
 
-    /**
-     * Ejecuta el borrado en cascada de TODOS los registros asociados a la empresa.
-     */
     public function ejecutarEliminacion()
     {
         if (!$this->eliminarId) {
@@ -239,48 +234,19 @@ class Dashboard extends Component
 
             $nombreEmpresa = $empresa->nombre;
 
-            // Obtener IDs antes de borrar
             $userIds = User::where('empresa_id', $empresa->id)->pluck('id');
             $servicioIds = ServiciosModel::where('empresa_id', $empresa->id)->pluck('id');
             $citaIds = CitasModel::where('empresa_id', $empresa->id)->pluck('id');
 
-            // 1. Redenciones (por empresa y por citas)
             RedencionesPromocionModel::where('empresa_id', $empresa->id)->delete();
             if ($citaIds->isNotEmpty()) {
                 RedencionesPromocionModel::whereIn('cita_id', $citaIds)->delete();
-            }
-
-            // 2. Auditorías (por cita y por usuario)
-            if ($citaIds->isNotEmpty()) {
                 AuditoriaCitasModel::whereIn('cita_id', $citaIds)->delete();
+                ComisionesModel::whereIn('cita_id', $citaIds)->delete();
+                CitasModel::whereIn('id', $citaIds)->delete();
             }
             if ($userIds->isNotEmpty()) {
                 AuditoriaCitasModel::whereIn('usuario_id', $userIds)->delete();
-            }
-
-            // 3. Comisiones
-            ComisionesModel::where('empresa_id', $empresa->id)->delete();
-            if ($citaIds->isNotEmpty()) {
-                ComisionesModel::whereIn('cita_id', $citaIds)->delete();
-            }
-
-            // 4. Citas
-            CitasModel::where('empresa_id', $empresa->id)->delete();
-
-            // 5. Lista de espera
-            ListaEsperaModel::where('empresa_id', $empresa->id)->delete();
-
-            // 6. Notificaciones
-            NotificacionesModel::where('empresa_id', $empresa->id)->delete();
-
-            // 7. Promociones
-            PromocionesModel::where('empresa_id', $empresa->id)->delete();
-
-            // 8. Pagos
-            PagoEmpresaModel::where('empresa_id', $empresa->id)->delete();
-
-            // 9. Horarios y pivots de colaboradores
-            if ($userIds->isNotEmpty()) {
                 ColaboradorHorario::whereIn('colaborador_id', $userIds)->delete();
                 DB::table('colaborador_servicio')->whereIn('colaborador_id', $userIds)->delete();
             }
@@ -288,7 +254,12 @@ class Dashboard extends Component
                 DB::table('colaborador_servicio')->whereIn('servicio_id', $servicioIds)->delete();
             }
 
-            // 10. Imágenes de servicios
+            ComisionesModel::where('empresa_id', $empresa->id)->delete();
+            ListaEsperaModel::where('empresa_id', $empresa->id)->delete();
+            NotificacionesModel::where('empresa_id', $empresa->id)->delete();
+            PromocionesModel::where('empresa_id', $empresa->id)->delete();
+            PagoEmpresaModel::where('empresa_id', $empresa->id)->delete();
+
             if ($servicioIds->isNotEmpty()) {
                 foreach (ServiciosModel::whereIn('id', $servicioIds)->get() as $servicio) {
                     $p = StorageHelper::path($servicio->getRawOriginal('imagen_url'));
@@ -297,14 +268,9 @@ class Dashboard extends Component
                     }
                 }
             }
-
-            // 11. Servicios
             ServiciosModel::where('empresa_id', $empresa->id)->delete();
-
-            // 12. Clientes
             ClientesModel::where('empresa_id', $empresa->id)->delete();
 
-            // 13. Fotos de usuarios + usuarios
             if ($userIds->isNotEmpty()) {
                 foreach (User::whereIn('id', $userIds)->get() as $user) {
                     $p = StorageHelper::path($user->getRawOriginal('foto_url'));
@@ -315,13 +281,11 @@ class Dashboard extends Component
             }
             User::where('empresa_id', $empresa->id)->delete();
 
-            // 14. Logo de la empresa
             $logo = StorageHelper::path($empresa->getRawOriginal('logo_url'));
             if ($logo && Storage::disk('public')->exists($logo)) {
                 Storage::disk('public')->delete($logo);
             }
 
-            // 15. Empresa
             $empresa->delete();
 
             DB::commit();
@@ -342,8 +306,6 @@ class Dashboard extends Component
             $this->tipoMensaje = 'error';
         }
     }
-
-    // ==================== FILTROS ====================
 
     public function limpiarFiltros()
     {

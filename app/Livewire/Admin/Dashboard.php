@@ -8,7 +8,6 @@ use App\Models\ComisionesModel;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
 use Livewire\Component;
 
 class Dashboard extends Component
@@ -74,194 +73,206 @@ class Dashboard extends Component
                 break;
         }
 
-        $cacheKey = 'dashboard_stats_v2_' . $this->empresa->id . '_' . $this->periodo;
-        $stats = Cache::remember($cacheKey, 300, function () use ($fechaInicio, $fechaFin, $hoy) {
-            $citasHoy = CitasModel::where('empresa_id', $this->empresa->id)
-                ->whereDate('fecha', $hoy)
-                ->count();
+        $citasHoy = CitasModel::where('empresa_id', $this->empresa->id)
+            ->whereDate('fecha', $hoy)
+            ->count();
 
-            $ingresosTotales = CitasModel::where('empresa_id', $this->empresa->id)
-                ->whereBetween('fecha_pago', [$fechaInicio, $fechaFin])
-                ->where('pagado', 1)
-                ->sum('monto_pagado');
+        $ingresosTotales = CitasModel::where('empresa_id', $this->empresa->id)
+            ->whereBetween('fecha_pago', [$fechaInicio, $fechaFin])
+            ->where('pagado', 1)
+            ->sum('monto_pagado');
 
-            $efectivo = CitasModel::where('empresa_id', $this->empresa->id)
-                ->whereBetween('fecha_pago', [$fechaInicio, $fechaFin])
-                ->where('pagado', 1)
-                ->where('metodo_pago', 'efectivo')
-                ->sum('monto_pagado');
+        $efectivo = CitasModel::where('empresa_id', $this->empresa->id)
+            ->whereBetween('fecha_pago', [$fechaInicio, $fechaFin])
+            ->where('pagado', 1)
+            ->where('metodo_pago', 'efectivo')
+            ->sum('monto_pagado');
 
-            $comisiones = ComisionesModel::where('empresa_id', $this->empresa->id)
-                ->whereHas('cita', function ($query) use ($fechaInicio, $fechaFin) {
-                    $query->whereBetween('fecha_pago', [$fechaInicio, $fechaFin])
-                          ->where('pagado', 1);
-                })
-                ->sum('monto');
+        $comisiones = ComisionesModel::where('empresa_id', $this->empresa->id)
+            ->whereHas('cita', function ($query) use ($fechaInicio, $fechaFin) {
+                $query->whereBetween('fecha_pago', [$fechaInicio, $fechaFin])
+                      ->where('pagado', 1);
+            })
+            ->sum('monto');
 
-            $gananciaNeta = $ingresosTotales - $comisiones;
+        $gananciaNeta = $ingresosTotales - $comisiones;
 
-            $labels = [];
-            $bucketKeys = [];
+        $graficaInicio = $this->periodo === 'semana'
+            ? $hoy->copy()->subDays(6)->startOfDay()
+            : $fechaInicio;
+        $graficaFin = $this->periodo === 'semana'
+            ? $hoy->copy()->endOfDay()
+            : $fechaFin;
 
-            if ($this->periodo === 'dia') {
-                for ($h = 8; $h <= 20; $h++) {
-                    $bucketKeys[] = (string) $h;
-                    $labels[] = $h . ':00';
-                }
-            } elseif ($this->periodo === 'semana') {
-                for ($i = 6; $i >= 0; $i--) {
-                    $fecha = $hoy->copy()->subDays($i);
-                    $bucketKeys[] = $fecha->toDateString();
-                    $labels[] = $fecha->format('D d');
-                }
-            } else {
-                $diasDelMes = $hoy->daysInMonth;
-                for ($d = 1; $d <= $diasDelMes; $d++) {
-                    $fecha = $hoy->copy()->day($d);
-                    $bucketKeys[] = $fecha->toDateString();
-                    $labels[] = (string) $d;
-                }
-            }
+        // 1. OBTENER DATOS ANTES DE CALCULAR LOS LABELS
+        $citasPeriodo = CitasModel::where('empresa_id', $this->empresa->id)
+            ->whereBetween('fecha', [$graficaInicio, $graficaFin])
+            ->get(['fecha', 'hora_inicio', 'estado']);
 
-            $vacios = array_fill_keys($bucketKeys, 0);
-            $citasAtendidasMap = $vacios;
-            $citasProgramadasMap = $vacios;
-            $citasCanceladasMap = $vacios;
-            $ingresosEfectivoMap = $vacios;
-            $ingresosTarjetaMap = $vacios;
-            $ingresosTransferenciaMap = $vacios;
+        $pagosPeriodo = CitasModel::where('empresa_id', $this->empresa->id)
+            ->whereBetween('fecha_pago', [$graficaInicio, $graficaFin])
+            ->where('pagado', 1)
+            ->get(['fecha_pago', 'monto_pagado', 'metodo_pago']);
 
-            $graficaInicio = $this->periodo === 'semana'
-                ? $hoy->copy()->subDays(6)->startOfDay()
-                : $fechaInicio;
-            $graficaFin = $this->periodo === 'semana'
-                ? $hoy->copy()->endOfDay()
-                : $fechaFin;
+        // 2. CALCULAR LABELS DINÁMICAMENTE
+        $labels = [];
+        $bucketKeys = [];
 
-            $citasPeriodo = CitasModel::where('empresa_id', $this->empresa->id)
-                ->whereBetween('fecha', [$graficaInicio, $graficaFin])
-                ->get(['fecha', 'hora_inicio', 'estado']);
-
-            $pagosPeriodo = CitasModel::where('empresa_id', $this->empresa->id)
-                ->whereBetween('fecha_pago', [$graficaInicio, $graficaFin])
-                ->where('pagado', 1)
-                ->get(['fecha_pago', 'monto_pagado', 'metodo_pago']);
-
-            $estadosProgramadas = ['agendada', 'confirmada', 'en_curso'];
-            $estadosCanceladas = ['cancelada', 'no_asistio'];
-
+        if ($this->periodo === 'dia') {
+            $horasRegistradas = collect();
+            
+            // Extraer horas de citas
             foreach ($citasPeriodo as $cita) {
-                $clave = $this->periodo === 'dia'
-                    ? (string) Carbon::parse($cita->hora_inicio)->hour
-                    : Carbon::parse($cita->fecha)->toDateString();
-
-                if (!array_key_exists($clave, $vacios)) {
-                    continue;
-                }
-
-                if ($cita->estado === 'atendida') {
-                    $citasAtendidasMap[$clave]++;
-                } elseif (in_array($cita->estado, $estadosCanceladas, true)) {
-                    $citasCanceladasMap[$clave]++;
-                } elseif (in_array($cita->estado, $estadosProgramadas, true)) {
-                    $citasProgramadasMap[$clave]++;
-                } else {
-                    $citasProgramadasMap[$clave]++;
+                if ($cita->hora_inicio) {
+                    $horasRegistradas->push(Carbon::parse($cita->hora_inicio)->hour);
                 }
             }
-
+            // Extraer horas de pagos
             foreach ($pagosPeriodo as $pago) {
-                $fechaPago = Carbon::parse($pago->fecha_pago);
-                $clave = $this->periodo === 'dia'
-                    ? (string) $fechaPago->hour
-                    : $fechaPago->toDateString();
-
-                if (!array_key_exists($clave, $vacios)) {
-                    continue;
-                }
-
-                $monto = (float) $pago->monto_pagado;
-                if ($pago->metodo_pago === 'tarjeta') {
-                    $ingresosTarjetaMap[$clave] += $monto;
-                } elseif ($pago->metodo_pago === 'transferencia') {
-                    $ingresosTransferenciaMap[$clave] += $monto;
-                } else {
-                    $ingresosEfectivoMap[$clave] += $monto;
+                if ($pago->fecha_pago) {
+                    $horasRegistradas->push(Carbon::parse($pago->fecha_pago)->hour);
                 }
             }
 
-            $citasAtendidas = array_values($citasAtendidasMap);
-            $citasProgramadas = array_values($citasProgramadasMap);
-            $citasCanceladas = array_values($citasCanceladasMap);
-            $ingresosEfectivo = array_values($ingresosEfectivoMap);
-            $ingresosTarjeta = array_values($ingresosTarjetaMap);
-            $ingresosTransferencia = array_values($ingresosTransferenciaMap);
+            // Si hay registros, calculamos el rango. Si no, mostramos de 8 a 20 por defecto.
+            if ($horasRegistradas->isNotEmpty()) {
+                $horaMin = max(0, $horasRegistradas->min() - 1);
+                $horaMax = min(23, $horasRegistradas->max() + 1);
+            } else {
+                $horaMin = 8;
+                $horaMax = 20;
+            }
 
-            $citasData = array_map(
-                fn ($atendida, $programada, $cancelada) => $atendida + $programada + $cancelada,
-                $citasAtendidas,
-                $citasProgramadas,
-                $citasCanceladas
-            );
-            $ingresosData = array_map(
-                fn ($efectivo, $tarjeta, $transferencia) => $efectivo + $tarjeta + $transferencia,
-                $ingresosEfectivo,
-                $ingresosTarjeta,
-                $ingresosTransferencia
-            );
+            // Asegurar un rango mínimo visible (ej. 4 horas)
+            if ($horaMin >= $horaMax) {
+                $horaMax = min(23, $horaMin + 4);
+            }
 
-            $topColaboradores = User::where('empresa_id', $this->empresa->id)
-                ->where('rol', 'colaborador')
-                ->where('activo', 1)
-                ->withSum(['citas' => function ($query) use ($fechaInicio, $fechaFin) {
-                    $query->whereBetween('fecha_pago', [$fechaInicio, $fechaFin])
-                          ->where('pagado', 1);
-                }], 'monto_pagado')
-                ->having('citas_sum_monto_pagado', '>', 0)
-                ->orderBy('citas_sum_monto_pagado', 'desc')
-                ->limit(5)
-                ->get();
+            for ($h = $horaMin; $h <= $horaMax; $h++) {
+                $bucketKeys[] = (string) $h;
+                $labels[] = $h . ':00';
+            }
 
-            $ultimasCitas = CitasModel::where('empresa_id', $this->empresa->id)
-                ->with(['cliente:id,nombre,telefono', 'servicio:id,nombre', 'colaborador:id,nombre'])
-                ->orderBy('created_at', 'desc')
-                ->limit(5)
-                ->get();
+        } elseif ($this->periodo === 'semana') {
+            for ($i = 6; $i >= 0; $i--) {
+                $fecha = $hoy->copy()->subDays($i);
+                $bucketKeys[] = $fecha->toDateString();
+                $labels[] = $fecha->format('D d');
+            }
+        } else {
+            $diasDelMes = $hoy->daysInMonth;
+            for ($d = 1; $d <= $diasDelMes; $d++) {
+                $fecha = $hoy->copy()->day($d);
+                $bucketKeys[] = $fecha->toDateString();
+                $labels[] = (string) $d;
+            }
+        }
 
-            return [
-                'citasHoy' => $citasHoy,
-                'ingresosTotales' => $ingresosTotales,
-                'efectivo' => $efectivo,
-                'gananciaNeta' => $gananciaNeta,
-                'labels' => $labels,
-                'citasData' => $citasData,
-                'ingresosData' => $ingresosData,
-                'citasAtendidas' => $citasAtendidas,
-                'citasProgramadas' => $citasProgramadas,
-                'citasCanceladas' => $citasCanceladas,
-                'ingresosEfectivo' => $ingresosEfectivo,
-                'ingresosTarjeta' => $ingresosTarjeta,
-                'ingresosTransferencia' => $ingresosTransferencia,
-                'topColaboradores' => $topColaboradores,
-                'ultimasCitas' => $ultimasCitas,
-            ];
-        });
+        // 3. LLENAR LOS ARRAYS DE DATOS
+        $vacios = array_fill_keys($bucketKeys, 0);
+        $citasAtendidasMap = $vacios;
+        $citasProgramadasMap = $vacios;
+        $citasCanceladasMap = $vacios;
+        $ingresosEfectivoMap = $vacios;
+        $ingresosTarjetaMap = $vacios;
+        $ingresosTransferenciaMap = $vacios;
 
-        $this->citasHoy = $stats['citasHoy'];
-        $this->ingresosHoy = $stats['ingresosTotales'];
-        $this->efectivoHoy = $stats['efectivo'];
-        $this->gananciaNeta = $stats['gananciaNeta'];
-        $this->labels = $stats['labels'];
-        $this->citasPorDia = $stats['citasData'];
-        $this->ingresosPorDia = $stats['ingresosData'];
-        $this->citasAtendidas = $stats['citasAtendidas'];
-        $this->citasProgramadas = $stats['citasProgramadas'];
-        $this->citasCanceladas = $stats['citasCanceladas'];
-        $this->ingresosEfectivo = $stats['ingresosEfectivo'];
-        $this->ingresosTarjeta = $stats['ingresosTarjeta'];
-        $this->ingresosTransferencia = $stats['ingresosTransferencia'];
-        $this->topColaboradores = $stats['topColaboradores'];
-        $this->ultimasCitas = $stats['ultimasCitas'];
+        $estadosProgramadas = ['agendada', 'confirmada', 'en_curso'];
+        $estadosCanceladas = ['cancelada', 'no_asistio'];
+
+        foreach ($citasPeriodo as $cita) {
+            $clave = $this->periodo === 'dia'
+                ? (string) Carbon::parse($cita->hora_inicio)->hour
+                : Carbon::parse($cita->fecha)->toDateString();
+
+            if (!array_key_exists($clave, $vacios)) {
+                continue;
+            }
+
+            if ($cita->estado === 'atendida') {
+                $citasAtendidasMap[$clave]++;
+            } elseif (in_array($cita->estado, $estadosCanceladas, true)) {
+                $citasCanceladasMap[$clave]++;
+            } elseif (in_array($cita->estado, $estadosProgramadas, true)) {
+                $citasProgramadasMap[$clave]++;
+            } else {
+                $citasProgramadasMap[$clave]++;
+            }
+        }
+
+        foreach ($pagosPeriodo as $pago) {
+            $fechaPago = Carbon::parse($pago->fecha_pago);
+            $clave = $this->periodo === 'dia'
+                ? (string) $fechaPago->hour
+                : $fechaPago->toDateString();
+
+            if (!array_key_exists($clave, $vacios)) {
+                continue;
+            }
+
+            $monto = (float) $pago->monto_pagado;
+            if ($pago->metodo_pago === 'tarjeta') {
+                $ingresosTarjetaMap[$clave] += $monto;
+            } elseif ($pago->metodo_pago === 'transferencia') {
+                $ingresosTransferenciaMap[$clave] += $monto;
+            } else {
+                $ingresosEfectivoMap[$clave] += $monto;
+            }
+        }
+
+        $citasAtendidas = array_values($citasAtendidasMap);
+        $citasProgramadas = array_values($citasProgramadasMap);
+        $citasCanceladas = array_values($citasCanceladasMap);
+        $ingresosEfectivo = array_values($ingresosEfectivoMap);
+        $ingresosTarjeta = array_values($ingresosTarjetaMap);
+        $ingresosTransferencia = array_values($ingresosTransferenciaMap);
+
+        $citasData = array_map(
+            fn ($atendida, $programada, $cancelada) => $atendida + $programada + $cancelada,
+            $citasAtendidas,
+            $citasProgramadas,
+            $citasCanceladas
+        );
+        $ingresosData = array_map(
+            fn ($efectivo, $tarjeta, $transferencia) => $efectivo + $tarjeta + $transferencia,
+            $ingresosEfectivo,
+            $ingresosTarjeta,
+            $ingresosTransferencia
+        );
+
+        $topColaboradores = User::where('empresa_id', $this->empresa->id)
+            ->where('rol', 'colaborador')
+            ->where('activo', 1)
+            ->withSum(['citas' => function ($query) use ($fechaInicio, $fechaFin) {
+                $query->whereBetween('fecha_pago', [$fechaInicio, $fechaFin])
+                      ->where('pagado', 1);
+            }], 'monto_pagado')
+            ->having('citas_sum_monto_pagado', '>', 0)
+            ->orderBy('citas_sum_monto_pagado', 'desc')
+            ->limit(5)
+            ->get();
+
+        $ultimasCitas = CitasModel::where('empresa_id', $this->empresa->id)
+            ->with(['cliente:id,nombre,telefono', 'servicio:id,nombre', 'colaborador:id,nombre'])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        $this->citasHoy = $citasHoy;
+        $this->ingresosHoy = $ingresosTotales;
+        $this->efectivoHoy = $efectivo;
+        $this->gananciaNeta = $gananciaNeta;
+        $this->labels = $labels;
+        $this->citasPorDia = $citasData;
+        $this->ingresosPorDia = $ingresosData;
+        $this->citasAtendidas = $citasAtendidas;
+        $this->citasProgramadas = $citasProgramadas;
+        $this->citasCanceladas = $citasCanceladas;
+        $this->ingresosEfectivo = $ingresosEfectivo;
+        $this->ingresosTarjeta = $ingresosTarjeta;
+        $this->ingresosTransferencia = $ingresosTransferencia;
+        $this->topColaboradores = $topColaboradores;
+        $this->ultimasCitas = $ultimasCitas;
     }
 
     public function render()

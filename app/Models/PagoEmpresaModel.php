@@ -121,19 +121,23 @@ class PagoEmpresaModel extends Model
 
     /**
      * Actualiza la empresa asociada con el plan y fecha de vencimiento del pago.
-     * Si la empresa estaba inactiva o suspendida, la reactiva.
+     * Si el pago es "pagado", la empresa pasa a estar "activa" automáticamente.
      */
     public function actualizarEmpresa(): void
     {
-        $empresa = $this->empresa;
+        // Buscamos la empresa fresca desde la base de datos
+        $empresa = EmpresasModel::find($this->empresa_id);
+        
         if (!$empresa) {
             return;
         }
 
+        // Actualizamos el plan y la fecha de vencimiento
         $empresa->plan = $this->plan;
         $empresa->fecha_vencimiento = $this->fecha_vencimiento;
 
-        if ($this->estatus === 'pagado' && in_array($empresa->estatus, ['inactivo', 'suspendido'])) {
+        // Si el pago es pagado, activamos la empresa (sin importar si estaba en prueba)
+        if ($this->estatus === 'pagado') {
             $empresa->estatus = 'activo';
         }
 
