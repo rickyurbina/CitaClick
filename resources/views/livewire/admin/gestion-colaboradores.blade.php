@@ -235,10 +235,25 @@
                     </div>
                 </div>
 
+                {{-- HORARIO SEMANAL CON WRAPPER CLICABLE --}}
                 <div class="border-t border-outline-variant pt-md">
-                    <h4 class="font-label-md text-label-md text-on-surface mb-sm">Horario semanal</h4>
-                    <p class="font-body-sm text-body-sm text-on-surface-variant mb-md">Selecciona los días que trabaja y sus horarios.</p>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-md gap-3">
+                        <div>
+                            <h4 class="font-label-md text-label-md text-on-surface">Horario semanal</h4>
+                            <p class="font-body-sm text-body-sm text-on-surface-variant">Activa los días y define el horario.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" wire:click="marcarTodosLosDias" class="px-3 py-1.5 text-xs font-semibold bg-secondary-container/50 text-on-secondary-container rounded-full hover:bg-secondary-container transition-all flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[14px]">done_all</span> Activar todos
+                            </button>
+                            <button type="button" wire:click="desmarcarTodosLosDias" class="px-3 py-1.5 text-xs font-semibold bg-surface-container-high text-on-surface-variant rounded-full hover:bg-error-container hover:text-error transition-all flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[14px]">remove_done</span> Desactivar todos
+                            </button>
+                        </div>
+                    </div>
+                    
+                    {{-- Lista de días --}}
+                    <div class="flex flex-col gap-3 md:grid md:grid-cols-2">
                         @php
                             $diasEspañol = [
                                 'lunes' => 'Lunes',
@@ -251,29 +266,72 @@
                             ];
                         @endphp
                         @foreach($diasEspañol as $key => $label)
-                        <div class="p-2 border border-outline-variant rounded-lg bg-surface-container-low">
-                            <div class="flex items-center gap-2 mb-1">
-                                <input type="checkbox" wire:model="diasHorario.{{ $key }}.activo" id="dia_{{ $key }}" class="rounded border-outline-variant text-secondary focus:ring-secondary">
-                                <label for="dia_{{ $key }}" class="font-label-sm text-label-sm text-on-surface">{{ $label }}</label>
+                        <div class="w-full p-3 border rounded-xl flex flex-col gap-3 transition-all duration-200 
+                            {{ $diasHorario[$key]['activo'] ? 'bg-white border-secondary/40 shadow-sm' : 'bg-surface-container-lowest border-outline-variant opacity-70' }}">
+                            
+                            {{-- Toggle y Nombre del día --}}
+                            <div class="flex items-center justify-between">
+                                <label class="flex items-center gap-3 cursor-pointer select-none">
+                                    <div class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" wire:model.live="diasHorario.{{ $key }}.activo" class="sr-only peer">
+                                        <div class="w-10 h-5 bg-outline-variant/40 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-secondary"></div>
+                                    </div>
+                                    <span class="font-label-md text-label-md font-semibold {{ $diasHorario[$key]['activo'] ? 'text-on-surface' : 'text-on-surface-variant' }}">{{ $label }}</span>
+                                </label>
+                                
+                                @if($diasHorario[$key]['activo'])
+                                    <button type="button" wire:click="aplicarHorarioATodos('{{ $key }}')" title="Copiar este horario a todos los días activos" class="p-1.5 text-on-surface-variant hover:text-secondary hover:bg-secondary-container/20 rounded transition-colors flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-[18px]">content_copy</span>
+                                    </button>
+                                @endif
                             </div>
-                            <div class="flex items-center gap-1 text-xs">
-                                <input type="time" wire:model="diasHorario.{{ $key }}.inicio" class="w-full border border-outline-variant rounded px-1 py-1 bg-white" {{ $diasHorario[$key]['activo'] ? '' : 'disabled' }}>
-                                <span class="text-on-surface-variant">-</span>
-                                <input type="time" wire:model="diasHorario.{{ $key }}.fin" class="w-full border border-outline-variant rounded px-1 py-1 bg-white" {{ $diasHorario[$key]['activo'] ? '' : 'disabled' }}>
+                            
+                            {{-- Selectores de hora con wrapper --}}
+                            <div class="flex items-center gap-2 {{ $diasHorario[$key]['activo'] ? '' : 'pointer-events-none opacity-50' }}">
+                                
+                                {{-- INICIO (forzado a 24h con lang="en-GB") --}}
+                                <div class="relative w-full border border-outline-variant rounded-lg bg-white flex items-center justify-between px-3 py-2 cursor-pointer group hover:border-secondary transition-colors"
+                                     @click="$refs.pickerInicio_{{ $key }}.showPicker ? $refs.pickerInicio_{{ $key }}.showPicker() : $refs.pickerInicio_{{ $key }}.focus()">
+                                    <span x-data="{ val: @entangle('diasHorario.'.$key.'.inicio') }" class="font-body-sm text-sm text-on-surface" x-text="val ? val.substring(0,5) : '--:--'"></span>
+                                    <span class="material-symbols-outlined text-[18px] text-outline group-hover:text-secondary pointer-events-none">schedule</span>
+                                    <input type="time" 
+                                           lang="es-ES"
+                                           x-ref="pickerInicio_{{ $key }}"
+                                           wire:model="diasHorario.{{ $key }}.inicio" 
+                                           class="absolute inset-0 w-full h-full opacity-0 pointer-events-none" 
+                                           {{ $diasHorario[$key]['activo'] ? '' : 'disabled' }}>
+                                </div>
+                                
+                                <span class="text-on-surface-variant text-xs font-bold">a</span>
+                                
+                                {{-- FIN (forzado a 24h con lang="en-GB") --}}
+                                <div class="relative w-full border border-outline-variant rounded-lg bg-white flex items-center justify-between px-3 py-2 cursor-pointer group hover:border-secondary transition-colors"
+                                     @click="$refs.pickerFin_{{ $key }}.showPicker ? $refs.pickerFin_{{ $key }}.showPicker() : $refs.pickerFin_{{ $key }}.focus()">
+                                    <span x-data="{ val: @entangle('diasHorario.'.$key.'.fin') }" class="font-body-sm text-sm text-on-surface" x-text="val ? val.substring(0,5) : '--:--'"></span>
+                                    <span class="material-symbols-outlined text-[18px] text-outline group-hover:text-secondary pointer-events-none">schedule</span>
+                                    <input type="time" 
+                                           lang="en-GB"
+                                           x-ref="pickerFin_{{ $key }}"
+                                           wire:model="diasHorario.{{ $key }}.fin" 
+                                           class="absolute inset-0 w-full h-full opacity-0 pointer-events-none" 
+                                           {{ $diasHorario[$key]['activo'] ? '' : 'disabled' }}>
+                                </div>
+
                             </div>
-                            @error("diasHorario.$key.inicio") <span class="text-error text-xs">{{ $message }}</span> @enderror
-                            @error("diasHorario.$key.fin") <span class="text-error text-xs">{{ $message }}</span> @enderror
+                            
+                            @error("diasHorario.$key.inicio") <span class="text-error text-[10px]">{{ $message }}</span> @enderror
+                            @error("diasHorario.$key.fin") <span class="text-error text-[10px]">{{ $message }}</span> @enderror
                         </div>
                         @endforeach
                     </div>
                 </div>
 
-                <div class="flex flex-col gap-xs">
+                <div class="flex flex-col gap-xs pt-md border-t border-outline-variant">
                     <label class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Servicios que realiza *</label>
                     <p class="font-body-sm text-body-sm text-on-surface-variant mb-2">Selecciona al menos un servicio</p>
                     <div class="space-y-2 max-h-40 overflow-y-auto border border-outline-variant rounded-lg p-2 bg-surface">
                         @foreach($serviciosDisponibles as $servicio)
-                        <label class="flex items-center hover:bg-surface-container-low p-1 rounded cursor-pointer">
+                        <label class="flex items-center hover:bg-surface-container-low p-2 rounded cursor-pointer transition-colors">
                             <input type="checkbox" wire:model="serviciosSeleccionados" value="{{ $servicio->id }}" class="rounded border-outline-variant text-secondary focus:ring-secondary">
                             <span class="ml-2 font-body-sm text-body-sm text-on-surface">{{ $servicio->nombre }}</span>
                             <span class="ml-auto font-label-sm text-label-sm text-on-surface-variant">${{ number_format($servicio->precio, 2) }}</span>

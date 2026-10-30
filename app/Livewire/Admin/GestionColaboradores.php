@@ -33,7 +33,6 @@ class GestionColaboradores extends Component
     public $tipoMensaje = 'info';
 
     public $mostrarModal = false;
-
     public $mostrarModalEliminar = false;
     public $eliminarId = null;
     public $eliminarDetalles = [];
@@ -50,7 +49,6 @@ class GestionColaboradores extends Component
     public $fotoExistente = null;
 
     public $diasHorario = [];
-
     public $cargando = false;
 
     public $filtroBuscar = '';
@@ -60,7 +58,7 @@ class GestionColaboradores extends Component
         'cambiar-seccion' => 'resetearEstado',
     ];
 
-    private $diasSemana = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+    public $diasSemana = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
 
     public function resetearEstado()
     {
@@ -326,6 +324,41 @@ class GestionColaboradores extends Component
             ];
         }
     }
+
+    // ==================== MÉTODOS DE ACCIÓN RÁPIDA DE HORARIOS ====================
+
+    public function marcarTodosLosDias()
+    {
+        foreach ($this->diasSemana as $dia) {
+            $this->diasHorario[$dia]['activo'] = true;
+        }
+    }
+
+    public function desmarcarTodosLosDias()
+    {
+        foreach ($this->diasSemana as $dia) {
+            $this->diasHorario[$dia]['activo'] = false;
+        }
+    }
+
+    public function aplicarHorarioATodos($diaOrigen)
+    {
+        if (!isset($this->diasHorario[$diaOrigen])) return;
+        
+        $inicio = $this->diasHorario[$diaOrigen]['inicio'];
+        $fin = $this->diasHorario[$diaOrigen]['fin'];
+
+        foreach ($this->diasSemana as $dia) {
+            if ($this->diasHorario[$dia]['activo']) {
+                $this->diasHorario[$dia]['inicio'] = $inicio;
+                $this->diasHorario[$dia]['fin'] = $fin;
+            }
+        }
+        
+        $this->dispatch('success', 'Horario copiado a todos los días activos.');
+    }
+
+    // ==================== FIN MÉTODOS DE ACCIÓN RÁPIDA ====================
 
     public function eliminar($id)
     {

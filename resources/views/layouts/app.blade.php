@@ -9,6 +9,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
+    {{-- 👇 LIBRERÍA FLATPICKR (RELoj bonito) --}}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_green.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+
     <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
@@ -70,29 +76,14 @@
                         full: "9999px"
                     },
                     spacing: {
-                        gutter: "24px",
-                        "3xl": "64px",
-                        "2xl": "48px",
-                        "margin-desktop": "32px",
-                        "container-max": "1280px",
-                        lg: "24px",
-                        base: "4px",
-                        xl: "32px",
-                        xs: "4px",
-                        md: "16px",
-                        "margin-mobile": "16px",
-                        sm: "8px"
+                        gutter: "24px", "3xl": "64px", "2xl": "48px", "margin-desktop": "32px",
+                        "container-max": "1280px", lg: "24px", base: "4px", xl: "32px", xs: "4px",
+                        md: "16px", "margin-mobile": "16px", sm: "8px"
                     },
                     fontFamily: {
-                        "label-md": ["Inter"],
-                        "body-sm": ["Inter"],
-                        "headline-md": ["Inter"],
-                        "headline-lg": ["Inter"],
-                        "body-lg": ["Inter"],
-                        "headline-xl": ["Inter"],
-                        "label-sm": ["Inter"],
-                        "headline-lg-mobile": ["Inter"],
-                        "body-md": ["Inter"]
+                        "label-md": ["Inter"], "body-sm": ["Inter"], "headline-md": ["Inter"],
+                        "headline-lg": ["Inter"], "body-lg": ["Inter"], "headline-xl": ["Inter"],
+                        "label-sm": ["Inter"], "headline-lg-mobile": ["Inter"], "body-md": ["Inter"]
                     },
                     fontSize: {
                         "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
@@ -116,6 +107,14 @@
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
             vertical-align: middle;
         }
+        /* Fuerza a que el reloj se dibuje por encima del modal */
+        .flatpickr-calendar {
+            z-index: 99999 !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #c6c6cd;
+            border-radius: 0.75rem;
+            font-family: 'Inter', sans-serif;
+        }
         @yield('styles');
     </style>
 </head>
@@ -124,22 +123,48 @@
     
     @stack('scripts')
 
-    {{-- 👇 SCRIPT PARA EXPIRACIÓN DE SESIÓN POR INACTIVIDAD 👇 --}}
+    {{-- 👇 SCRIPT PARA SESIÓN Y PARA INICIALIZAR EL RELOJ --}}
     <script>
         document.addEventListener('livewire:init', () => {
-            
-            // 1. Desactivar el modal nativo de "This page has expired" de Livewire
+            // 1. Evitar modal nativo de Livewire en sesiones expiradas
             Livewire.config.alertOnSessionExpired = false;
-
-            // 2. Si de verdad expiró la sesión (por inactividad), recargar de forma silenciosa
             Livewire.hook('request', ({ fail }) => {
                 fail(({ status, preventDefault }) => {
                     if (status === 419) {
-                        preventDefault(); // Evita que Livewire muestre su cartel negro
-                        window.location.reload(); // Recarga la página
+                        preventDefault();
+                        window.location.reload();
                     }
                 });
             });
+        });
+
+        // 2. Inicializar Flatpickr con Alpine (Garantiza que Livewire no lo borre)
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('timePicker', (model) => ({
+                model,
+                init() {
+                    if (typeof flatpickr === 'undefined') return;
+                    
+                    let picker = flatpickr(this.$refs.input, {
+                        enableTime: true,
+                        noCalendar: true,
+                        dateFormat: 'H:i',
+                        time_24hr: true,
+                        defaultDate: this.model || null,
+                        locale: 'es',
+                        onChange: (selectedDates, dateStr) => { 
+                            this.model = dateStr; 
+                        }
+                    });
+
+                    // Escuchar si Livewire cambia el valor desde el servidor (ej. botón "Copiar a todos")
+                    this.$watch('model', val => {
+                        if (val && picker.input.value !== val) {
+                            picker.setDate(val, false);
+                        }
+                    });
+                }
+            }));
         });
     </script>
 </body>
